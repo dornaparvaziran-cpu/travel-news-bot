@@ -55,7 +55,8 @@ FEEDS = [
     "https://www.entekhab.ir/fa/rss",
     "https://www.mehrnews.com/rss/tp/37",
     "https://www.tinn.ir/fa/feeds/?p=Y2F0ZWdvcmllcz00",
-    "https://airc.ir/RSS",]
+#    "https://airc.ir/RSS",
+]
 
 CATEGORIES = {
     "#هواپیمایی": ["هواپیمایی", "هواپیما", "پرواز", "ایرلاین", "فرودگاه", "بلیط", "airline", "flight", "aviation", "airport"],
@@ -203,7 +204,7 @@ async def fetch_random_flight_prices():
 def send_news_only():
     news = fetch_news()
     if news:
-        send_to_all("📰 <b>اخبار گردشگری و هواپیمایی</b>\n")
+   #     send_to_all("📰 <b>اخبار گردشگری و هواپیمایی</b>\n")
         sent = load_sent()
         for title, link, image_url in news:
             summary = summarize_with_ai(title)
