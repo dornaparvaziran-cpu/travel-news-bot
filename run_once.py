@@ -2,7 +2,8 @@ import os
 import requests
 import feedparser
 import asyncio
-import random  # برای انتخاب تصادفی مسیرها
+import random
+import sys
 from datetime import datetime
 from playwright.async_api import async_playwright
 
@@ -10,12 +11,9 @@ BOT_TOKEN = os.getenv("BOT_TOKEN")
 CHANNEL_ID = os.getenv("CHANNEL_ID")
 METIS_KEY = os.getenv("METIS_KEY")
 
-# ---------- لیست بزرگ مسیرهای پرفروش ----------
-# کدهای فرودگاه: THR=تهران، MHD=مشهد، KIH=کیش، SYZ=شیراز، IFN=اصفهان، TBZ=تبریز، AWZ=اهواز
-# IST=استانبول، DXB=دبی، IKA=تهران(امام)، THR=تهران(مهرآباد)
 ALL_ROUTES = [
     # --- داخلی ---
-    {"name": "تهران به مشهد", "url": "https://dornatravel.ir/flight/THR-MHD"},
+   {"name": "تهران به مشهد", "url": "https://dornatravel.ir/flight/THR-MHD"},
     {"name": "مشهد به تهران", "url": "https://dornatravel.ir/flight/MHD-THR"},
     {"name": "تهران به کیش", "url": "https://dornatravel.ir/flight/THR-KIH"},
     {"name": "کیش به تهران", "url": "https://dornatravel.ir/flight/KIH-THR"},
@@ -39,9 +37,7 @@ ALL_ROUTES = [
     {"name": "تهران به مسقط", "url": "https://dornatravel.ir/flight/IKA-MCT"},
 ]
 
-# ---------- تنظیمات تعداد مسیر رندوم ----------
-# هر بار که ربات اجرا می‌شود، چند مسیر به صورت تصادفی انتخاب شود؟
-NUMBER_OF_ROUTES = 5 
+NUMBER_OF_ROUTES = 3 
 
 FEEDS = [
     "https://www.irna.ir/rss",
@@ -153,7 +149,6 @@ def fetch_news(max_per_feed=3):
             print(f"Feed error: {e}")
     return collected
 
-# ---------- استخراج قیمت از سایت ----------
 async def get_prices_for_route(browser, route_name, route_url):
     page = await browser.new_page()
     try:
@@ -190,7 +185,6 @@ async def get_prices_for_route(browser, route_name, route_url):
         return None
 
 async def fetch_random_flight_prices():
-    # 🎲 انتخاب تعداد مشخصی مسیر به صورت کاملاً تصادفی از لیست بزرگ
     selected_routes = random.sample(ALL_ROUTES, NUMBER_OF_ROUTES)
     print(f"Selected random routes: {[r['name'] for r in selected_routes]}")
     
@@ -207,13 +201,10 @@ async def fetch_random_flight_prices():
         
         await browser.close()
 
-def main():
-    print(f"Start: {datetime.now()}")
-    
-    # ۱. ارسال اخبار
+def send_news_only():
     news = fetch_news()
     if news:
-    #    send_telegram_post("📰 <b>اخبار گردشگری و هواپیمایی</b>\n")
+        send_telegram_post("📰 <b>اخبار گردشگری و هواپیمایی</b>\n")
         sent = load_sent()
         for title, link, image_url in news:
             summary = summarize_with_ai(title)
@@ -223,10 +214,23 @@ def main():
                 sent.add(link)
                 print(f"Sent: {title[:50]}")
         save_sent(sent)
-        
-    # ۲. ارسال قیمت‌های چند مسیر رندوم
-    print("Fetching flight prices for random routes...")
-    asyncio.run(fetch_random_flight_prices())
+
+def main():
+    # 🔴 تشخیص نوع اجرا (خبر یا قیمت) بر اساس دستوری که از گیت‌هاب می‌رسد
+    mode = sys.argv[1] if len(sys.argv) > 1 else "all"
+    print(f"Start in mode: {mode} at {datetime.now()}")
+    
+    if mode == "news":
+        print("Fetching news only...")
+        send_news_only()
+    elif mode == "prices":
+        print("Fetching flight prices only...")
+        asyncio.run(fetch_random_flight_prices())
+    else:
+        # اگر هیچ دستوری نیامد (مثلاً تست دستی)، هر دو را انجام بده
+        print("Running all...")
+        send_news_only()
+        asyncio.run(fetch_random_flight_prices())
 
 if __name__ == "__main__":
     main()
