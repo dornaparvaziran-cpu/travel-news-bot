@@ -9,7 +9,6 @@ BOT_TOKEN = os.getenv("BOT_TOKEN")
 CHANNEL_ID = os.getenv("CHANNEL_ID")
 METIS_KEY = os.getenv("METIS_KEY")
 
-# ---------- آدرس دقیق صفحه‌ای که قیمت‌ها را نشان می‌دهد ----------
 YOUR_SITE_URL = "https://dornatravel.ir/flight/MHD-KIH" 
 
 FEEDS = [
@@ -128,23 +127,22 @@ async def get_site_prices():
         
         try:
             print(f"Opening {YOUR_SITE_URL}...")
-            await page.goto(YOUR_SITE_URL, timeout=60000, wait_until="networkidle")
+            # 🔴 راه‌حل اصلی اینجاست: به جای networkidle از domcontentloaded استفاده می‌کنیم
+            # یعنی فقط منتظر می‌مانیم که ساختار اصلی صفحه ساخته شود، نه اینکه شبکه کاملاً قطع شود
+            await page.goto(YOUR_SITE_URL, timeout=60000, wait_until="domcontentloaded")
             
-            # صبر می‌کنیم تا قیمت‌ها کاملاً لود شوند
-            await page.wait_for_timeout(5000)
+            # ۸ ثانیه صبر می‌کنیم تا جاوااسکریپت سایت اجرا شود و قیمت‌ها رویت شوند
+            print("Waiting for prices to load...")
+            await page.wait_for_timeout(8000)
             
             # پیدا کردن تمام متن‌های داخل صفحه
-            # سایت شما قیمت‌ها را کنار عبارت "نرخ رسمی ایرلاین" می‌نویسد
-            # ما به دنبال المان‌هایی می‌گردیم که کلمه "تومان" در آن‌ها هست
             all_elements = await page.locator("body *").all()
             
             prices = []
             for el in all_elements:
                 try:
                     text = await el.inner_text()
-                    # اگر متن شامل "تومان" بود و عدد داشت، احتمالا قیمت است
                     if "تومان" in text and len(text) < 30 and any(char.isdigit() for char in text):
-                        # برای جلوگیری از تکرار، چک می‌کنیم قبلا اضافه نشده باشد
                         if text not in prices:
                             prices.append(text)
                 except:
@@ -158,7 +156,6 @@ async def get_site_prices():
                 
             result_text = "✈️ <b>قیمت‌های لحظه‌ای پرواز مشهد به کیش</b>\n\n"
             
-            # فقط ۵ قیمت اول را نمایش می‌دهیم تا پیام خیلی طولانی نشود
             for i, p in enumerate(prices[:5]):
                 result_text += f"🔹 {p}\n"
             
