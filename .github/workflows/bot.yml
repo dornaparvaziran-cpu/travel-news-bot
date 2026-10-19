@@ -2,31 +2,52 @@ name: Travel News Bot
 
 on:
   schedule:
-    - cron: '30 5 * * *'  # ۹ صبح تهران
+    # 🕘 ساعت ۹ صبح تهران (۵:۳۰ UTC) -> فقط اخبار
+    - cron: '30 5 * * *'
+    # 🕙 ساعت ۱۰ صبح تهران (۶:۳۰ UTC) -> فقط قیمت پروازها
+    - cron: '30 6 * * *'
+    # 🕔 ساعت ۵ عصر تهران (۱۳:۳۰ UTC) -> فقط اخبار
     - cron: '30 13 * * *'
-  workflow_dispatch:
+    # 🕕 ساعت ۶ عصر تهران (۱۴:۳۰ UTC) -> فقط قیمت پروازها
+    - cron: '30 14 * * *'
+  workflow_dispatch: # برای اجرای دستی
 
 jobs:
-  run-bot:
+  # 📰 جاب مخصوص اخبار (ساعت ۹ صبح و ۵ عصر)
+  run-news:
+    if: github.event.schedule == '30 5 * * *' || github.event.schedule == '30 13 * * *' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Python
-        uses: actions/setup-python@v5
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
+      - name: Install deps
+        run: pip install -r requirements.txt
+      - name: Run News
+        env:
+          BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
+          CHANNEL_ID: ${{ secrets.CHANNEL_ID }}
+          METIS_KEY: ${{ secrets.METIS_KEY }}
+        run: python run_once.py news
 
+  # ✈️ جاب مخصوص قیمت‌ها (ساعت ۱۰ صبح و ۶ عصر)
+  run-prices:
+    if: github.event.schedule == '30 6 * * *' || github.event.schedule == '30 14 * * *' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
       - name: Install deps
         run: |
           pip install -r requirements.txt
           playwright install chromium
           playwright install-deps chromium
-
-      - name: Run bot
+      - name: Run Prices
         env:
           BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
           CHANNEL_ID: ${{ secrets.CHANNEL_ID }}
           METIS_KEY: ${{ secrets.METIS_KEY }}
-        run: python run_once.py
+        run: python run_once.py prices
