@@ -29,6 +29,8 @@ jobs:
           BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
           CHANNEL_ID: ${{ secrets.CHANNEL_ID }}
           METIS_KEY: ${{ secrets.METIS_KEY }}
+          EITA_TOKEN: ${{ secrets.EITA_TOKEN }}          # 👈 این خط باید باشد
+          EITA_CHANNEL_ID: ${{ secrets.EITA_CHANNEL_ID }} # 👈 و این خط
         run: python run_once.py news
 
   # ✈️ جاب مخصوص قیمت‌ها (ساعت ۱۰ صبح و ۶ عصر)
@@ -50,4 +52,6 @@ jobs:
           BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
           CHANNEL_ID: ${{ secrets.CHANNEL_ID }}
           METIS_KEY: ${{ secrets.METIS_KEY }}
+          EITA_TOKEN: ${{ secrets.EITA_TOKEN }}          # 👈 این خط باید باشد
+          EITA_CHANNEL_ID: ${{ secrets.EITA_CHANNEL_ID }} # 👈 و این خط        
         run: python run_once.py prices
