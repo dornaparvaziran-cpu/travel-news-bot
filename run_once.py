@@ -114,7 +114,7 @@ def send_to_eita(text, image_url=None):
     # تبدیل تگ‌های HTML به Markdown مخصوص ایتا
     text_md = text
     text_md = text_md.replace("<b>", "**").replace("</b>", "**")
-    # تبدیل <a href='URL'>متن</a> به [متن](URL)
+    # تبدیل <a href='URL'>متن</a> به [متن] URL
     text_md = re.sub(r"<a href='([^']+)'>([^<]+)</a>", r"[\2](\1)", text_md)
     
     # ⚠️ عمداً عکس را برای ایتا نمی‌فرستیم (None) تا خطا ندهد
