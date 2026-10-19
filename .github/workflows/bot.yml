@@ -4,6 +4,7 @@ on:
   schedule:
     # ⏰ هر روز ساعت ۵:۳۰ UTC = ۹:۰۰ صبح تهران
     - cron: '30 5 * * *'
+    - cron: '30 12 * * *'
   workflow_dispatch:   # امکان اجرای دستی از تب Actions
 
 jobs:
