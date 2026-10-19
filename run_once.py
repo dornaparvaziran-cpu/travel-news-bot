@@ -1,30 +1,20 @@
 import os
-import sys  # اضافه شد
+import sys
 import requests
 import feedparser
 import asyncio
 import random
+import re
 from datetime import datetime
 from playwright.async_api import async_playwright
 
-# ---------- خواندن مقادیر به روش مطمئن ----------
-# این روش هم با گیت‌هاب کار می‌کند هم با اجرای لوکال
 TG_TOKEN = os.environ.get("BOT_TOKEN")
 TG_CHANNEL = os.environ.get("CHANNEL_ID")
-
 EITA_TOKEN = os.environ.get("EITA_TOKEN")
 EITA_CHANNEL = os.environ.get("EITA_CHANNEL_ID")
-
 METIS_KEY = os.environ.get("METIS_KEY")
 
-# خطوط دیباگ (برای اینکه ببینیم درست خوانده شده یا نه)
-print(f"DEBUG: BOT_TOKEN length = {len(TG_TOKEN) if TG_TOKEN else 0}")
-print(f"DEBUG: EITA_TOKEN length = {len(EITA_TOKEN) if EITA_TOKEN else 0}")
-print(f"DEBUG: EITA_CHANNEL_ID = {EITA_CHANNEL}")
-# ----------------------------------------
-
-ALL_ROUTES = [
-  {"name": "تهران به مشهد", "url": "https://dornatravel.ir/flight/THR-MHD"},
+ALL_ROUTES = [ {"name": "تهران به مشهد", "url": "https://dornatravel.ir/flight/THR-MHD"},
     {"name": "مشهد به تهران", "url": "https://dornatravel.ir/flight/MHD-THR"},
     {"name": "تهران به کیش", "url": "https://dornatravel.ir/flight/THR-KIH"},
     {"name": "کیش به تهران", "url": "https://dornatravel.ir/flight/KIH-THR"},
@@ -48,8 +38,7 @@ ALL_ROUTES = [
     {"name": "تهران به مسقط", "url": "https://dornatravel.ir/flight/IKA-MCT"},
 ]
 
-NUMBER_OF_ROUTES = 5 
-
+NUMBER_OF_ROUTES = 3 
 FEEDS = [
    "https://www.irna.ir/rss",
     "https://www.isna.ir/rss",
@@ -96,31 +85,56 @@ def get_image_url(entry):
             if link.get('type', '').startswith('image/'): return link.get('href')
     return None
 
+# ---------- ارسال به تلگرام (با MarkdownV2 و escape) ----------
+def escape_markdown(text):
+    # کاراکترهای خاص MarkdownV2 رو escape می‌کنیم
+    return re.sub(r'([_*\[\]()~`>#+\-=|{}.!])', r'\\\1', text)
+
 def send_to_telegram(text, image_url=None):
     if not TG_TOKEN or not TG_CHANNEL: return False
+    
+    # برای تلگرام از MarkdownV2 استفاده می‌کنیم
+    escaped_text = escape_markdown(text)
+    
     if image_url:
         url = f"https://api.telegram.org/bot{TG_TOKEN}/sendPhoto"
-        payload = {"chat_id": TG_CHANNEL, "photo": image_url, "caption": text, "parse_mode": "HTML"}
+        payload = {"chat_id": TG_CHANNEL, "photo": image_url, "caption": escaped_text, "parse_mode": "MarkdownV2"}
     else:
         url = f"https://api.telegram.org/bot{TG_TOKEN}/sendMessage"
-        payload = {"chat_id": TG_CHANNEL, "text": text, "parse_mode": "HTML", "disable_web_page_preview": False}
+        payload = {"chat_id": TG_CHANNEL, "text": escaped_text, "parse_mode": "MarkdownV2", "disable_web_page_preview": False}
     try:
         r = requests.post(url, data=payload, timeout=20)
         if not r.ok:
+            print("Telegram error:", r.text)
             if image_url: return send_to_telegram(text, None)
             return False
         return True
-    except: return False
+    except Exception as e:
+        print("Telegram exception:", e)
+        return False
 
+# ---------- ارسال به ایتا (با Markdown و فرمت لینک درست) ----------
 def send_to_eita(text, image_url=None):
     if not EITA_TOKEN or not EITA_CHANNEL: return False
+    
+    # در ایتا از Markdown استفاده می‌کنیم و لینک رو با فرمت [متن](url) می‌فرستیم
+    # برای این کار باید HTML رو به Markdown تبدیل کنیم
+    # ما در کد اصلی از <a href='...'>متن</a> استفاده کردیم، اینجا باید تبدیلش کنیم
+    
+    # یک تبدیل ساده: <a href='URL'>متن</a> -> [متن](URL)
+    text_md = re.sub(r"<a href='([^']+)'>([^<]+)</a>", r"[\2](\1)", text)
+    # حذف تگ‌های <b> و </b> (در ایتا Markdown از ** استفاده می‌کنه)
+    text_md = text_md.replace("<b>", "**").replace("</b>", "**")
+    
     base_url = f"https://eitaayar.ir/api/{EITA_TOKEN}"
+    
     if image_url:
         url = f"{base_url}/sendPhoto"
-        payload = {"chat_id": EITA_CHANNEL, "photo": image_url, "caption": text, "parse_mode": "HTML"}
+        payload = {"chat_id": EITA_CHANNEL, "photo": image_url, "caption": text_md, "parse_mode": "Markdown"}
     else:
         url = f"{base_url}/sendMessage"
-        payload = {"chat_id": EITA_CHANNEL, "text": text, "parse_mode": "HTML", "disable_web_page_preview": False}
+        payload = {"chat_id": EITA_CHANNEL, "text": text_md, "parse_mode": "Markdown", "disable_web_page_preview": False}
+    
     try:
         r = requests.post(url, data=payload, timeout=20)
         if not r.ok:
@@ -188,6 +202,7 @@ async def get_prices_for_route(browser, route_name, route_url):
         result_text += f"\n🌐 <a href='{route_url}'>مشاهده و خرید در سایت</a>"
         return result_text
     except Exception as e:
+        print(f"Playwright error for {route_name}: {e}")
         await page.close()
         return None
 
