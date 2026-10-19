@@ -9,8 +9,8 @@ BOT_TOKEN = os.getenv("BOT_TOKEN")
 CHANNEL_ID = os.getenv("CHANNEL_ID")
 METIS_KEY = os.getenv("METIS_KEY")
 
-# ---------- آدرس صفحه‌ای از سایت که قیمت‌ها را نشان می‌دهد ----------
-YOUR_SITE_URL = "https://dornatravel.ir/" # ⚠️ این را به آدرس دقیق صفحه قیمت‌ها تغییر بده
+# ---------- آدرس دقیق صفحه‌ای که قیمت‌ها را نشان می‌دهد ----------
+YOUR_SITE_URL = "https://dornatravel.ir/flight/MHD-KIH" 
 
 FEEDS = [
     "https://www.irna.ir/rss",
@@ -120,7 +120,7 @@ def fetch_news(max_per_feed=3):
             print(f"Feed error: {e}")
     return collected
 
-# ---------- استخراج قیمت از سایت با Playwright ----------
+# ---------- استخراج قیمت از سایت ----------
 async def get_site_prices():
     async with async_playwright() as p:
         browser = await p.chromium.launch(headless=True)
@@ -130,28 +130,39 @@ async def get_site_prices():
             print(f"Opening {YOUR_SITE_URL}...")
             await page.goto(YOUR_SITE_URL, timeout=60000, wait_until="networkidle")
             
-            # پیدا کردن تگ‌های قیمت بر اساس کلاسی که فرستادی
-            price_elements = await page.locator("strong.size-22").all()
+            # صبر می‌کنیم تا قیمت‌ها کاملاً لود شوند
+            await page.wait_for_timeout(5000)
             
-            if not price_elements:
-                print("No price found on site.")
-                return None
+            # پیدا کردن تمام متن‌های داخل صفحه
+            # سایت شما قیمت‌ها را کنار عبارت "نرخ رسمی ایرلاین" می‌نویسد
+            # ما به دنبال المان‌هایی می‌گردیم که کلمه "تومان" در آن‌ها هست
+            all_elements = await page.locator("body *").all()
             
             prices = []
-            for el in price_elements[:3]:
-                text = await el.inner_text()
-                prices.append(text.strip())
-                
+            for el in all_elements:
+                try:
+                    text = await el.inner_text()
+                    # اگر متن شامل "تومان" بود و عدد داشت، احتمالا قیمت است
+                    if "تومان" in text and len(text) < 30 and any(char.isdigit() for char in text):
+                        # برای جلوگیری از تکرار، چک می‌کنیم قبلا اضافه نشده باشد
+                        if text not in prices:
+                            prices.append(text)
+                except:
+                    pass
+            
             await browser.close()
             
             if not prices:
+                print("No price found on site.")
                 return None
                 
-            result_text = "✈️ <b>قیمت‌های لحظه‌ای از سایت درنا سفر</b>\n\n"
-            for i, p in enumerate(prices):
-                result_text += f"🔹 قیمت {i+1}: {p} تومان\n"
+            result_text = "✈️ <b>قیمت‌های لحظه‌ای پرواز مشهد به کیش</b>\n\n"
             
-            result_text += "\n🌐 <a href='https://dornatravel.ir'>مشاهده در سایت</a>"
+            # فقط ۵ قیمت اول را نمایش می‌دهیم تا پیام خیلی طولانی نشود
+            for i, p in enumerate(prices[:5]):
+                result_text += f"🔹 {p}\n"
+            
+            result_text += f"\n🌐 <a href='{YOUR_SITE_URL}'>مشاهده و خرید در سایت</a>"
             return result_text
             
         except Exception as e:
