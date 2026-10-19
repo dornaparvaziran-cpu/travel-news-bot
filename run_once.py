@@ -211,6 +211,9 @@ def send_news_only():
             text = f"🔹 <b>{summary}</b>\n\n🔗 <a href='{link}'>مشاهده خبر کامل</a>\n\n{category}"
             if send_to_all(text, image_url): sent.add(link)
         save_sent(sent)
+       
+print("EITA_TOKEN length:", len(os.getenv("EITA_TOKEN") or ""))
+print("EITA_CHANNEL_ID value:", os.getenv("EITA_CHANNEL_ID"))
 
 def main():
     mode = sys.argv[1] if len(sys.argv) > 1 else "all"
