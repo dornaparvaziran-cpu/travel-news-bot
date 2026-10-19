@@ -1,24 +1,30 @@
 import os
+import sys  # اضافه شد
 import requests
 import feedparser
 import asyncio
 import random
-import sys
 from datetime import datetime
 from playwright.async_api import async_playwright
 
-# ---------- توکن‌ها و آیدی‌های تلگرام ----------
-TG_TOKEN = os.getenv("BOT_TOKEN")
-TG_CHANNEL = os.getenv("CHANNEL_ID")
+# ---------- خواندن مقادیر به روش مطمئن ----------
+# این روش هم با گیت‌هاب کار می‌کند هم با اجرای لوکال
+TG_TOKEN = os.environ.get("BOT_TOKEN")
+TG_CHANNEL = os.environ.get("CHANNEL_ID")
 
-# ---------- توکن‌ها و آیدی‌های ایتایار ----------
-EITA_TOKEN = os.getenv("EITA_TOKEN")      # توکنی که از پنل ایتایار می‌گیری
-EITA_CHANNEL = os.getenv("EITA_CHANNEL_ID") # آیدی کانال در ایتایار
+EITA_TOKEN = os.environ.get("EITA_TOKEN")
+EITA_CHANNEL = os.environ.get("EITA_CHANNEL_ID")
 
-METIS_KEY = os.getenv("METIS_KEY")
+METIS_KEY = os.environ.get("METIS_KEY")
+
+# خطوط دیباگ (برای اینکه ببینیم درست خوانده شده یا نه)
+print(f"DEBUG: BOT_TOKEN length = {len(TG_TOKEN) if TG_TOKEN else 0}")
+print(f"DEBUG: EITA_TOKEN length = {len(EITA_TOKEN) if EITA_TOKEN else 0}")
+print(f"DEBUG: EITA_CHANNEL_ID = {EITA_CHANNEL}")
+# ----------------------------------------
 
 ALL_ROUTES = [
-   {"name": "تهران به مشهد", "url": "https://dornatravel.ir/flight/THR-MHD"},
+  {"name": "تهران به مشهد", "url": "https://dornatravel.ir/flight/THR-MHD"},
     {"name": "مشهد به تهران", "url": "https://dornatravel.ir/flight/MHD-THR"},
     {"name": "تهران به کیش", "url": "https://dornatravel.ir/flight/THR-KIH"},
     {"name": "کیش به تهران", "url": "https://dornatravel.ir/flight/KIH-THR"},
@@ -42,7 +48,8 @@ ALL_ROUTES = [
     {"name": "تهران به مسقط", "url": "https://dornatravel.ir/flight/IKA-MCT"},
 ]
 
-NUMBER_OF_ROUTES = 5
+NUMBER_OF_ROUTES = 5 
+
 FEEDS = [
    "https://www.irna.ir/rss",
     "https://www.isna.ir/rss",
@@ -57,7 +64,6 @@ FEEDS = [
     "https://www.tinn.ir/fa/feeds/?p=Y2F0ZWdvcmllcz00",
 #    "https://airc.ir/RSS",
 ]
-
 CATEGORIES = {
     "#هواپیمایی": ["هواپیمایی", "هواپیما", "پرواز", "ایرلاین", "فرودگاه", "بلیط", "airline", "flight", "aviation", "airport"],
     "#گردشگری": ["گردشگری", "توریسم", "سفر", "توریست", "هتل", "tourist", "travel", "tourism", "hotel"]
@@ -90,7 +96,6 @@ def get_image_url(entry):
             if link.get('type', '').startswith('image/'): return link.get('href')
     return None
 
-# ---------- ارسال به تلگرام ----------
 def send_to_telegram(text, image_url=None):
     if not TG_TOKEN or not TG_CHANNEL: return False
     if image_url:
@@ -107,20 +112,15 @@ def send_to_telegram(text, image_url=None):
         return True
     except: return False
 
-# ---------- 🔴 ارسال به ایتا از طریق ایتایار ----------
 def send_to_eita(text, image_url=None):
     if not EITA_TOKEN or not EITA_CHANNEL: return False
-    
-    # آدرس API ایتایار
     base_url = f"https://eitaayar.ir/api/{EITA_TOKEN}"
-    
     if image_url:
         url = f"{base_url}/sendPhoto"
         payload = {"chat_id": EITA_CHANNEL, "photo": image_url, "caption": text, "parse_mode": "HTML"}
     else:
         url = f"{base_url}/sendMessage"
         payload = {"chat_id": EITA_CHANNEL, "text": text, "parse_mode": "HTML", "disable_web_page_preview": False}
-    
     try:
         r = requests.post(url, data=payload, timeout=20)
         if not r.ok:
@@ -131,11 +131,10 @@ def send_to_eita(text, image_url=None):
         print("Eitaa exception:", e)
         return False
 
-# ---------- 🚀 ارسال همزمان به هر دو ----------
 def send_to_all(text, image_url=None):
     print("-> Sending to Telegram...")
     tg_ok = send_to_telegram(text, image_url)
-    print(f"-> Sending to Eitaa...")
+    print("-> Sending to Eitaa...")
     eita_ok = send_to_eita(text, image_url)
     return tg_ok or eita_ok
 
@@ -212,12 +211,10 @@ def send_news_only():
             text = f"🔹 <b>{summary}</b>\n\n🔗 <a href='{link}'>مشاهده خبر کامل</a>\n\n{category}"
             if send_to_all(text, image_url): sent.add(link)
         save_sent(sent)
-       
-print("EITA_TOKEN length:", len(os.getenv("EITA_TOKEN") or ""))
-print("EITA_CHANNEL_ID value:", os.getenv("EITA_CHANNEL_ID"))
 
 def main():
     mode = sys.argv[1] if len(sys.argv) > 1 else "all"
+    print(f"Start in mode: {mode} at {datetime.now()}")
     if mode == "news": send_news_only()
     elif mode == "prices": asyncio.run(fetch_random_flight_prices())
     else:
