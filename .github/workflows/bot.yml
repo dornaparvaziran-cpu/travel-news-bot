@@ -2,10 +2,9 @@ name: Travel News Bot
 
 on:
   schedule:
-    # ⏰ هر روز ساعت ۵:۳۰ UTC = ۹:۰۰ صبح تهران
-    - cron: '30 5 * * *'
-    - cron: '30 12 * * *'
-  workflow_dispatch:   # امکان اجرای دستی از تب Actions
+    - cron: '30 5 * * *'  # ۹ صبح تهران
+    - cron: '30 13 * * *'
+  workflow_dispatch:
 
 jobs:
   run-bot:
@@ -20,10 +19,14 @@ jobs:
           python-version: '3.11'
 
       - name: Install deps
-        run: pip install -r requirements.txt
+        run: |
+          pip install -r requirements.txt
+          playwright install chromium
+          playwright install-deps chromium
 
       - name: Run bot
         env:
           BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
           CHANNEL_ID: ${{ secrets.CHANNEL_ID }}
+          METIS_KEY: ${{ secrets.METIS_KEY }}
         run: python run_once.py
