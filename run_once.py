@@ -32,13 +32,16 @@ ALL_ROUTES = [
     {"name": "تهران به دبی", "url": "https://dornatravel.ir/flight/IKA-DXB"},
     {"name": "مشهد به استانبول", "url": "https://dornatravel.ir/flight/MHD-IST"},
     {"name": "شیراز به دبی", "url": "https://dornatravel.ir/flight/SYZ-DXB"},
+    {"name": "مشهد به نجف", "url": "https://dornatravel.ir/flight/MHD-NJF"},
     {"name": "تهران به نجف", "url": "https://dornatravel.ir/flight/IKA-NJF"},
+     {"name": "نجف به مشهد", "url": "https://dornatravel.ir/flight/NJF-MHD"},
+    {"name": " نجف به تهران", "url": "https://dornatravel.ir/flight/NJF-IKA"},
     {"name": "تهران به مسقط", "url": "https://dornatravel.ir/flight/IKA-MCT"},
 ]
 
 # ---------- تنظیمات تعداد مسیر رندوم ----------
 # هر بار که ربات اجرا می‌شود، چند مسیر به صورت تصادفی انتخاب شود؟
-NUMBER_OF_ROUTES = 3 
+NUMBER_OF_ROUTES = 5 
 
 FEEDS = [
     "https://www.irna.ir/rss",
@@ -51,6 +54,8 @@ FEEDS = [
     "https://snn.ir/fa/rss",
     "https://www.entekhab.ir/fa/rss",
     "https://www.mehrnews.com/rss/tp/37",
+    "https://www.tinn.ir/fa/feeds/?p=Y2F0ZWdvcmllcz00",
+    "https://airc.ir/RSS",
 ]
 
 CATEGORIES = {
