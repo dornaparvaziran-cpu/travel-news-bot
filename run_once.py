@@ -14,7 +14,8 @@ EITA_TOKEN = os.environ.get("EITA_TOKEN")
 EITA_CHANNEL = os.environ.get("EITA_CHANNEL_ID")
 METIS_KEY = os.environ.get("METIS_KEY")
 
-ALL_ROUTES = [ {"name": "تهران به مشهد", "url": "https://dornatravel.ir/flight/THR-MHD"},
+ALL_ROUTES = [ 
+    {"name": "تهران به مشهد", "url": "https://dornatravel.ir/flight/THR-MHD"},
     {"name": "مشهد به تهران", "url": "https://dornatravel.ir/flight/MHD-THR"},
     {"name": "تهران به کیش", "url": "https://dornatravel.ir/flight/THR-KIH"},
     {"name": "کیش به تهران", "url": "https://dornatravel.ir/flight/KIH-THR"},
@@ -38,7 +39,8 @@ ALL_ROUTES = [ {"name": "تهران به مشهد", "url": "https://dornatravel.
     {"name": "تهران به مسقط", "url": "https://dornatravel.ir/flight/IKA-MCT"},
 ]
 
-NUMBER_OF_ROUTES = 3 
+NUMBER_OF_ROUTES = 5
+
 FEEDS = [
    "https://www.irna.ir/rss",
     "https://www.isna.ir/rss",
@@ -85,23 +87,15 @@ def get_image_url(entry):
             if link.get('type', '').startswith('image/'): return link.get('href')
     return None
 
-# ---------- ارسال به تلگرام (با MarkdownV2 و escape) ----------
-def escape_markdown(text):
-    # کاراکترهای خاص MarkdownV2 رو escape می‌کنیم
-    return re.sub(r'([_*\[\]()~`>#+\-=|{}.!])', r'\\\1', text)
-
+# ---------- ۱. ارسال به تلگرام (دقیقاً مثل قبل، با HTML و خوشکل) ----------
 def send_to_telegram(text, image_url=None):
     if not TG_TOKEN or not TG_CHANNEL: return False
-    
-    # برای تلگرام از MarkdownV2 استفاده می‌کنیم
-    escaped_text = escape_markdown(text)
-    
     if image_url:
         url = f"https://api.telegram.org/bot{TG_TOKEN}/sendPhoto"
-        payload = {"chat_id": TG_CHANNEL, "photo": image_url, "caption": escaped_text, "parse_mode": "MarkdownV2"}
+        payload = {"chat_id": TG_CHANNEL, "photo": image_url, "caption": text, "parse_mode": "HTML"}
     else:
         url = f"https://api.telegram.org/bot{TG_TOKEN}/sendMessage"
-        payload = {"chat_id": TG_CHANNEL, "text": escaped_text, "parse_mode": "MarkdownV2", "disable_web_page_preview": False}
+        payload = {"chat_id": TG_CHANNEL, "text": text, "parse_mode": "HTML", "disable_web_page_preview": False}
     try:
         r = requests.post(url, data=payload, timeout=20)
         if not r.ok:
@@ -113,27 +107,20 @@ def send_to_telegram(text, image_url=None):
         print("Telegram exception:", e)
         return False
 
-# ---------- ارسال به ایتا (با Markdown و فرمت لینک درست) ----------
+# ---------- ۲. ارسال به ایتا (تبدیل HTML به Markdown + بدون عکس) ----------
 def send_to_eita(text, image_url=None):
     if not EITA_TOKEN or not EITA_CHANNEL: return False
     
-    # در ایتا از Markdown استفاده می‌کنیم و لینک رو با فرمت [متن](url) می‌فرستیم
-    # برای این کار باید HTML رو به Markdown تبدیل کنیم
-    # ما در کد اصلی از <a href='...'>متن</a> استفاده کردیم، اینجا باید تبدیلش کنیم
-    
-    # یک تبدیل ساده: <a href='URL'>متن</a> -> [متن](URL)
-    text_md = re.sub(r"<a href='([^']+)'>([^<]+)</a>", r"[\2](\1)", text)
-    # حذف تگ‌های <b> و </b> (در ایتا Markdown از ** استفاده می‌کنه)
+    # تبدیل تگ‌های HTML به Markdown مخصوص ایتا
+    text_md = text
     text_md = text_md.replace("<b>", "**").replace("</b>", "**")
+    # تبدیل <a href='URL'>متن</a> به [متن](URL)
+    text_md = re.sub(r"<a href='([^']+)'>([^<]+)</a>", r"[\2](\1)", text_md)
     
+    # ⚠️ عمداً عکس را برای ایتا نمی‌فرستیم (None) تا خطا ندهد
     base_url = f"https://eitaayar.ir/api/{EITA_TOKEN}"
-    
-    if image_url:
-        url = f"{base_url}/sendPhoto"
-        payload = {"chat_id": EITA_CHANNEL, "photo": image_url, "caption": text_md, "parse_mode": "Markdown"}
-    else:
-        url = f"{base_url}/sendMessage"
-        payload = {"chat_id": EITA_CHANNEL, "text": text_md, "parse_mode": "Markdown", "disable_web_page_preview": False}
+    url = f"{base_url}/sendMessage"
+    payload = {"chat_id": EITA_CHANNEL, "text": text_md, "parse_mode": "Markdown", "disable_web_page_preview": False}
     
     try:
         r = requests.post(url, data=payload, timeout=20)
@@ -145,11 +132,13 @@ def send_to_eita(text, image_url=None):
         print("Eitaa exception:", e)
         return False
 
+# ---------- ۳. ارسال همزمان به هر دو ----------
 def send_to_all(text, image_url=None):
     print("-> Sending to Telegram...")
     tg_ok = send_to_telegram(text, image_url)
     print("-> Sending to Eitaa...")
-    eita_ok = send_to_eita(text, image_url)
+    # ⚠️ به ایتا عکس نمی‌فرستیم، فقط متن
+    eita_ok = send_to_eita(text, None) 
     return tg_ok or eita_ok
 
 def summarize_with_ai(title):
@@ -197,6 +186,7 @@ async def get_prices_for_route(browser, route_name, route_url):
             except: pass
         await page.close()
         if not prices: return None
+        
         result_text = f"✈️ <b>قیمت‌های لحظه‌ای پرواز {route_name}</b>\n\n"
         for p in prices[:3]: result_text += f"🔹 {p}\n"
         result_text += f"\n🌐 <a href='{route_url}'>مشاهده و خرید در سایت</a>"
@@ -218,7 +208,7 @@ async def fetch_random_flight_prices():
 def send_news_only():
     news = fetch_news()
     if news:
-   #     send_to_all("📰 <b>اخبار گردشگری و هواپیمایی</b>\n")
+ #       send_to_all("📰 <b>اخبار گردشگری و هواپیمایی</b>\n")
         sent = load_sent()
         for title, link, image_url in news:
             summary = summarize_with_ai(title)
