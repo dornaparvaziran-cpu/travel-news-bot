@@ -104,20 +104,25 @@ def send_to_telegram(text, image_url=None):
         print("Telegram exception:", e)
         return False
 
-# ---------- ۲. ارسال به ایتا (Markdown و بدون عکس) ----------
+# ---------- ۲. ارسال به ایتا ----------
 def send_to_eita(text, image_url=None):
     if not EITA_TOKEN or not EITA_CHANNEL: return False
     
-    # تبدیل تگ‌های HTML به Markdown مخصوص ایتا
-    text_md = text
-    text_md = text_md.replace("<b>", "**").replace("</b>", "**")
-    # تبدیل <a href='URL'>متن</a> به [متن](URL)
-    text_md = re.sub(r"<a href='([^']+)'>([^<]+)</a>", r"[\2](\1)", text_md)
+    # حذف تگ‌های بولد
+    text_md = text.replace("<b>", "**").replace("</b>", "**")
     
-    # ⚠️ عمداً عکس را برای ایتا نمی‌فرستیم (None) تا خطا ندهد
+    # این خط، لینک HTML رو به لینک تمیز و خام تبدیل می‌کنه (بدون هیچ پرانتز اضافه)
+    text_md = re.sub(r"<a href='([^']+)'>([^<]+)</a>", r"\2: \1", text_md)
+    
     base_url = f"https://eitaayar.ir/api/{EITA_TOKEN}"
     url = f"{base_url}/sendMessage"
-    payload = {"chat_id": EITA_CHANNEL, "text": text_md, "parse_mode": "Markdown", "disable_web_page_preview": False}
+    
+    # بدون parse_mode تا ایتا لینک رو خراب نکنه
+    payload = {
+        "chat_id": EITA_CHANNEL, 
+        "text": text_md, 
+        "disable_web_page_preview": False
+    }
     
     try:
         r = requests.post(url, data=payload, timeout=20)
