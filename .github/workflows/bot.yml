@@ -1,5 +1,10 @@
 name: Travel News Bot
 
+# جلوگیری از اجرای همزمان چند جاب (بسیار مهم برای جلوگیری از خطا)
+concurrency:
+  group: travel-bot-group
+  cancel-in-progress: false
+
 on:
   schedule:
     # 🕘 ساعت ۹ صبح تهران (۵:۳۰ UTC) -> فقط اخبار
@@ -13,7 +18,7 @@ on:
   workflow_dispatch: # برای اجرای دستی
 
 jobs:
-  # 📰 جاب مخصوص اخبار (ساعت ۹ صبح و ۵ عصر)
+  # 📰 جاب مخصوص اخبار
   run-news:
     if: github.event.schedule == '30 5 * * *' || github.event.schedule == '30 13 * * *' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
@@ -29,11 +34,11 @@ jobs:
           BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
           CHANNEL_ID: ${{ secrets.CHANNEL_ID }}
           METIS_KEY: ${{ secrets.METIS_KEY }}
-          EITA_TOKEN: ${{ secrets.EITA_TOKEN }}          # 👈 این خط باید باشد
-          EITA_CHANNEL_ID: ${{ secrets.EITA_CHANNEL_ID }} # 👈 و این خط
+          EITA_TOKEN: ${{ secrets.EITA_TOKEN }}
+          EITA_CHANNEL_ID: ${{ secrets.EITA_CHANNEL_ID }}
         run: python run_once.py news
 
-  # ✈️ جاب مخصوص قیمت‌ها (ساعت ۱۰ صبح و ۶ عصر)
+  # ✈️ جاب مخصوص قیمت‌ها
   run-prices:
     if: github.event.schedule == '30 6 * * *' || github.event.schedule == '30 14 * * *' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
@@ -52,6 +57,6 @@ jobs:
           BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
           CHANNEL_ID: ${{ secrets.CHANNEL_ID }}
           METIS_KEY: ${{ secrets.METIS_KEY }}
-          EITA_TOKEN: ${{ secrets.EITA_TOKEN }}          # 👈 این خط باید باشد
-          EITA_CHANNEL_ID: ${{ secrets.EITA_CHANNEL_ID }} # 👈 و این خط        
+          EITA_TOKEN: ${{ secrets.EITA_TOKEN }}
+          EITA_CHANNEL_ID: ${{ secrets.EITA_CHANNEL_ID }}
         run: python run_once.py prices
