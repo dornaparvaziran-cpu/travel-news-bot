@@ -26,35 +26,32 @@ ALL_ROUTES = [
     {"name": "تهران به اهواز", "url": "https://dornatravel.ir/flight/THR-AWZ"},
     {"name": "شیراز به مشهد", "url": "https://dornatravel.ir/flight/SYZ-MHD"},
     {"name": "اصفهان به مشهد", "url": "https://dornatravel.ir/flight/IFN-MHD"},
-    
-    # --- خارجی (اگر سایتت این کدها را پشتیبانی می‌کند) ---
     {"name": "تهران به استانبول", "url": "https://dornatravel.ir/flight/IKA-IST"},
     {"name": "تهران به دبی", "url": "https://dornatravel.ir/flight/IKA-DXB"},
     {"name": "مشهد به استانبول", "url": "https://dornatravel.ir/flight/MHD-IST"},
     {"name": "شیراز به دبی", "url": "https://dornatravel.ir/flight/SYZ-DXB"},
     {"name": "مشهد به نجف", "url": "https://dornatravel.ir/flight/MHD-NJF"},
     {"name": "تهران به نجف", "url": "https://dornatravel.ir/flight/IKA-NJF"},
-     {"name": "نجف به مشهد", "url": "https://dornatravel.ir/flight/NJF-MHD"},
-    {"name": " نجف به تهران", "url": "https://dornatravel.ir/flight/NJF-IKA"},
+    {"name": "نجف به مشهد", "url": "https://dornatravel.ir/flight/NJF-MHD"},  # فاصله اضافه اصلاح شد
+    {"name": "نجف به تهران", "url": "https://dornatravel.ir/flight/NJF-IKA"},  # فاصله اضافه اصلاح شد
     {"name": "تهران به مسقط", "url": "https://dornatravel.ir/flight/IKA-MCT"},
 ]
 
-NUMBER_OF_ROUTES = 5
+# ⚠️ تعداد مسیرهای پرواز در هر اجرا
+NUMBER_OF_ROUTES = 3
+
+# ⚠️ سقف تعداد اخباری که در هر اجرا ارسال می‌شود (برای جلوگیری از اسپم و شارژ متیس)
+MAX_NEWS_TO_SEND = 6 
 
 FEEDS = [
-   "https://www.irna.ir/rss",
+    "https://www.irna.ir/rss",
     "https://www.isna.ir/rss",
     "https://khabarfarsi.com/rss",
     "https://www.yjc.ir/fa/rss",
     "https://www.tasnimnews.ir/fa/rss",
-    "https://www.tabnak.ir/fa/rss",
-    "https://www.javanonline.ir/fa/rss",
-    "https://snn.ir/fa/rss",
-    "https://www.entekhab.ir/fa/rss",
-    "https://www.mehrnews.com/rss/tp/37",
     "https://www.tinn.ir/fa/feeds/?p=Y2F0ZWdvcmllcz00",
-#    "https://airc.ir/RSS",
 ]
+
 CATEGORIES = {
     "#هواپیمایی": ["هواپیمایی", "هواپیما", "پرواز", "ایرلاین", "فرودگاه", "بلیط", "airline", "flight", "aviation", "airport"],
     "#گردشگری": ["گردشگری", "توریسم", "سفر", "توریست", "هتل", "tourist", "travel", "tourism", "hotel"]
@@ -87,7 +84,7 @@ def get_image_url(entry):
             if link.get('type', '').startswith('image/'): return link.get('href')
     return None
 
-# ---------- ۱. ارسال به تلگرام (دقیقاً مثل قبل، با HTML و خوشکل) ----------
+# ---------- ۱. ارسال به تلگرام (HTML) ----------
 def send_to_telegram(text, image_url=None):
     if not TG_TOKEN or not TG_CHANNEL: return False
     if image_url:
@@ -107,14 +104,14 @@ def send_to_telegram(text, image_url=None):
         print("Telegram exception:", e)
         return False
 
-# ---------- ۲. ارسال به ایتا (تبدیل HTML به Markdown + بدون عکس) ----------
+# ---------- ۲. ارسال به ایتا (Markdown و بدون عکس) ----------
 def send_to_eita(text, image_url=None):
     if not EITA_TOKEN or not EITA_CHANNEL: return False
     
     # تبدیل تگ‌های HTML به Markdown مخصوص ایتا
     text_md = text
     text_md = text_md.replace("<b>", "**").replace("</b>", "**")
-    # تبدیل <a href='URL'>متن</a> به [متن] URL
+    # تبدیل <a href='URL'>متن</a> به [متن](URL)
     text_md = re.sub(r"<a href='([^']+)'>([^<]+)</a>", r"[\2](\1)", text_md)
     
     # ⚠️ عمداً عکس را برای ایتا نمی‌فرستیم (None) تا خطا ندهد
@@ -153,7 +150,7 @@ def summarize_with_ai(title):
         return title
     except: return title
 
-def fetch_news(max_per_feed=3):
+def fetch_news(max_per_feed=2): # از هر منبع حداکثر ۲ خبر می‌گیریم تا کد سریع‌تر باشد
     sent = load_sent()
     collected = []
     for feed_url in FEEDS:
@@ -208,9 +205,11 @@ async def fetch_random_flight_prices():
 def send_news_only():
     news = fetch_news()
     if news:
- #       send_to_all("📰 <b>اخبار گردشگری و هواپیمایی</b>\n")
+        # ⚠️ سقف تعداد اخبار برای جلوگیری از اسپم و تموم شدن شارژ متیس
+        news_to_send = news[:MAX_NEWS_TO_SEND] 
+        
         sent = load_sent()
-        for title, link, image_url in news:
+        for title, link, image_url in news_to_send:
             summary = summarize_with_ai(title)
             category = get_category(title)
             text = f"🔹 <b>{summary}</b>\n\n🔗 <a href='{link}'>مشاهده خبر کامل</a>\n\n{category}"
