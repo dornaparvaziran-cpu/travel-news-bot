@@ -53,7 +53,7 @@ ALL_ROUTES = [
 NUMBER_OF_ROUTES = 5
 
 # ⚠️ سقف تعداد اخباری که در هر اجرا ارسال می‌شود (برای جلوگیری از اسپم و شارژ متیس)
-MAX_NEWS_TO_SEND = 6 
+MAX_NEWS_TO_SEND = 7 
 
 FEEDS = [
     "https://www.irna.ir/rss",
