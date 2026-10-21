@@ -273,53 +273,55 @@ def send_news_only():
 def get_weather_and_currency():
     msg = "🌤 <b>گزارش روزانه سفر</b>\n\n"
     
-    # ۱. هواشناسی (با API رایگان wttr.in)
+    # ۱. هواشناسی (فارسی، متریک/سلسیوس)
     cities = {"تهران": "Tehran", "مشهد": "Mashhad", "کیش": "Kish", "استانبول": "Istanbul", "دبی": "Dubai"}
     msg += "<b>وضعیت هوا:</b>\n"
     for fa, en in cities.items():
         try:
-            r = requests.get(f"https://wttr.in/{en}?format=%C+%t", timeout=10)
+            # پارامتر m برای سلسیوس و lang=fa برای زبان فارسی
+            r = requests.get(f"https://wttr.in/{en}?format=%C+%t&m&lang=fa", timeout=10)
             if r.ok:
                 msg += f"📍 {fa}: {r.text.strip()}\n"
         except:
             pass
     
-    # ۲. نرخ ارز (با API رایگان)
+    # ۲. نرخ ارز (با استفاده از Nobitex برای نرخ آزاد و محاسبه بقیه ارزها)
     msg += "\n<b>نرخ لحظه‌ای ارز (تومان):</b>\n"
     try:
-        # دریافت نرخ دلار
-        r = requests.get("https://cdn.jsdelivr.net/gh/fawazahmed0/currency-api@1/latest/currencies/usd.json", timeout=10)
+        # دریافت نرخ تتر (دلار آزاد) از نوبیتکس
+        r = requests.get("https://api.nobitex.ir/v2/orderbook/USDTIRT", timeout=10)
         if r.ok:
             data = r.json()
-            usd_to_irr = data['usd']['irr'] # نرخ ریال
-            # تبدیل به تومان و رند کردن
-            usd_toman = int(usd_to_irr / 10)
-            
-            # محاسبه بقیه ارزها بر اساس دلار
-            msg += f"💵 دلار: {usd_toman:,} تومان\n"
-            
-            # یورو
-            eur_rate = requests.get("https://cdn.jsdelivr.net/gh/fawazahmed0/currency-api@1/latest/currencies/eur.json", timeout=10).json()['eur']['irr']
-            msg += f"💶 یورو: {int(eur_rate/10):,} تومان\n"
-            
-            # لیر ترکیه
-            try:
-                try_rate = requests.get("https://cdn.jsdelivr.net/gh/fawazahmed0/currency-api@1/latest/currencies/try.json", timeout=10).json()['try']['irr']
-                msg += f"🇹🇷 لیر ترکیه: {int(try_rate/10):,} تومان\n"
-            except: pass
-
-            # درهم امارات
-            try:
-                aed_rate = requests.get("https://cdn.jsdelivr.net/gh/fawazahmed0/currency-api@1/latest/currencies/aed.json", timeout=10).json()['aed']['irr']
-                msg += f"🇦🇪 درهم امارات: {int(aed_rate/10):,} تومان\n"
-            except: pass
-    except:
-        msg += "⚠️ نرخ ارز در حال حاضر در دسترس نیست.\n"
+            if data.get("status") == "ok":
+                # قیمت در نوبیتکس به ریاله، تقسیم بر ۱۰ میکنیم تا تومان بشه
+                usdt_price_rial = float(data.get("lastTradePrice", 0))
+                usd_toman = int(usdt_price_rial / 10)
+                
+                msg += f"💵 دلار: {usd_toman:,} تومان\n"
+                
+                # دریافت نرخ‌های جهانی برای تبدیل بقیه ارزها
+                g_r = requests.get("https://api.exchangerate-api.com/v4/latest/USD", timeout=10)
+                if g_r.ok:
+                    g_data = g_r.json()
+                    # یورو
+                    eur_rate = g_data['rates'].get('EUR', 1)
+                    msg += f"💶 یورو: {int(usd_toman / eur_rate):,} تومان\n"
+                    # لیر ترکیه
+                    try_rate = g_data['rates'].get('TRY', 1)
+                    msg += f"🇹🇷 لیر ترکیه: {int(usd_toman / try_rate):,} تومان\n"
+                    # درهم امارات
+                    aed_rate = g_data['rates'].get('AED', 1)
+                    msg += f"🇦🇪 درهم امارات: {int(usd_toman / aed_rate):,} تومان\n"
+            else:
+                msg += "⚠️ خطا در دریافت نرخ ارز از سرویس‌دهنده.\n"
+        else:
+            msg += "⚠️ سرویس نرخ ارز در دسترس نیست.\n"
+    except Exception as e:
+        msg += "⚠️ خطای شبکه در دریافت نرخ ارز.\n"
 
     # ۳. نکته روز
     msg += f"\n💡 <b>نکته سفر امروز:</b>\n{random.choice(TRAVEL_TIPS)}"
     return msg
-
 def send_extras():
     print("Generating extras message...")
     text = get_weather_and_currency()
