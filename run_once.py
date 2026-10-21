@@ -114,16 +114,14 @@ def send_to_telegram(text, image_url=None):
         print("Telegram exception:", e)
         return False
 
-# ---------- ۲. ارسال به ایتا ----------
+# ---------- ۲. ارسال به ایتا (بدون تغییر فرمت) ----------
 def send_to_eita(text, image_url=None):
-    if not EITA_TOKEN or not EITA_CHANNEL:
+    if not EITA_TOKEN or not EITA_CHANNEL: 
         print("Eitaa Error: Token or Channel missing")
         return False
     
-    # تبدیل تگ‌های بولد
-    text_md = text.replace("<b>", "**").replace("</b>", "**")
-    
-    # تبدیل لینک HTML به لینک متنی ساده
+    # تبدیل لینک‌های HTML به متن ساده
+    text_md = text.replace("<b>", "").replace("</b>", "")
     text_md = re.sub(r"<a href='([^']+)'>([^<]+)</a>", r"\2: \1", text_md)
     
     base_url = f"https://eitaayar.ir/api/{EITA_TOKEN}"
