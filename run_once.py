@@ -115,28 +115,39 @@ def send_to_telegram(text, image_url=None):
         print("Telegram exception:", e)
         return False
 
-# ---------- ۲. ارسال به ایتا (بدون تغییر فرمت) ----------
-
-# ---------- ۲. ارسال به ایتا (با لینک‌های تمیز) ----------
+# ---------- ۲. ارسال به ایتا (با ظاهر خوشکل) ----------
 def send_to_eita(text, image_url=None):
     if not EITA_TOKEN or not EITA_CHANNEL: 
         print("Eitaa Error: Token or Channel missing")
         return False
     
-    # ۱. تبدیل تگ‌های بولد
-    text_md = text.replace("<b>", "").replace("</b>", "")
+    # ۱. تبدیل تگ‌های بولد اچ‌تی‌ام‌ال به ستاره (ایتا از ستاره برای بولد کردن پشتیبانی می‌کند)
+    text_md = text.replace("<b>", "**").replace("</b>", "**")
     
-    # ۲. پیدا کردن لینک‌ها و دیکد کردنشون
+    # ۲. تبدیل لینک‌ها
     def clean_link(match):
         url = match.group(1)
         try:
-            # تبدیل %D8%B3... به حروف فارسی عادی
             decoded_url = urllib.parse.unquote(url)
-            return f"{match.group(2)}: {decoded_url}"
+            return f"{match.group(2)}:\n{decoded_url}"
         except:
-            return f"{match.group(2)}: {url}"
+            return f"{match.group(2)}:\n{url}"
 
     text_md = re.sub(r"<a href='([^']+)'>([^<]+)</a>", clean_link, text_md)
+    
+    # ۳. ✨ تغییرات ظاهری (اضافه کردن خط جداکننده و ایموجی)
+    # اگر پیام مربوط به قیمت پرواز باشه:
+    if "قیمت‌های لحظه‌ای" in text_md:
+        # جایگزینی بولت‌های معمولی با ایموجی هواپیما
+        text_md = text_md.replace("🔹", "✈️")
+        # اضافه کردن یک خط جداکننده در انتها
+        text_md = f"{text_md}\n\n➖➖➖➖➖➖➖➖"
+    # اگر پیام مربوط به اخبار باشه:
+    else:
+        # جایگزینی بولت‌های معمولی با ایموجی روزنامه
+        text_md = text_md.replace("🔹", "📰")
+        # اضافه کردن یک خط جداکننده زیبا به همراه هشتگ
+        text_md = f"{text_md}\n\n➖➖➖➖➖➖➖➖\n📢 کانال اخبار درنا سفر"
     
     base_url = f"https://eitaayar.ir/api/{EITA_TOKEN}"
     url = f"{base_url}/sendMessage"
@@ -144,12 +155,13 @@ def send_to_eita(text, image_url=None):
     payload = {
         "chat_id": EITA_CHANNEL, 
         "text": text_md, 
+        "parse_mode": "Markdown", # 👈 فعال کردن حالت مارک‌داون برای بولد شدن متن
         "disable_web_page_preview": False
     }
     
     try:
         r = requests.post(url, data=payload, timeout=20)
-        print(f"Eitaa Response: {r.status_code} - {r.text}")
+        print(f"Eitaa Response: {r.status_code}")
         if not r.ok:
             print("Eitaa error:", r.text)
             return False
