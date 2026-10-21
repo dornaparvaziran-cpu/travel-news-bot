@@ -70,6 +70,20 @@ CATEGORIES = {
 ALL_KEYWORDS = [kw for cat in CATEGORIES.values() for kw in cat]
 SENT_FILE = "sent_links.txt"
 
+# 💡 لیست نکات سفر
+TRAVEL_TIPS = [
+    "همیشه یک کپی از پاسپورت و مدارک مهمت رو توی گوشی یا ایمیلت داشته باش.",
+    "برای پیدا کردن بلیط ارزان‌تر، پروازهای اواسط هفته (سه‌شنبه و چهارشنبه) رو چک کن.",
+    "قبل از سفر، از وضعیت آب و هوای مقصدت مطلع بشی تا لباس مناسب ببری.",
+    "یک پاوربانک کوچک همیشه همراهت باشه، مخصوصاً توی گشت‌های طولانی.",
+    "برای صرفه‌جویی در هزینه، به جای هتل‌های مرکز شهر، کمی دورتر رو انتخاب کن.",
+    "هنگام رزرو هتل، نظرات (کامنت‌های) واقعی کاربران قبلی رو با دقت بخون.",
+    "وسایل ضروری مثل مسواک و خمیردندان رو در سایز کوچک (سفر) تهیه کن تا جای کمتری بگیره.",
+    "همیشه کمی پول نقد (ارز محلی) همراهت داشته باش، چون همه جا دستگاه کارت نمی‌پذیره.",
+    "عکس‌های مدارک و بلیط‌ها رو توی گالری گوشی ذخیره کن تا آفلاین هم در دسترس باشن.",
+    "برای جلوگیری از گم شدن چمدان، یک برچسب با اسم و شماره تماست روش بچسبون."
+]
+
 def load_sent():
     if not os.path.exists(SENT_FILE): return set()
     with open(SENT_FILE, "r", encoding="utf-8") as f: return set(line.strip() for line in f)
@@ -121,10 +135,9 @@ def send_to_eita(text, image_url=None):
         print("Eitaa Error: Token or Channel missing")
         return False
     
-    # ۱. تبدیل تگ‌های بولد اچ‌تی‌ام‌ال به ستاره (ایتا از ستاره برای بولد کردن پشتیبانی می‌کند)
+    # تبدیل تگ‌های بولد به یک ستاره (مخصوص ایتا)
     text_md = text.replace("<b>", "*").replace("</b>", "*")
     
-    # ۲. تبدیل لینک‌ها
     def clean_link(match):
         url = match.group(1)
         try:
@@ -135,18 +148,14 @@ def send_to_eita(text, image_url=None):
 
     text_md = re.sub(r"<a href='([^']+)'>([^<]+)</a>", clean_link, text_md)
     
-    # ۳. ✨ تغییرات ظاهری (اضافه کردن خط جداکننده و ایموجی)
-    # اگر پیام مربوط به قیمت پرواز باشه:
     if "قیمت‌های لحظه‌ای" in text_md:
-        # جایگزینی بولت‌های معمولی با ایموجی هواپیما
         text_md = text_md.replace("🔹", "✈️")
-        # اضافه کردن یک خط جداکننده در انتها
         text_md = f"{text_md}\n\n➖➖➖➖➖➖➖➖"
-    # اگر پیام مربوط به اخبار باشه:
+    elif "🌤" in text_md or "💱" in text_md or "💡" in text_md:
+        # استایل مخصوص پیام‌های تکمیلی
+        text_md = f"{text_md}\n\n➖➖➖➖➖➖➖➖"
     else:
-        # جایگزینی بولت‌های معمولی با ایموجی روزنامه
         text_md = text_md.replace("🔹", "📰")
-        # اضافه کردن یک خط جداکننده زیبا به همراه هشتگ
         text_md = f"{text_md}\n\n➖➖➖➖➖➖➖➖\n📢 کانال اخبار درنا سفر"
     
     base_url = f"https://eitaayar.ir/api/{EITA_TOKEN}"
@@ -155,7 +164,7 @@ def send_to_eita(text, image_url=None):
     payload = {
         "chat_id": EITA_CHANNEL, 
         "text": text_md, 
-        "parse_mode": "Markdown", # 👈 فعال کردن حالت مارک‌داون برای بولد شدن متن
+        "parse_mode": "Markdown",
         "disable_web_page_preview": False
     }
     
@@ -170,7 +179,6 @@ def send_to_eita(text, image_url=None):
         print("Eitaa exception:", e)
         return False
 
-# ---------- ۳. ارسال همزمان به هر دو ----------
 def send_to_all(text, image_url=None):
     print("-> Sending to Telegram...")
     tg_ok = send_to_telegram(text, image_url)
@@ -246,7 +254,6 @@ def send_news_only():
     news = fetch_news()
     if news:
         news_to_send = news[:MAX_NEWS_TO_SEND] 
-        
         sent = load_sent()
         for title, link, image_url in news_to_send:
             summary = summarize_with_ai(title)
@@ -255,14 +262,72 @@ def send_news_only():
             if send_to_all(text, image_url): sent.add(link)
         save_sent(sent)
 
+# ---------- 🌟 جاب جدید: موارد تکمیلی (آب‌وهوا، ارز، نکته روز) ----------
+def get_weather_and_currency():
+    msg = "🌤 <b>گزارش روزانه سفر</b>\n\n"
+    
+    # ۱. هواشناسی (با API رایگان wttr.in)
+    cities = {"تهران": "Tehran", "مشهد": "Mashhad", "کیش": "Kish", "استانبول": "Istanbul", "دبی": "Dubai"}
+    msg += "<b>وضعیت هوا:</b>\n"
+    for fa, en in cities.items():
+        try:
+            r = requests.get(f"https://wttr.in/{en}?format=%C+%t", timeout=10)
+            if r.ok:
+                msg += f"📍 {fa}: {r.text.strip()}\n"
+        except:
+            pass
+    
+    # ۲. نرخ ارز (با API رایگان)
+    msg += "\n<b>نرخ لحظه‌ای ارز (تومان):</b>\n"
+    try:
+        # دریافت نرخ دلار
+        r = requests.get("https://cdn.jsdelivr.net/gh/fawazahmed0/currency-api@1/latest/currencies/usd.json", timeout=10)
+        if r.ok:
+            data = r.json()
+            usd_to_irr = data['usd']['irr'] # نرخ ریال
+            # تبدیل به تومان و رند کردن
+            usd_toman = int(usd_to_irr / 10)
+            
+            # محاسبه بقیه ارزها بر اساس دلار
+            msg += f"💵 دلار: {usd_toman:,} تومان\n"
+            
+            # یورو
+            eur_rate = requests.get("https://cdn.jsdelivr.net/gh/fawazahmed0/currency-api@1/latest/currencies/eur.json", timeout=10).json()['eur']['irr']
+            msg += f"💶 یورو: {int(eur_rate/10):,} تومان\n"
+            
+            # لیر ترکیه
+            try:
+                try_rate = requests.get("https://cdn.jsdelivr.net/gh/fawazahmed0/currency-api@1/latest/currencies/try.json", timeout=10).json()['try']['irr']
+                msg += f"🇹🇷 لیر ترکیه: {int(try_rate/10):,} تومان\n"
+            except: pass
+
+            # درهم امارات
+            try:
+                aed_rate = requests.get("https://cdn.jsdelivr.net/gh/fawazahmed0/currency-api@1/latest/currencies/aed.json", timeout=10).json()['aed']['irr']
+                msg += f"🇦🇪 درهم امارات: {int(aed_rate/10):,} تومان\n"
+            except: pass
+    except:
+        msg += "⚠️ نرخ ارز در حال حاضر در دسترس نیست.\n"
+
+    # ۳. نکته روز
+    msg += f"\n💡 <b>نکته سفر امروز:</b>\n{random.choice(TRAVEL_TIPS)}"
+    return msg
+
+def send_extras():
+    print("Generating extras message...")
+    text = get_weather_and_currency()
+    send_to_all(text)
+
 def main():
     mode = sys.argv[1] if len(sys.argv) > 1 else "all"
     print(f"Start in mode: {mode} at {datetime.now()}")
     if mode == "news": send_news_only()
     elif mode == "prices": asyncio.run(fetch_random_flight_prices())
+    elif mode == "extras": send_extras()
     else:
         send_news_only()
         asyncio.run(fetch_random_flight_prices())
+        send_extras()
 
 if __name__ == "__main__":
     main()
