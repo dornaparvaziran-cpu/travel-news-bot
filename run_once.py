@@ -135,10 +135,7 @@ def send_to_eita(text, image_url=None):
     
     try:
         r = requests.post(url, data=payload, timeout=20)
-        
-        # 🔴 این خط جدید: چاپ پاسخ ایتا در لاگ گیت‌هاب
-        print(f"Eitaa Response: {r.status_code} - {r.text}")
-        
+        print(f"Eitaa Response: {r.status_code} - {r.text}")  # 👈 این خط جدید
         if not r.ok:
             print("Eitaa error:", r.text)
             return False
