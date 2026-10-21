@@ -61,6 +61,8 @@ FEEDS = [
     "https://khabarfarsi.com/rss",
     "https://www.yjc.ir/fa/rss",
     "https://www.tasnimnews.ir/fa/rss",
+    "https://spnfa.ir/export/rss2/archive/index.xml",
+    "https://www.radiofarda.com/api/zpoqil-vomx-tpe_kip",
 ]
 
 CATEGORIES = {
