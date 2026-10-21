@@ -23,6 +23,18 @@ ALL_ROUTES = [
     {"name": "تهران به شیراز", "url": "https://dornatravel.ir/flight/THR-SYZ"},
     {"name": "تهران به اصفهان", "url": "https://dornatravel.ir/flight/THR-IFN"},
     {"name": "تهران به تبریز", "url": "https://dornatravel.ir/flight/THR-TBZ"},
+    {"name": "مشهد به اهواز", "url": "https://dornatravel.ir/flight/MHD-AWZ"},
+    {"name": "تهران به آبادان", "url": "https://dornatravel.ir/flight/THR-ABD"},
+    {"name": "مشهد به آبادان", "url": "https://dornatravel.ir/flight/MHD-ABD"},
+    {"name": "مشهد به تبریز", "url": "https://dornatravel.ir/flight/MHD-TBZ"},
+    {"name": "مشهد به بندر", "url": "https://dornatravel.ir/flight/MHD-BND"},
+    {"name": "مشهد به چابهار", "url": "https://dornatravel.ir/flight/MHD-ZBR"},
+    {"name": "مشهد به رشت", "url": "https://dornatravel.ir/flight/MHD-RAS"},
+    {"name": "تهران به زاهدان", "url": "https://dornatravel.ir/flight/THR-ZAH"},
+    {"name": "مشهد به زاهدان", "url": "https://dornatravel.ir/flight/MHD-ZAH"},
+    {"name": "تهران به بندر", "url": "https://dornatravel.ir/flight/THR-BND"},
+    {"name": "تهران به چابهار", "url": "https://dornatravel.ir/flight/THR-ZBR"},
+    {"name": "اهواز به رشت", "url": "https://dornatravel.ir/flight/AWZ-RAS"},
     {"name": "تهران به اهواز", "url": "https://dornatravel.ir/flight/THR-AWZ"},
     {"name": "شیراز به مشهد", "url": "https://dornatravel.ir/flight/SYZ-MHD"},
     {"name": "اصفهان به مشهد", "url": "https://dornatravel.ir/flight/IFN-MHD"},
@@ -38,7 +50,7 @@ ALL_ROUTES = [
 ]
 
 # ⚠️ تعداد مسیرهای پرواز در هر اجرا
-NUMBER_OF_ROUTES = 3
+NUMBER_OF_ROUTES = 5
 
 # ⚠️ سقف تعداد اخباری که در هر اجرا ارسال می‌شود (برای جلوگیری از اسپم و شارژ متیس)
 MAX_NEWS_TO_SEND = 6 
@@ -49,7 +61,6 @@ FEEDS = [
     "https://khabarfarsi.com/rss",
     "https://www.yjc.ir/fa/rss",
     "https://www.tasnimnews.ir/fa/rss",
-    "https://www.tinn.ir/fa/feeds/?p=Y2F0ZWdvcmllcz00",
 ]
 
 CATEGORIES = {
