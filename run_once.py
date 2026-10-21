@@ -44,15 +44,12 @@ ALL_ROUTES = [
     {"name": "شیراز به دبی", "url": "https://dornatravel.ir/flight/SYZ-DXB"},
     {"name": "مشهد به نجف", "url": "https://dornatravel.ir/flight/MHD-NJF"},
     {"name": "تهران به نجف", "url": "https://dornatravel.ir/flight/IKA-NJF"},
-    {"name": "نجف به مشهد", "url": "https://dornatravel.ir/flight/NJF-MHD"},  # فاصله اضافه اصلاح شد
-    {"name": "نجف به تهران", "url": "https://dornatravel.ir/flight/NJF-IKA"},  # فاصله اضافه اصلاح شد
+    {"name": "نجف به مشهد", "url": "https://dornatravel.ir/flight/NJF-MHD"},
+    {"name": "نجف به تهران", "url": "https://dornatravel.ir/flight/NJF-IKA"},
     {"name": "تهران به مسقط", "url": "https://dornatravel.ir/flight/IKA-MCT"},
 ]
 
-# ⚠️ تعداد مسیرهای پرواز در هر اجرا
 NUMBER_OF_ROUTES = 5
-
-# ⚠️ سقف تعداد اخباری که در هر اجرا ارسال می‌شود (برای جلوگیری از اسپم و شارژ متیس)
 MAX_NEWS_TO_SEND = 7 
 
 FEEDS = [
@@ -119,18 +116,19 @@ def send_to_telegram(text, image_url=None):
 
 # ---------- ۲. ارسال به ایتا ----------
 def send_to_eita(text, image_url=None):
-    if not EITA_TOKEN or not EITA_CHANNEL: return False
+    if not EITA_TOKEN or not EITA_CHANNEL:
+        print("Eitaa Error: Token or Channel missing")
+        return False
     
-    # حذف تگ‌های بولد
+    # تبدیل تگ‌های بولد
     text_md = text.replace("<b>", "**").replace("</b>", "**")
     
-    # این خط، لینک HTML رو به لینک تمیز و خام تبدیل می‌کنه (بدون هیچ پرانتز اضافه)
+    # تبدیل لینک HTML به لینک متنی ساده
     text_md = re.sub(r"<a href='([^']+)'>([^<]+)</a>", r"\2: \1", text_md)
     
     base_url = f"https://eitaayar.ir/api/{EITA_TOKEN}"
     url = f"{base_url}/sendMessage"
     
-    # بدون parse_mode تا ایتا لینک رو خراب نکنه
     payload = {
         "chat_id": EITA_CHANNEL, 
         "text": text_md, 
@@ -139,6 +137,10 @@ def send_to_eita(text, image_url=None):
     
     try:
         r = requests.post(url, data=payload, timeout=20)
+        
+        # 🔴 این خط جدید: چاپ پاسخ ایتا در لاگ گیت‌هاب
+        print(f"Eitaa Response: {r.status_code} - {r.text}")
+        
         if not r.ok:
             print("Eitaa error:", r.text)
             return False
@@ -152,7 +154,6 @@ def send_to_all(text, image_url=None):
     print("-> Sending to Telegram...")
     tg_ok = send_to_telegram(text, image_url)
     print("-> Sending to Eitaa...")
-    # ⚠️ به ایتا عکس نمی‌فرستیم، فقط متن
     eita_ok = send_to_eita(text, None) 
     return tg_ok or eita_ok
 
@@ -168,7 +169,7 @@ def summarize_with_ai(title):
         return title
     except: return title
 
-def fetch_news(max_per_feed=2): # از هر منبع حداکثر ۲ خبر می‌گیریم تا کد سریع‌تر باشد
+def fetch_news(max_per_feed=2):
     sent = load_sent()
     collected = []
     for feed_url in FEEDS:
@@ -223,7 +224,6 @@ async def fetch_random_flight_prices():
 def send_news_only():
     news = fetch_news()
     if news:
-        # ⚠️ سقف تعداد اخبار برای جلوگیری از اسپم و تموم شدن شارژ متیس
         news_to_send = news[:MAX_NEWS_TO_SEND] 
         
         sent = load_sent()
