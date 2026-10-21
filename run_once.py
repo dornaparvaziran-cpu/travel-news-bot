@@ -325,58 +325,51 @@ def get_weather_and_currency():
         except:
             pass
     
-    # ۲. نرخ ارز (دلار آزاد و ۵ ارز دیگر)
+    # ۲. نرخ ارز (با استفاده از API جایگزین و پایدار jahankhahan)
     msg += "\n<b>نرخ لحظه‌ای ارز (تومان):</b>\n"
-    usd_toman = 0
-    
     try:
-        # دریافت نرخ تتر (دلار آزاد) از CoinGecko
-        r_usd = requests.get("https://api.coingecko.com/api/v3/simple/price?ids=tether&vs_currencies=irr", timeout=15)
-        if r_usd.ok:
-            data_usd = r_usd.json()
-            usd_rial = float(data_usd['tether']['irr'])
-            usd_toman = int(usd_rial / 10) # تبدیل ریال به تومان
-            msg += f"💵 دلار: {usd_toman:,} تومان\n"
+        # دریافت نرخ‌های آزاد بازار از API جدید
+        r_rates = requests.get("https://nerkh.jahankhahan.shop/data/live.json", timeout=15)
+        if r_rates.ok:
+            data = r_rates.json()
+            rates = data.get("rates", {})
+            
+            # استخراج نرخ‌ها (طبق مستندات، واحد به تومان است)
+            usd_toman = rates.get("dollar")
+            eur_toman = rates.get("euro")
+            aed_toman = rates.get("aed")
+            try_toman = rates.get("try")
+            
+            if usd_toman:
+                msg += f"💵 دلار: {usd_toman:,} تومان\n"
+            if eur_toman:
+                msg += f"💶 یورو: {eur_toman:,} تومان\n"
+            if try_toman:
+                msg += f"🇹🇷 لیر ترکیه: {try_toman:,} تومان\n"
+            if aed_toman:
+                msg += f"🇦🇪 درهم امارات: {aed_toman:,} تومان\n"
+            
+            # محاسبه دینار عراق و ریال عربستان بر اساس دلار و نرخ‌های جهانی
+            if usd_toman:
+                try:
+                    r_global = requests.get("https://api.exchangerate-api.com/v4/latest/USD", timeout=10)
+                    if r_global.ok:
+                        g_rates = r_global.json()['rates']
+                        iqd_rate = g_rates.get('IQD', 1)
+                        sar_rate = g_rates.get('SAR', 1)
+                        msg += f"🇮🇶 دینار عراق: {int(usd_toman / iqd_rate):,} تومان\n"
+                        msg += f"🇸🇦 ریال عربستان: {int(usd_toman / sar_rate):,} تومان\n"
+                except:
+                    pass
         else:
-            msg += "⚠️ دریافت نرخ دلار با خطا مواجه شد.\n"
+            msg += "⚠️ دریافت نرخ ارز با خطا مواجه شد.\n"
     except Exception as e:
-        print(f"USD fetch error: {e}")
-        msg += "⚠️ خطا در دریافت نرخ دلار.\n"
-
-    # محاسبه بقیه ارزها با استفاده از نرخ دلار و API نرخ‌های جهانی
-    if usd_toman > 0:
-        try:
-            r_global = requests.get("https://api.exchangerate-api.com/v4/latest/USD", timeout=10)
-            if r_global.ok:
-                rates = r_global.json()['rates']
-                
-                # یورو
-                eur_rate = rates.get('EUR', 1)
-                msg += f"💶 یورو: {int(usd_toman / eur_rate):,} تومان\n"
-                
-                # لیر ترکیه
-                try_rate = rates.get('TRY', 1)
-                msg += f"🇹🇷 لیر ترکیه: {int(usd_toman / try_rate):,} تومان\n"
-                
-                # درهم امارات
-                aed_rate = rates.get('AED', 1)
-                msg += f"🇦🇪 درهم امارات: {int(usd_toman / aed_rate):,} تومان\n"
-
-                # دینار عراق
-                iqd_rate = rates.get('IQD', 1)
-                msg += f"🇮🇶 دینار عراق: {int(usd_toman / iqd_rate):,} تومان\n"
-
-                # ریال عربستان
-                sar_rate = rates.get('SAR', 1)
-                msg += f"🇸🇦 ریال عربستان: {int(usd_toman / sar_rate):,} تومان\n"
-
-        except Exception as e:
-            print(f"Global rates error: {e}")
-            msg += "⚠️ خطا در محاسبه بقیه ارزها.\n"
+        print(f"Rates fetch error: {e}")
+        msg += "⚠️ خطا در دریافت نرخ ارز.\n"
 
     # ۳. نکته روز
     msg += f"\n💡 <b>نکته سفر امروز:</b>\n{random.choice(TRAVEL_TIPS)}"
-    return msg    
+    return msg
 def send_extras():
     print("Generating extras message...")
     text = get_weather_and_currency()
