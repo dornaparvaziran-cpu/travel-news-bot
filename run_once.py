@@ -4,6 +4,7 @@ import requests
 import feedparser
 import asyncio
 import random
+import urllib.parse
 import re
 from datetime import datetime
 from playwright.async_api import async_playwright
@@ -115,7 +116,6 @@ def send_to_telegram(text, image_url=None):
         return False
 
 # ---------- ۲. ارسال به ایتا (بدون تغییر فرمت) ----------
-import urllib.parse
 
 # ---------- ۲. ارسال به ایتا (با لینک‌های تمیز) ----------
 def send_to_eita(text, image_url=None):
