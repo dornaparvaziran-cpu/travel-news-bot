@@ -122,7 +122,7 @@ def send_to_eita(text, image_url=None):
         return False
     
     # ۱. تبدیل تگ‌های بولد اچ‌تی‌ام‌ال به ستاره (ایتا از ستاره برای بولد کردن پشتیبانی می‌کند)
-    text_md = text.replace("<b>", "**").replace("</b>", "**")
+    text_md = text.replace("<b>", "*").replace("</b>", "*")
     
     # ۲. تبدیل لینک‌ها
     def clean_link(match):
