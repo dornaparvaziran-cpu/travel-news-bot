@@ -319,74 +319,64 @@ def get_weather_and_currency():
     msg += "<b>وضعیت هوا:</b>\n"
     for fa, en in cities.items():
         try:
-            # پارامتر m برای سلسیوس و lang=fa برای زبان فارسی
             r = requests.get(f"https://wttr.in/{en}?format=%C+%t&m&lang=fa", timeout=10)
             if r.ok:
                 msg += f"📍 {fa}: {r.text.strip()}\n"
         except:
             pass
     
-    # ۲. نرخ ارز (با استفاده از APIهای میزبانی‌شده در GitHub برای دسترسی پایدار)
+    # ۲. نرخ ارز (دلار آزاد و ۵ ارز دیگر)
     msg += "\n<b>نرخ لحظه‌ای ارز (تومان):</b>\n"
+    usd_toman = 0
+    
     try:
-        # دریافت نرخ دلار آزاد از iran-market.github.io
-        r_usd = requests.get("https://raw.githubusercontent.com/iran-market/iran-market.github.io/main/data/popular.json", timeout=10)
+        # دریافت نرخ تتر (دلار آزاد) از CoinGecko
+        r_usd = requests.get("https://api.coingecko.com/api/v3/simple/price?ids=tether&vs_currencies=irr", timeout=15)
         if r_usd.ok:
             data_usd = r_usd.json()
-            usd_item = next((item for item in data_usd['data'] if item['symbol'] == 'USD_IRR_FREE'), None)
-            if usd_item:
-                usd_price_rial = float(usd_item['price'])
-                usd_toman = int(usd_price_rial / 10)
-                msg += f"💵 دلار: {usd_toman:,} تومان\n"
-            else:
-                msg += "⚠️ نرخ دلار در داده‌ها یافت نشد.\n"
+            usd_rial = float(data_usd['tether']['irr'])
+            usd_toman = int(usd_rial / 10) # تبدیل ریال به تومان
+            msg += f"💵 دلار: {usd_toman:,} تومان\n"
         else:
             msg += "⚠️ دریافت نرخ دلار با خطا مواجه شد.\n"
     except Exception as e:
         print(f"USD fetch error: {e}")
         msg += "⚠️ خطا در دریافت نرخ دلار.\n"
 
-    # دریافت نرخ یورو از iran-market.github.io
-    try:
-        r_eur = requests.get("https://raw.githubusercontent.com/iran-market/iran-market.github.io/main/data/popular.json", timeout=10)
-        if r_eur.ok:
-            data_eur = r_eur.json()
-            eur_item = next((item for item in data_eur['data'] if item['symbol'] == 'EUR_IRR_FREE'), None)
-            if eur_item:
-                eur_price_rial = float(eur_item['price'])
-                eur_toman = int(eur_price_rial / 10)
-                msg += f"💶 یورو: {eur_toman:,} تومان\n"
-    except Exception as e:
-        print(f"EUR fetch error: {e}")
+    # محاسبه بقیه ارزها با استفاده از نرخ دلار و API نرخ‌های جهانی
+    if usd_toman > 0:
+        try:
+            r_global = requests.get("https://api.exchangerate-api.com/v4/latest/USD", timeout=10)
+            if r_global.ok:
+                rates = r_global.json()['rates']
+                
+                # یورو
+                eur_rate = rates.get('EUR', 1)
+                msg += f"💶 یورو: {int(usd_toman / eur_rate):,} تومان\n"
+                
+                # لیر ترکیه
+                try_rate = rates.get('TRY', 1)
+                msg += f"🇹🇷 لیر ترکیه: {int(usd_toman / try_rate):,} تومان\n"
+                
+                # درهم امارات
+                aed_rate = rates.get('AED', 1)
+                msg += f"🇦🇪 درهم امارات: {int(usd_toman / aed_rate):,} تومان\n"
 
-    # دریافت نرخ لیر ترکیه (با استفاده از Navasan-API)
-    try:
-        r_try = requests.get("https://raw.githubusercontent.com/HosseinOdd/Navasan-API/main/data/fiat.json", timeout=10)
-        if r_try.ok:
-            data_try = r_try.json()
-            # ساختار داده‌های Navasan ممکن است متفاوت باشد، در اینجا فرض می‌کنیم کلید 'TRY' وجود دارد
-            try_price = data_try.get('TRY')
-            if try_price:
-                # قیمت‌ها ممکن است به ریال یا تومان باشند، در اینجا فرض می‌کنیم تومان هستند
-                msg += f"🇹🇷 لیر ترکیه: {int(try_price):,} تومان\n"
-    except Exception as e:
-        print(f"TRY fetch error: {e}")
+                # دینار عراق
+                iqd_rate = rates.get('IQD', 1)
+                msg += f"🇮🇶 دینار عراق: {int(usd_toman / iqd_rate):,} تومان\n"
 
-    # دریافت نرخ درهم امارات (با استفاده از Navasan-API)
-    try:
-        r_aed = requests.get("https://raw.githubusercontent.com/HosseinOdd/Navasan-API/main/data/fiat.json", timeout=10)
-        if r_aed.ok:
-            data_aed = r_aed.json()
-            aed_price = data_aed.get('AED')
-            if aed_price:
-                msg += f"🇦🇪 درهم امارات: {int(aed_price):,} تومان\n"
-    except Exception as e:
-        print(f"AED fetch error: {e}")
+                # ریال عربستان
+                sar_rate = rates.get('SAR', 1)
+                msg += f"🇸🇦 ریال عربستان: {int(usd_toman / sar_rate):,} تومان\n"
+
+        except Exception as e:
+            print(f"Global rates error: {e}")
+            msg += "⚠️ خطا در محاسبه بقیه ارزها.\n"
 
     # ۳. نکته روز
     msg += f"\n💡 <b>نکته سفر امروز:</b>\n{random.choice(TRAVEL_TIPS)}"
-    return msg
-    
+    return msg    
 def send_extras():
     print("Generating extras message...")
     text = get_weather_and_currency()
