@@ -115,14 +115,28 @@ def send_to_telegram(text, image_url=None):
         return False
 
 # ---------- ۲. ارسال به ایتا (بدون تغییر فرمت) ----------
+import urllib.parse
+
+# ---------- ۲. ارسال به ایتا (با لینک‌های تمیز) ----------
 def send_to_eita(text, image_url=None):
     if not EITA_TOKEN or not EITA_CHANNEL: 
         print("Eitaa Error: Token or Channel missing")
         return False
     
-    # تبدیل لینک‌های HTML به متن ساده
+    # ۱. تبدیل تگ‌های بولد
     text_md = text.replace("<b>", "").replace("</b>", "")
-    text_md = re.sub(r"<a href='([^']+)'>([^<]+)</a>", r"\2: \1", text_md)
+    
+    # ۲. پیدا کردن لینک‌ها و دیکد کردنشون
+    def clean_link(match):
+        url = match.group(1)
+        try:
+            # تبدیل %D8%B3... به حروف فارسی عادی
+            decoded_url = urllib.parse.unquote(url)
+            return f"{match.group(2)}: {decoded_url}"
+        except:
+            return f"{match.group(2)}: {url}"
+
+    text_md = re.sub(r"<a href='([^']+)'>([^<]+)</a>", clean_link, text_md)
     
     base_url = f"https://eitaayar.ir/api/{EITA_TOKEN}"
     url = f"{base_url}/sendMessage"
@@ -135,7 +149,7 @@ def send_to_eita(text, image_url=None):
     
     try:
         r = requests.post(url, data=payload, timeout=20)
-        print(f"Eitaa Response: {r.status_code} - {r.text}")  # 👈 این خط جدید
+        print(f"Eitaa Response: {r.status_code} - {r.text}")
         if not r.ok:
             print("Eitaa error:", r.text)
             return False
