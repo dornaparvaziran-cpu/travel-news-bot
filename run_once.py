@@ -274,6 +274,9 @@ async def get_prices_for_route(browser, route_name, route_url):
         for el in all_elements:
             try:
                 text = await el.inner_text()
+                                         
+                # 👇 این خط جدید: حذف کاراکترهای اضافی مثل "ء" و فاصله‌های خالی
+                text = text.replace("ء", "").strip()
                 if "تومان" in text and len(text) < 30 and any(char.isdigit() for char in text):
                     if text not in prices: prices.append(text)
             except: pass
