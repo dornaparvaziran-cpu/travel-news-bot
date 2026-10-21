@@ -6,9 +6,15 @@ concurrency:
 
 on:
   schedule:
+    # 🕘 ۹ صبح -> اخبار
     - cron: '30 5 * * *'
+    # 🕙 ۱۰ صبح -> قیمت‌ها
     - cron: '30 6 * * *'
+    # 🕛 ۱۲ ظهر -> آب‌وهوا، ارز و نکته روز (جدید!)
+    - cron: '30 8 * * *'
+    # 🕔 ۵ عصر -> اخبار
     - cron: '30 13 * * *'
+    # 🕕 ۶ عصر -> قیمت‌ها
     - cron: '30 14 * * *'
   workflow_dispatch:
 
@@ -21,14 +27,11 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-          
-      # 👇 این خط کشِ گیت‌هاب رو فعال می‌کنه تا فایل sent_links.txt پاک نشه
       - name: Cache sent links
         uses: actions/cache@v3
         with:
           path: sent_links.txt
           key: sent-links-cache
-
       - name: Install deps
         run: pip install -r requirements.txt
       - name: Run News
@@ -48,14 +51,11 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-          
-      # 👇 برای قیمت‌ها هم کش می‌ذاریم تا تداخلی پیش نیاد
       - name: Cache sent links
         uses: actions/cache@v3
         with:
           path: sent_links.txt
           key: sent-links-cache
-
       - name: Install deps
         run: |
           pip install -r requirements.txt
@@ -69,3 +69,22 @@ jobs:
           EITA_TOKEN: ${{ secrets.EITA_TOKEN }}
           EITA_CHANNEL_ID: ${{ secrets.EITA_CHANNEL_ID }}
         run: python run_once.py prices
+
+  # 🌟 جاب جدید: موارد تکمیلی
+  run-extras:
+    if: github.event.schedule == '30 8 * * *' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install deps
+        run: pip install -r requirements.txt
+      - name: Run Extras
+        env:
+          BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
+          CHANNEL_ID: ${{ secrets.CHANNEL_ID }}
+          EITA_TOKEN: ${{ secrets.EITA_TOKEN }}
+          EITA_CHANNEL_ID: ${{ secrets.EITA_CHANNEL_ID }}
+        run: python run_once.py extras
