@@ -54,13 +54,20 @@ NUMBER_OF_ROUTES = 5
 MAX_NEWS_TO_SEND = 7 
 
 FEEDS = [
-    "https://www.irna.ir/rss",
-    "https://www.isna.ir/rss",
-    "https://khabarfarsi.com/rss",
-    "https://www.yjc.ir/fa/rss",
-    "https://www.tasnimnews.ir/fa/rss",
-    "https://spnfa.ir/export/rss2/archive/index.xml",
-    "https://www.radiofarda.com/api/zpoqil-vomx-tpe_kip",
+    # تخصصی گردشگری
+    "https://www.chtn.ir/rss/tp/134",      # میراث آریا (گردشگری)
+    "https://www.chtn.ir/rss",            # میراث آریا (آخرین اخبار)
+    
+    # تخصصی هوانوردی و حمل‌ونقل
+    "https://www.tinn.ir/fa/feeds/?p=Y2F0ZWdvcmllcz03Ng,,", # تین نیوز
+    "https://biatrip.com/tag/اخبار-خطوط-هوایی/feed",        # بیا تریپ (هوانوردی)
+    
+    # خبرگزاری‌های عمومی (برای پوشش گسترده‌تر)
+    "https://www.mehrnews.com/rss",       # خبرگزاری مهر
+    "https://www.irna.ir/rss",            # ایرنا
+    
+    # منبع خارجی (برای خلاصه‌سازی با هوش مصنوعی)
+    "https://skift.com/feed/",            # Skift (جهانی)
 ]
 
 CATEGORIES = {
