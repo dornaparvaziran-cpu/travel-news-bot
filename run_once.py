@@ -15,6 +15,10 @@ EITA_TOKEN = os.environ.get("EITA_TOKEN")
 EITA_CHANNEL = os.environ.get("EITA_CHANNEL_ID")
 METIS_KEY = os.environ.get("METIS_KEY")
 
+# 🌟 اطلاعات Supabase
+SUPABASE_URL = os.environ.get("SUPABASE_URL")
+SUPABASE_KEY = os.environ.get("SUPABASE_KEY")
+
 ALL_ROUTES = [ 
     {"name": "تهران به مشهد", "url": "https://dornatravel.ir/flight/THR-MHD"},
     {"name": "مشهد به تهران", "url": "https://dornatravel.ir/flight/MHD-THR"},
@@ -54,20 +58,13 @@ NUMBER_OF_ROUTES = 5
 MAX_NEWS_TO_SEND = 7 
 
 FEEDS = [
-    # تخصصی گردشگری
-    "https://www.chtn.ir/rss/tp/134",      # میراث آریا (گردشگری)
-    "https://www.chtn.ir/rss",            # میراث آریا (آخرین اخبار)
-    
-    # تخصصی هوانوردی و حمل‌ونقل
-    "https://www.tinn.ir/fa/feeds/?p=Y2F0ZWdvcmllcz03Ng,,", # تین نیوز
-    "https://biatrip.com/tag/اخبار-خطوط-هوایی/feed",        # بیا تریپ (هوانوردی)
-    
-    # خبرگزاری‌های عمومی (برای پوشش گسترده‌تر)
-    "https://www.mehrnews.com/rss",       # خبرگزاری مهر
-    "https://www.irna.ir/rss",            # ایرنا
-    
-    # منبع خارجی (برای خلاصه‌سازی با هوش مصنوعی)
-    "https://skift.com/feed/",            # Skift (جهانی)
+    "https://www.chtn.ir/rss/tp/134",
+    "https://www.chtn.ir/rss",
+    "https://www.tinn.ir/fa/feeds/?p=Y2F0ZWdvcmllcz03Ng,,",
+    "https://biatrip.com/tag/اخبار-خطوط-هوایی/feed",
+    "https://www.mehrnews.com/rss",
+    "https://www.irna.ir/rss",
+    "https://skift.com/feed/",
 ]
 
 CATEGORIES = {
@@ -75,56 +72,42 @@ CATEGORIES = {
     "#گردشگری": ["گردشگری", "توریسم", "سفر", "توریست", "هتل", "tourist", "travel", "tourism", "hotel"]
 }
 ALL_KEYWORDS = [kw for cat in CATEGORIES.values() for kw in cat]
-SENT_FILE = "sent_links.txt"
 
-# 💡 لیست نکات سفر
+# 🌟 لیست نکات سفر
 TRAVEL_TIPS = [
-    # --- بسته‌بندی و چمدان ---
     "لباس‌هات رو به جای تا کردن، رول کن تا فضای کمتری توی چمدان بگیرن و چروک هم نشن.",
     "کفش‌های کثیف رو حتماً داخل کیسه پلاستیکی یا کاور مخصوص کفش بذار تا لباس‌های دیگه آلوده نشن.",
     "یک کیف پارچه‌ای تاشو و سبک توی چمدانت بذار تا برای سوغاتی و خریدهای اضافه ازش استفاده کنی.",
     "وسایل ضروری مثل مسواک و شامپو رو در سایز کوچک (سفر) تهیه کن تا هم سبک‌تر باشی هم توی فرودگاه دردسر نداشته باشی.",
     "همیشه یک دست لباس راحت و گرم (مثل سویشرت) توی دستت (کابین) نگه دار، چون دمای هواپیما ممکنه سرد باشه.",
     "برای جلوگیری از گم شدن چمدان، یک برچسب با اسم و شماره تماست روش بچسبون و از عکس گرفتن چمدان قبل از تحویل دادن غافل نشو.",
-
-    # --- رزرو بلیط و هتل ---
     "برای پیدا کردن بلیط ارزان‌تر، پروازهای اواسط هفته (سه‌شنبه و چهارشنبه) رو چک کن.",
     "قبل از نهایی کردن خرید بلیط، پنجره مرورگرت رو در حالت ناشناس (Incognito) باز کن تا سایت‌ها قیمت رو به خاطر جستجوی مکرر بالا نبرن.",
     "هنگام رزرو هتل، نظرات (کامنت‌های) واقعی کاربران قبلی رو با دقت بخون، مخصوصاً عکس‌هایی که خودشون آپلود کردن.",
     "اگر برنامه سفرت قطعی نیست، هتلی رو رزرو کن که گزینه «لغو رایگان» (Free Cancellation) داشته باشه.",
     "برای پیدا کردن تورهای ارزان، همیشه بخش «تورهای لحظه آخر» (Last Minute) آژانس‌ها رو چک کن.",
     "گاهی خرید بلیط یک‌طرفه از دو ایرلاین مختلف، ارزان‌تر از خرید بلیط رفت و برگشت از یک ایرلاین درمیاد.",
-
-    # --- پول و هزینه‌ها ---
     "همیشه کمی پول نقد (ارز محلی) همراهت داشته باش، چون بعضی تاکسی‌ها یا مغازه‌های محلی دستگاه کارت نمی‌پذیرن.",
     "برای صرفه‌جویی در هزینه، به جای هتل‌های مرکز شهر، اقامتگاه‌های کمی دورتر از مرکز رو انتخاب کن که به مترو یا ایستگاه اتوبوس نزدیک باشن.",
     "قبل از سفر، از نرخ لحظه‌ای ارز مقصدت مطلع بشی تا در صرافی‌ها گول قیمت‌های بالا رو نخوری.",
     "در بازارهای محلی و سنتی چانه بزن، اما در مراکز خرید بزرگ و برندها چانه زدن معنی نداره.",
     "یک کیف پول کوچک و مخفی (کمری یا آستینی) برای نگهداری پول و کارت‌های اصلیت تهیه کن.",
-
-    # --- مدارک و امنیت ---
     "همیشه یک کپی دیجیتال از پاسپورت، ویزا، بلیط و بیمه‌نامه‌ت رو توی ایمیل یا گالری گوشیت ذخیره کن.",
     "عکس صفحه اول پاسپورتت رو در گوشی ذخیره کن تا اگر گم شد، راحت‌تر بتونی به سفارتخانه مراجعه کنی.",
     "کیف یا کوله‌پشتی‌ت رو همیشه جلوی بدنت نگه دار (Crossbody)، مخصوصاً توی شهرهای شلوغ و توریستی.",
     "شماره‌های اضطراری (پلیس، اورژانس) و آدرس سفارت ایران در کشور مقصد رو از قبل توی گوشیت ذخیره کن.",
     "هرگز پاسپورتت رو به عنوان ضمانت به هتل‌ها یا آژانس‌های کرایه ماشین نده؛ فقط ازش کپی بگیرن کافیه.",
-
-    # --- سلامت و بهداشت ---
     "توی پروازهای طولانی، هر چند ساعت یک بار از جات بلند شو و کمی راه برو تا گردش خونت بهتر بشه.",
     "توی هواپیما به خاطر هوای خشک، آب بیشتری بنوش و از نوشیدنی‌های کافئین‌دار (قهوه، نوشابه) کمتر استفاده کن.",
     "یک بسته دستمال کاغذی جیبی و ضدعفونی‌کننده دست همیشه توی کوله‌ت باشه.",
     "کرم ضد آفتاب رو حتی در روزهای ابری و فصل زمستان هم فراموش نکن.",
     "داروهای مصرفی شخصی (مثل مسکن، داروی معده یا سرماخوردگی) رو توی بسته‌بندی اصلی‌شون و به مقدار کافی همراهت داشته باش.",
     "اگر به مقصدی با ارتفاع بالا (مثل کوهستان) سفر می‌کنی، روز اول رو به استراحت و سازگاری با ارتفاع اختصاص بده.",
-
-    # --- تکنولوژی و ارتباطات ---
     "یک پاوربانک کوچک و سبک همیشه همراهت باشه، چون توی گشت‌های طولانی باتری گوشی تموم میشه.",
     "قبل از سفر، نقشه شهر مقصد رو در اپلیکیشن Google Maps دانلود (آفلاین) کن تا بدون اینترنت هم مسیرت رو پیدا کنی.",
     "یک مبدل برق (آداپتور) مخصوص کشور مقصد بخر تا بتونی گوشی و وسایلت رو شارژ کنی.",
     "اگر به کشوری می‌ری که اینترنت گرونه، قبل از سفر یک eSIM بخر یا بعد از ورود از فرودگاه یک سیم‌کارت محلی بگیر.",
     "تمام عکس‌ها و ویدیوهای سفرت رو به صورت خودکار در فضای ابری (مثل Google Photos) بکاپ بگیر تا فضای گوشیت پر نشه.",
-
-    # --- آداب و رسوم و فرهنگ ---
     "قبل از سفر به کشورهای خارجی، با آداب و رسوم و قوانین مهم اونجا (مخصوصاً پوشش و رفتار در مکان‌های مذهبی) آشنا بشو.",
     "یاد گرفتن ۲ یا ۳ کلمه ساده از زبان محلی (مثل سلام، تشکر و ببخشید) باعث میشه برخورد مردم با تو خیلی صمیمی‌تر بشه.",
     "قبل از عکاسی از مردم محلی (مخصوصاً در روستاها یا بازارها)، حتماً از خودشون اجازه بگیر.",
@@ -132,14 +115,31 @@ TRAVEL_TIPS = [
     "سعی کن برنامه سفرت رو کمی انعطاف‌پذیر بذاری؛ گاهی بهترین خاطرات از یک مسیر برنامه‌ریزی نشده به دست میاد!"
 ]
 
-def load_sent():
-    if not os.path.exists(SENT_FILE): return set()
-    with open(SENT_FILE, "r", encoding="utf-8") as f: return set(line.strip() for line in f)
+# ---------- 🌟 توابع جدید برای کار با Supabase ----------
+def load_sent_from_db():
+    if not SUPABASE_URL or not SUPABASE_KEY: return set()
+    url = f"{SUPABASE_URL}/rest/v1/sent_news?select=link"
+    headers = {"apikey": SUPABASE_KEY, "Authorization": f"Bearer {SUPABASE_KEY}"}
+    try:
+        r = requests.get(url, headers=headers, timeout=10)
+        if r.ok:
+            data = r.json()
+            return set(item["link"] for item in data)
+    except Exception as e:
+        print(f"DB load error: {e}")
+    return set()
 
-def save_sent(links):
-    with open(SENT_FILE, "w", encoding="utf-8") as f:
-        for link in links: f.write(link + "\n")
+def save_sent_to_db(link):
+    if not SUPABASE_URL or not SUPABASE_KEY: return
+    url = f"{SUPABASE_URL}/rest/v1/sent_news"
+    headers = {"apikey": SUPABASE_KEY, "Authorization": f"Bearer {SUPABASE_KEY}", "Content-Type": "application/json", "Prefer": "return=minimal"}
+    data = {"link": link}
+    try:
+        requests.post(url, headers=headers, json=data, timeout=10)
+    except Exception as e:
+        print(f"DB save error: {e}")
 
+# ---------- توابع ارسال ----------
 def get_category(title):
     title_lower = title.lower()
     for cat, keywords in CATEGORIES.items():
@@ -157,7 +157,6 @@ def get_image_url(entry):
             if link.get('type', '').startswith('image/'): return link.get('href')
     return None
 
-# ---------- ۱. ارسال به تلگرام (HTML) ----------
 def send_to_telegram(text, image_url=None):
     if not TG_TOKEN or not TG_CHANNEL: return False
     if image_url:
@@ -177,15 +176,9 @@ def send_to_telegram(text, image_url=None):
         print("Telegram exception:", e)
         return False
 
-# ---------- ۲. ارسال به ایتا (با ظاهر خوشکل) ----------
 def send_to_eita(text, image_url=None):
-    if not EITA_TOKEN or not EITA_CHANNEL: 
-        print("Eitaa Error: Token or Channel missing")
-        return False
-    
-    # تبدیل تگ‌های بولد به یک ستاره (مخصوص ایتا)
+    if not EITA_TOKEN or not EITA_CHANNEL: return False
     text_md = text.replace("<b>", "*").replace("</b>", "*")
-    
     def clean_link(match):
         url = match.group(1)
         try:
@@ -193,14 +186,12 @@ def send_to_eita(text, image_url=None):
             return f"{match.group(2)}:\n{decoded_url}"
         except:
             return f"{match.group(2)}:\n{url}"
-
     text_md = re.sub(r"<a href='([^']+)'>([^<]+)</a>", clean_link, text_md)
     
     if "قیمت‌های لحظه‌ای" in text_md:
         text_md = text_md.replace("🔹", "✈️")
         text_md = f"{text_md}\n\n➖➖➖➖➖➖➖➖"
     elif "🌤" in text_md or "💱" in text_md or "💡" in text_md:
-        # استایل مخصوص پیام‌های تکمیلی
         text_md = f"{text_md}\n\n➖➖➖➖➖➖➖➖"
     else:
         text_md = text_md.replace("🔹", "📰")
@@ -208,14 +199,7 @@ def send_to_eita(text, image_url=None):
     
     base_url = f"https://eitaayar.ir/api/{EITA_TOKEN}"
     url = f"{base_url}/sendMessage"
-    
-    payload = {
-        "chat_id": EITA_CHANNEL, 
-        "text": text_md, 
-        "parse_mode": "Markdown",
-        "disable_web_page_preview": False
-    }
-    
+    payload = {"chat_id": EITA_CHANNEL, "text": text_md, "parse_mode": "Markdown", "disable_web_page_preview": False}
     try:
         r = requests.post(url, data=payload, timeout=20)
         print(f"Eitaa Response: {r.status_code}")
@@ -247,7 +231,7 @@ def summarize_with_ai(title):
     except: return title
 
 def fetch_news(max_per_feed=2):
-    sent = load_sent()
+    sent = load_sent_from_db() # 🌟 تغییر: خواندن از دیتابیس
     collected = []
     for feed_url in FEEDS:
         try:
@@ -274,8 +258,6 @@ async def get_prices_for_route(browser, route_name, route_url):
         for el in all_elements:
             try:
                 text = await el.inner_text()
-                                         
-                # 👇 این خط جدید: حذف کاراکترهای اضافی مثل "ء" و فاصله‌های خالی
                 text = text.replace("ء", "").strip()
                 if "تومان" in text and len(text) < 30 and any(char.isdigit() for char in text):
                     if text not in prices: prices.append(text)
@@ -305,19 +287,15 @@ def send_news_only():
     news = fetch_news()
     if news:
         news_to_send = news[:MAX_NEWS_TO_SEND] 
-        sent = load_sent()
         for title, link, image_url in news_to_send:
             summary = summarize_with_ai(title)
             category = get_category(title)
             text = f"🔹 <b>{summary}</b>\n\n🔗 <a href='{link}'>مشاهده خبر کامل</a>\n\n{category}"
-            if send_to_all(text, image_url): sent.add(link)
-        save_sent(sent)
+            if send_to_all(text, image_url): 
+                save_sent_to_db(link) # 🌟 تغییر: ذخیره در دیتابیس
 
-# ---------- 🌟 جاب جدید: موارد تکمیلی (آب‌وهوا، ارز، نکته روز) ----------
 def get_weather_and_currency():
     msg = "🌤 <b>گزارش روزانه سفر</b>\n\n"
-    
-    # ۱. هواشناسی (فارسی، متریک/سلسیوس)
     cities = {"تهران": "Tehran", "مشهد": "Mashhad", "کیش": "Kish", "استانبول": "Istanbul", "دبی": "Dubai"}
     msg += "<b>وضعیت هوا:</b>\n"
     for fa, en in cities.items():
@@ -325,34 +303,21 @@ def get_weather_and_currency():
             r = requests.get(f"https://wttr.in/{en}?format=%C+%t&m&lang=fa", timeout=10)
             if r.ok:
                 msg += f"📍 {fa}: {r.text.strip()}\n"
-        except:
-            pass
-    
-    # ۲. نرخ ارز (با استفاده از API جایگزین و پایدار jahankhahan)
+        except: pass
     msg += "\n<b>نرخ لحظه‌ای ارز (تومان):</b>\n"
     try:
-        # دریافت نرخ‌های آزاد بازار از API جدید
         r_rates = requests.get("https://nerkh.jahankhahan.shop/data/live.json", timeout=15)
         if r_rates.ok:
             data = r_rates.json()
             rates = data.get("rates", {})
-            
-            # استخراج نرخ‌ها (طبق مستندات، واحد به تومان است)
             usd_toman = rates.get("dollar")
             eur_toman = rates.get("euro")
             aed_toman = rates.get("aed")
             try_toman = rates.get("try")
-            
-            if usd_toman:
-                msg += f"💵 دلار: {usd_toman:,} تومان\n"
-            if eur_toman:
-                msg += f"💶 یورو: {eur_toman:,} تومان\n"
-            if try_toman:
-                msg += f"🇹🇷 لیر ترکیه: {try_toman:,} تومان\n"
-            if aed_toman:
-                msg += f"🇦🇪 درهم امارات: {aed_toman:,} تومان\n"
-            
-            # محاسبه دینار عراق و ریال عربستان بر اساس دلار و نرخ‌های جهانی
+            if usd_toman: msg += f"💵 دلار: {usd_toman:,} تومان\n"
+            if eur_toman: msg += f"💶 یورو: {eur_toman:,} تومان\n"
+            if try_toman: msg += f"🇹🇷 لیر ترکیه: {try_toman:,} تومان\n"
+            if aed_toman: msg += f"🇦🇪 درهم امارات: {aed_toman:,} تومان\n"
             if usd_toman:
                 try:
                     r_global = requests.get("https://api.exchangerate-api.com/v4/latest/USD", timeout=10)
@@ -362,25 +327,17 @@ def get_weather_and_currency():
                         sar_rate = g_rates.get('SAR', 1)
                         msg += f"🇮🇶 دینار عراق: {int(usd_toman / iqd_rate):,} تومان\n"
                         msg += f"🇸🇦 ریال عربستان: {int(usd_toman / sar_rate):,} تومان\n"
-                except:
-                    pass
-        else:
-            msg += "⚠️ دریافت نرخ ارز با خطا مواجه شد.\n"
-    except Exception as e:
-        print(f"Rates fetch error: {e}")
-        msg += "⚠️ خطا در دریافت نرخ ارز.\n"
-
-    # ۳. نکته روز
+                except: pass
+    except: msg += "⚠️ خطا در دریافت نرخ ارز.\n"
     msg += f"\n💡 <b>نکته سفر امروز:</b>\n{random.choice(TRAVEL_TIPS)}"
     return msg
+
 def send_extras():
-    print("Generating extras message...")
     text = get_weather_and_currency()
     send_to_all(text)
 
 def main():
     mode = sys.argv[1] if len(sys.argv) > 1 else "all"
-    print(f"Start in mode: {mode} at {datetime.now()}")
     if mode == "news": send_news_only()
     elif mode == "prices": asyncio.run(fetch_random_flight_prices())
     elif mode == "extras": send_extras()
