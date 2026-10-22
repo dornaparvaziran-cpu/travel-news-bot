@@ -64,7 +64,6 @@ jobs:
           EITA_CHANNEL_ID: ${{ secrets.EITA_CHANNEL_ID }}
         run: python run_once.py prices
 
-  # 🌟 جاب جدید: موارد تکمیلی
   run-extras:
     if: github.event.schedule == '30 8 * * *' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
