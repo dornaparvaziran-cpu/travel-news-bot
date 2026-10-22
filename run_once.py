@@ -230,24 +230,37 @@ def send_to_all(text, image_url=None):
     eita_ok = send_to_eita(text, None) 
     return tg_ok or eita_ok
 
+# 🌟 تابع خلاصه‌سازی با لاگ خطا
 def summarize_with_ai(title):
-    if not METIS_KEY: return title
+    if not METIS_KEY: 
+        print("Mетис Error: METIS_KEY is missing.")
+        return title
+    
     url = "https://api.metisai.ir/openai/v1/chat/completions"
     headers = {"Authorization": f"Bearer {METIS_KEY}", "Content-Type": "application/json"}
     prompt = f"این تیتر خبر در حوزه گردشگری یا هواپیمایی است: '{title}'\nیک خلاصه بسیار کوتاه و جذاب (حداکثر ۲ خط) به زبان فارسی برای کانال تلگرام بنویس. لحن آن خبری و حرفه‌ای باشد. فقط متن خلاصه را برگردان."
     data = {"model": "gpt-4o-mini", "messages": [{"role": "user", "content": prompt}]}
+    
     try:
         r = requests.post(url, headers=headers, json=data, timeout=25)
         if r.ok: 
             summary = r.json()['choices'][0]['message']['content'].strip()
             english_chars = sum(1 for c in summary if c.isascii() and c.isalpha())
+            
+            # اگر متن انگلیسی بود، چاپ کن که ببینیم متیس چی گفته
             if english_chars > len(summary) * 0.5: 
-                print(f"AI failed to translate, skipping: {title}")
+                print(f"⚠️ AI returned English (skipping): {summary[:50]}...")
                 return None
+            
+            # لاگ موفقیت
+            print(f"✅ AI summarized successfully: {summary[:50]}...")
             return summary
+        else:
+            print(f"❌ Metis API Error: {r.status_code} - {r.text}")
+            return None
+    except Exception as e:
+        print(f"❌ Metis Exception: {e}")
         return None
-    except: return None
-
 def fetch_news(max_per_feed=2):
     sent = load_sent_from_gist() # 🌟 خواندن از Gist
     collected = []
