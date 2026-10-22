@@ -5,13 +5,11 @@ concurrency:
   cancel-in-progress: false
 
 on:
-  # 🌟 کرون گیت‌هاب حذف شد تا فقط Cron-job.org سیگنال بدهد
-  workflow_dispatch: 
+  workflow_dispatch: # 🌟 فقط برای اجرای دستی و سیگنال Cron-job
 
 jobs:
   run-news:
-    # اگر با Cron-job اجرا شود، نام جاب ارسالی schedule است
-    if: github.event_name == 'workflow_dispatch' || github.event.schedule == '30 5 * * *' || github.event.schedule == '30 13 * * *'
+    if: github.event.inputs.job_type == 'news'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -32,7 +30,7 @@ jobs:
         run: python run_once.py news
 
   run-prices:
-    if: github.event_name == 'workflow_dispatch' || github.event.schedule == '30 6 * * *' || github.event.schedule == '30 14 * * *'
+    if: github.event.inputs.job_type == 'prices'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -56,7 +54,7 @@ jobs:
         run: python run_once.py prices
 
   run-extras:
-    if: github.event_name == 'workflow_dispatch' || github.event.schedule == '30 8 * * *'
+    if: github.event.inputs.job_type == 'extras'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -71,7 +69,6 @@ jobs:
           SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
           BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
           CHANNEL_ID: ${{ secrets.CHANNEL_ID }}
-          METIS_KEY: ${{ secrets.METIS_KEY }}
           EITA_TOKEN: ${{ secrets.EITA_TOKEN }}
           EITA_CHANNEL_ID: ${{ secrets.EITA_CHANNEL_ID }}
         run: python run_once.py extras
