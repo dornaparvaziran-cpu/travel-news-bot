@@ -15,9 +15,10 @@ EITA_TOKEN = os.environ.get("EITA_TOKEN")
 EITA_CHANNEL = os.environ.get("EITA_CHANNEL_ID")
 METIS_KEY = os.environ.get("METIS_KEY")
 
-# 🌟 اطلاعات Supabase
-SUPABASE_URL = os.environ.get("SUPABASE_URL")
-SUPABASE_KEY = os.environ.get("SUPABASE_KEY")
+# 🌟 اطلاعات Gist
+GIST_ID = os.environ.get("GIST_ID")
+GIST_RAW_URL = os.environ.get("GIST_RAW_URL")
+GIST_TOKEN = os.environ.get("GIST_TOKEN")
 
 ALL_ROUTES = [ 
     {"name": "تهران به مشهد", "url": "https://dornatravel.ir/flight/THR-MHD"},
@@ -114,42 +115,41 @@ TRAVEL_TIPS = [
     "سعی کن برنامه سفرت رو کمی انعطاف‌پذیر بذاری؛ گاهی بهترین خاطرات از یک مسیر برنامه‌ریزی نشده به دست میاد!"
 ]
 
-# ---------- 🌟 توابع جدید برای کار با Supabase ----------
-def load_sent_from_db():
-    if not SUPABASE_URL or not SUPABASE_KEY: 
+# ---------- 🌟 توابع جدید برای کار با Gist ----------
+def load_sent_from_gist():
+    if not GIST_RAW_URL: 
+        print("Gist URL missing.")
         return set()
-    
-    # آدرس رو تمیز میکنیم
-    base_url = SUPABASE_URL.strip().rstrip('/')
-    url = f"{base_url}/rest/v1/sent_news?select=link"
-    headers = {"apikey": SUPABASE_KEY, "Authorization": f"Bearer {SUPABASE_KEY}"}
-    
     try:
-        # استفاده از یک هدر خاص برای دور زدن مشکل DNS گیت‌هاب
-        r = requests.get(url, headers=headers, timeout=15)
+        # برای دور زدن کش، یک پارامتر زمان به آدرس اضافه میکنیم
+        r = requests.get(f"{GIST_RAW_URL}?t={int(datetime.now().timestamp())}", timeout=10)
         if r.ok:
-            data = r.json()
-            print(f"Supabase: Loaded {len(data)} sent links.")
-            return set(item["link"] for item in data)
-        else:
-            print(f"Supabase load failed: {r.status_code} - {r.text}")
+            content = r.text.strip()
+            if not content: return set()
+            links = set(content.splitlines())
+            print(f"Gist: Loaded {len(links)} sent links.")
+            return links
     except Exception as e:
-        # اگر باز هم DNS خطا داد، فقط چاپ میکنیم و کرش نمیکنیم
-        print(f"DB load warning: {e}") 
-    
+        print(f"Gist load warning: {e}")
     return set()
 
-def save_sent_to_db(link):
-    if not SUPABASE_URL or not SUPABASE_KEY: return
-    url = f"{SUPABASE_URL}/rest/v1/sent_news"
-    headers = {"apikey": SUPABASE_KEY, "Authorization": f"Bearer {SUPABASE_KEY}", "Content-Type": "application/json", "Prefer": "return=minimal"}
-    data = {"link": link}
+def save_sent_to_gist(new_link):
+    if not GIST_ID or not GIST_TOKEN or not GIST_RAW_URL: return
+    
+    sent = load_sent_from_gist()
+    sent.add(new_link)
+    new_content = "\n".join(sent)
+    
+    url = f"https://api.github.com/gists/{GIST_ID}"
+    headers = {"Authorization": f"token {GIST_TOKEN}", "Accept": "application/vnd.github.v3+json"}
+    data = {"files": {"sent_links.txt": {"content": new_content}}}
+    
     try:
-        r = requests.post(url, headers=headers, json=data, timeout=10)
+        r = requests.patch(url, headers=headers, json=data, timeout=10)
         if not r.ok:
-            print(f"Supabase save error: {r.text}")
+            print(f"Gist save error: {r.text}")
     except Exception as e:
-        print(f"DB save exception: {e}")
+        print(f"Gist save warning: {e}")
 
 # ---------- توابع ارسال ----------
 def get_category(title):
@@ -230,7 +230,6 @@ def send_to_all(text, image_url=None):
     eita_ok = send_to_eita(text, None) 
     return tg_ok or eita_ok
 
-# 🌟 تابع خلاصه‌سازی اصلاح‌شده
 def summarize_with_ai(title):
     if not METIS_KEY: return title
     url = "https://api.metisai.ir/openai/v1/chat/completions"
@@ -241,18 +240,16 @@ def summarize_with_ai(title):
         r = requests.post(url, headers=headers, json=data, timeout=25)
         if r.ok: 
             summary = r.json()['choices'][0]['message']['content'].strip()
-            # چک کردن اینکه آیا خروجی به انگلیسی است (یعنی هوش مصنوعی خطا داده)
-            # اگر ۸۰٪ کاراکترها انگلیسی بودند، یعنی ترجمه انجام نشده
             english_chars = sum(1 for c in summary if c.isascii() and c.isalpha())
             if english_chars > len(summary) * 0.5: 
                 print(f"AI failed to translate, skipping: {title}")
-                return None # خبر رو کلاً رد کن تا متن انگلیسی نره
+                return None
             return summary
         return None
     except: return None
 
 def fetch_news(max_per_feed=2):
-    sent = load_sent_from_db()
+    sent = load_sent_from_gist() # 🌟 خواندن از Gist
     collected = []
     for feed_url in FEEDS:
         try:
@@ -310,13 +307,12 @@ def send_news_only():
         news_to_send = news[:MAX_NEWS_TO_SEND] 
         for title, link, image_url in news_to_send:
             summary = summarize_with_ai(title)
-            if not summary: 
-                continue # اگر خلاصه نال بود (انگلیسی بود) برو سراغ خبر بعدی
+            if not summary: continue
                 
             category = get_category(title)
             text = f"🔹 <b>{summary}</b>\n\n🔗 <a href='{link}'>مشاهده خبر کامل</a>\n\n{category}"
             if send_to_all(text, image_url): 
-                save_sent_to_db(link) # ذخیره در دیتابیس
+                save_sent_to_gist(link) # 🌟 ذخیره در Gist
 
 def get_weather_and_currency():
     msg = "🌤 <b>گزارش روزانه سفر</b>\n\n"
