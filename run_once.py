@@ -116,19 +116,28 @@ TRAVEL_TIPS = [
 ]
 
 # ---------- 🌟 توابع جدید برای کار با Gist ----------
+# ---------- 🌟 توابع جدید برای کار با Gist (با API برای دور زدن کش) ----------
 def load_sent_from_gist():
-    if not GIST_RAW_URL: 
-        print("Gist URL missing.")
+    if not GIST_ID or not GIST_TOKEN: 
+        print("Gist ID or Token missing.")
         return set()
     try:
-        # برای دور زدن کش، یک پارامتر زمان به آدرس اضافه میکنیم
-        r = requests.get(f"{GIST_RAW_URL}?t={int(datetime.now().timestamp())}", timeout=10)
+        url = f"https://api.github.com/gists/{GIST_ID}"
+        headers = {"Authorization": f"token {GIST_TOKEN}", "Accept": "application/vnd.github.v3+json"}
+        r = requests.get(url, headers=headers, timeout=10)
         if r.ok:
-            content = r.text.strip()
+            data = r.json()
+            # استخراج محتوای فایل sent_links.txt از پاسخ API
+            files = data.get("files", {})
+            sent_file = files.get("sent_links.txt", {})
+            content = sent_file.get("content", "").strip()
+            
             if not content: return set()
             links = set(content.splitlines())
-            print(f"Gist: Loaded {len(links)} sent links.")
+            print(f"Gist API: Loaded {len(links)} sent links.")
             return links
+        else:
+            print(f"Gist load failed: {r.status_code} - {r.text}")
     except Exception as e:
         print(f"Gist load warning: {e}")
     return set()
