@@ -73,7 +73,6 @@ CATEGORIES = {
 }
 ALL_KEYWORDS = [kw for cat in CATEGORIES.values() for kw in cat]
 
-# 🌟 لیست نکات سفر
 TRAVEL_TIPS = [
     "لباس‌هات رو به جای تا کردن، رول کن تا فضای کمتری توی چمدان بگیرن و چروک هم نشن.",
     "کفش‌های کثیف رو حتماً داخل کیسه پلاستیکی یا کاور مخصوص کفش بذار تا لباس‌های دیگه آلوده نشن.",
@@ -117,16 +116,21 @@ TRAVEL_TIPS = [
 
 # ---------- 🌟 توابع جدید برای کار با Supabase ----------
 def load_sent_from_db():
-    if not SUPABASE_URL or not SUPABASE_KEY: return set()
+    if not SUPABASE_URL or not SUPABASE_KEY: 
+        print("Supabase Error: URL or Key is missing!")
+        return set()
     url = f"{SUPABASE_URL}/rest/v1/sent_news?select=link"
     headers = {"apikey": SUPABASE_KEY, "Authorization": f"Bearer {SUPABASE_KEY}"}
     try:
         r = requests.get(url, headers=headers, timeout=10)
         if r.ok:
             data = r.json()
+            print(f"Supabase: Loaded {len(data)} sent links.")
             return set(item["link"] for item in data)
+        else:
+            print(f"Supabase load error: {r.text}")
     except Exception as e:
-        print(f"DB load error: {e}")
+        print(f"DB load exception: {e}")
     return set()
 
 def save_sent_to_db(link):
@@ -135,9 +139,11 @@ def save_sent_to_db(link):
     headers = {"apikey": SUPABASE_KEY, "Authorization": f"Bearer {SUPABASE_KEY}", "Content-Type": "application/json", "Prefer": "return=minimal"}
     data = {"link": link}
     try:
-        requests.post(url, headers=headers, json=data, timeout=10)
+        r = requests.post(url, headers=headers, json=data, timeout=10)
+        if not r.ok:
+            print(f"Supabase save error: {r.text}")
     except Exception as e:
-        print(f"DB save error: {e}")
+        print(f"DB save exception: {e}")
 
 # ---------- توابع ارسال ----------
 def get_category(title):
@@ -218,6 +224,7 @@ def send_to_all(text, image_url=None):
     eita_ok = send_to_eita(text, None) 
     return tg_ok or eita_ok
 
+# 🌟 تابع خلاصه‌سازی اصلاح‌شده
 def summarize_with_ai(title):
     if not METIS_KEY: return title
     url = "https://api.metisai.ir/openai/v1/chat/completions"
@@ -226,12 +233,20 @@ def summarize_with_ai(title):
     data = {"model": "gpt-4o-mini", "messages": [{"role": "user", "content": prompt}]}
     try:
         r = requests.post(url, headers=headers, json=data, timeout=25)
-        if r.ok: return r.json()['choices'][0]['message']['content'].strip()
-        return title
-    except: return title
+        if r.ok: 
+            summary = r.json()['choices'][0]['message']['content'].strip()
+            # چک کردن اینکه آیا خروجی به انگلیسی است (یعنی هوش مصنوعی خطا داده)
+            # اگر ۸۰٪ کاراکترها انگلیسی بودند، یعنی ترجمه انجام نشده
+            english_chars = sum(1 for c in summary if c.isascii() and c.isalpha())
+            if english_chars > len(summary) * 0.5: 
+                print(f"AI failed to translate, skipping: {title}")
+                return None # خبر رو کلاً رد کن تا متن انگلیسی نره
+            return summary
+        return None
+    except: return None
 
 def fetch_news(max_per_feed=2):
-    sent = load_sent_from_db() # 🌟 تغییر: خواندن از دیتابیس
+    sent = load_sent_from_db()
     collected = []
     for feed_url in FEEDS:
         try:
@@ -289,10 +304,13 @@ def send_news_only():
         news_to_send = news[:MAX_NEWS_TO_SEND] 
         for title, link, image_url in news_to_send:
             summary = summarize_with_ai(title)
+            if not summary: 
+                continue # اگر خلاصه نال بود (انگلیسی بود) برو سراغ خبر بعدی
+                
             category = get_category(title)
             text = f"🔹 <b>{summary}</b>\n\n🔗 <a href='{link}'>مشاهده خبر کامل</a>\n\n{category}"
             if send_to_all(text, image_url): 
-                save_sent_to_db(link) # 🌟 تغییر: ذخیره در دیتابیس
+                save_sent_to_db(link) # ذخیره در دیتابیس
 
 def get_weather_and_currency():
     msg = "🌤 <b>گزارش روزانه سفر</b>\n\n"
