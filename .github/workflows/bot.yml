@@ -15,7 +15,7 @@ on:
 jobs:
   run-news:
     if: github.event.inputs.job_type == 'news'
-    runs-on: ubuntu-latest
+       runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
