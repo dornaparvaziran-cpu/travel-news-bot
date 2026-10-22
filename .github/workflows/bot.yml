@@ -5,7 +5,12 @@ concurrency:
   cancel-in-progress: false
 
 on:
-  workflow_dispatch: # 🌟 فقط برای اجرای دستی و سیگنال Cron-job
+  workflow_dispatch:
+    inputs:
+      job_type:
+        description: 'نوع جاب (news, prices, extras)'
+        required: true
+        default: 'news'
 
 jobs:
   run-news:
