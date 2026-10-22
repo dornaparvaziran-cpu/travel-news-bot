@@ -10,7 +10,7 @@ on:
     - cron: '30 5 * * *'
     # 🕙 ۱۰ صبح -> قیمت‌ها
     - cron: '30 6 * * *'
-    # 🕛 ۱۲ ظهر -> آب‌وهوا، ارز و نکته روز (جدید!)
+    # 🕛 ۱۲ ظهر -> آب‌وهوا، ارز و نکته روز
     - cron: '30 8 * * *'
     # 🕔 ۵ عصر -> اخبار
     - cron: '30 13 * * *'
@@ -27,15 +27,12 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-      - name: Cache sent links
-        uses: actions/cache@v3
-        with:
-          path: sent_links.txt
-          key: sent-links-cache
       - name: Install deps
         run: pip install -r requirements.txt
       - name: Run News
         env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
           BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
           CHANNEL_ID: ${{ secrets.CHANNEL_ID }}
           METIS_KEY: ${{ secrets.METIS_KEY }}
@@ -51,11 +48,6 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-      - name: Cache sent links
-        uses: actions/cache@v3
-        with:
-          path: sent_links.txt
-          key: sent-links-cache
       - name: Install deps
         run: |
           pip install -r requirements.txt
