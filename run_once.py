@@ -17,8 +17,8 @@ METIS_KEY = os.environ.get("METIS_KEY")
 
 # 🌟 اطلاعات Gist
 GIST_ID = os.environ.get("GIST_ID")
-GIST_RAW_URL = os.environ.get("GIST_RAW_URL")
 GIST_TOKEN = os.environ.get("GIST_TOKEN")
+# (GIST_RAW_URL دیگر نیازی نیست چون از API استفاده می‌کنیم)
 
 ALL_ROUTES = [ 
     {"name": "تهران به مشهد", "url": "https://dornatravel.ir/flight/THR-MHD"},
@@ -115,8 +115,7 @@ TRAVEL_TIPS = [
     "سعی کن برنامه سفرت رو کمی انعطاف‌پذیر بذاری؛ گاهی بهترین خاطرات از یک مسیر برنامه‌ریزی نشده به دست میاد!"
 ]
 
-# ---------- 🌟 توابع جدید برای کار با Gist ----------
-# ---------- 🌟 توابع جدید برای کار با Gist (با API برای دور زدن کش) ----------
+# ---------- 🌟 توابع جدید برای کار با Gist (با API) ----------
 def load_sent_from_gist():
     if not GIST_ID or not GIST_TOKEN: 
         print("Gist ID or Token missing.")
@@ -127,7 +126,6 @@ def load_sent_from_gist():
         r = requests.get(url, headers=headers, timeout=10)
         if r.ok:
             data = r.json()
-            # استخراج محتوای فایل sent_links.txt از پاسخ API
             files = data.get("files", {})
             sent_file = files.get("sent_links.txt", {})
             content = sent_file.get("content", "").strip()
@@ -143,12 +141,16 @@ def load_sent_from_gist():
     return set()
 
 def save_sent_to_gist(new_link):
-    if not GIST_ID or not GIST_TOKEN or not GIST_RAW_URL: return
+    if not GIST_ID or not GIST_TOKEN: return
     
+    # ۱. خواندن لیست فعلی از API
     sent = load_sent_from_gist()
+    
+    # ۲. اضافه کردن لینک جدید
     sent.add(new_link)
     new_content = "\n".join(sent)
     
+    # ۳. آپلود لیست جدید
     url = f"https://api.github.com/gists/{GIST_ID}"
     headers = {"Authorization": f"token {GIST_TOKEN}", "Accept": "application/vnd.github.v3+json"}
     data = {"files": {"sent_links.txt": {"content": new_content}}}
@@ -157,6 +159,8 @@ def save_sent_to_gist(new_link):
         r = requests.patch(url, headers=headers, json=data, timeout=10)
         if not r.ok:
             print(f"Gist save error: {r.text}")
+        else:
+            print(f"Gist saved: {new_link[:30]}...")
     except Exception as e:
         print(f"Gist save warning: {e}")
 
@@ -239,11 +243,8 @@ def send_to_all(text, image_url=None):
     eita_ok = send_to_eita(text, None) 
     return tg_ok or eita_ok
 
-# 🌟 تابع خلاصه‌سازی با لاگ خطا
 def summarize_with_ai(title):
-    if not METIS_KEY: 
-        print("Mетис Error: METIS_KEY is missing.")
-        return title
+    if not METIS_KEY: return title
     
     url = "https://api.metisai.ir/openai/v1/chat/completions"
     headers = {"Authorization": f"Bearer {METIS_KEY}", "Content-Type": "application/json"}
@@ -255,23 +256,14 @@ def summarize_with_ai(title):
         if r.ok: 
             summary = r.json()['choices'][0]['message']['content'].strip()
             english_chars = sum(1 for c in summary if c.isascii() and c.isalpha())
-            
-            # اگر متن انگلیسی بود، چاپ کن که ببینیم متیس چی گفته
             if english_chars > len(summary) * 0.5: 
-                print(f"⚠️ AI returned English (skipping): {summary[:50]}...")
                 return None
-            
-            # لاگ موفقیت
-            print(f"✅ AI summarized successfully: {summary[:50]}...")
             return summary
-        else:
-            print(f"❌ Metis API Error: {r.status_code} - {r.text}")
-            return None
-    except Exception as e:
-        print(f"❌ Metis Exception: {e}")
         return None
+    except: return None
+
 def fetch_news(max_per_feed=2):
-    sent = load_sent_from_gist() # 🌟 خواندن از Gist
+    sent = load_sent_from_gist()
     collected = []
     for feed_url in FEEDS:
         try:
@@ -334,7 +326,7 @@ def send_news_only():
             category = get_category(title)
             text = f"🔹 <b>{summary}</b>\n\n🔗 <a href='{link}'>مشاهده خبر کامل</a>\n\n{category}"
             if send_to_all(text, image_url): 
-                save_sent_to_gist(link) # 🌟 ذخیره در Gist
+                save_sent_to_gist(link)
 
 def get_weather_and_currency():
     msg = "🌤 <b>گزارش روزانه سفر</b>\n\n"
