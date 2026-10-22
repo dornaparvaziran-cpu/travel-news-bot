@@ -63,6 +63,8 @@ jobs:
           playwright install-deps chromium
       - name: Run Prices
         env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
           BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
           CHANNEL_ID: ${{ secrets.CHANNEL_ID }}
           METIS_KEY: ${{ secrets.METIS_KEY }}
@@ -83,6 +85,8 @@ jobs:
         run: pip install -r requirements.txt
       - name: Run Extras
         env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
           BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
           CHANNEL_ID: ${{ secrets.CHANNEL_ID }}
           EITA_TOKEN: ${{ secrets.EITA_TOKEN }}
