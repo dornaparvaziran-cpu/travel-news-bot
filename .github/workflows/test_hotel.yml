@@ -18,3 +18,10 @@ jobs:
           playwright install-deps chromium
       - name: Run Test Script
         run: python test_hotel_price.py
+        
+      # 👇 این بخش عکس رو برای دانلود نگه می‌داره
+      - name: Upload Image Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: hotels-image
+          path: hotels_list.jpg
