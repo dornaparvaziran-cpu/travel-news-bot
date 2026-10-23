@@ -18,7 +18,6 @@ METIS_KEY = os.environ.get("METIS_KEY")
 # 🌟 اطلاعات Gist
 GIST_ID = os.environ.get("GIST_ID")
 GIST_TOKEN = os.environ.get("GIST_TOKEN")
-# (GIST_RAW_URL دیگر نیازی نیست چون از API استفاده می‌کنیم)
 
 ALL_ROUTES = [ 
     {"name": "تهران به مشهد", "url": "https://dornatravel.ir/flight/THR-MHD"},
@@ -115,54 +114,62 @@ TRAVEL_TIPS = [
     "سعی کن برنامه سفرت رو کمی انعطاف‌پذیر بذاری؛ گاهی بهترین خاطرات از یک مسیر برنامه‌ریزی نشده به دست میاد!"
 ]
 
-# ---------- 🌟 توابع جدید برای کار با Gist (با API) ----------
+# ---------- 🌟 توابع Gist ----------
 def load_sent_from_gist():
-    if not GIST_ID or not GIST_TOKEN: 
-        print("Gist ID or Token missing.")
-        return set()
+    if not GIST_ID or not GIST_TOKEN: return set()
     try:
         url = f"https://api.github.com/gists/{GIST_ID}"
         headers = {"Authorization": f"token {GIST_TOKEN}", "Accept": "application/vnd.github.v3+json"}
         r = requests.get(url, headers=headers, timeout=10)
         if r.ok:
-            data = r.json()
-            files = data.get("files", {})
-            sent_file = files.get("sent_links.txt", {})
-            content = sent_file.get("content", "").strip()
-            
+            files = r.json().get("files", {})
+            content = files.get("sent_links.txt", {}).get("content", "").strip()
             if not content: return set()
-            links = set(content.splitlines())
-            print(f"Gist API: Loaded {len(links)} sent links.")
-            return links
-        else:
-            print(f"Gist load failed: {r.status_code} - {r.text}")
+            return set(content.splitlines())
     except Exception as e:
         print(f"Gist load warning: {e}")
     return set()
 
 def save_sent_to_gist(new_link):
     if not GIST_ID or not GIST_TOKEN: return
-    
-    # ۱. خواندن لیست فعلی از API
     sent = load_sent_from_gist()
-    
-    # ۲. اضافه کردن لینک جدید
     sent.add(new_link)
     new_content = "\n".join(sent)
-    
-    # ۳. آپلود لیست جدید
     url = f"https://api.github.com/gists/{GIST_ID}"
     headers = {"Authorization": f"token {GIST_TOKEN}", "Accept": "application/vnd.github.v3+json"}
     data = {"files": {"sent_links.txt": {"content": new_content}}}
-    
     try:
         r = requests.patch(url, headers=headers, json=data, timeout=10)
-        if not r.ok:
-            print(f"Gist save error: {r.text}")
-        else:
-            print(f"Gist saved: {new_link[:30]}...")
-    except Exception as e:
-        print(f"Gist save warning: {e}")
+        if not r.ok: print(f"Gist save error: {r.text}")
+    except Exception as e: print(f"Gist save warning: {e}")
+
+# ---------- 🌟 توابع پاک کردن پیام‌های قیمت ----------
+def delete_previous_price_messages():
+    if not GIST_ID or not GIST_TOKEN: return
+    try:
+        url = f"https://api.github.com/gists/{GIST_ID}"
+        headers = {"Authorization": f"token {GIST_TOKEN}"}
+        r = requests.get(url, headers=headers, timeout=10)
+        if r.ok:
+            files = r.json().get("files", {})
+            content = files.get("last_price_msgs.txt", {}).get("content", "").strip()
+            if content:
+                msg_ids = content.splitlines()
+                for msg_id in msg_ids:
+                    requests.post(f"https://api.telegram.org/bot{TG_TOKEN}/deleteMessage", 
+                                  data={"chat_id": TG_CHANNEL, "message_id": msg_id}, timeout=10)
+                print(f"Deleted {len(msg_ids)} previous price messages.")
+    except Exception as e: print(f"Delete messages error: {e}")
+
+def save_price_message_ids(msg_ids):
+    if not GIST_ID or not GIST_TOKEN: return
+    new_content = "\n".join(str(i) for i in msg_ids if i)
+    url = f"https://api.github.com/gists/{GIST_ID}"
+    headers = {"Authorization": f"token {GIST_TOKEN}"}
+    data = {"files": {"last_price_msgs.txt": {"content": new_content}}}
+    try:
+        requests.patch(url, headers=headers, json=data, timeout=10)
+    except Exception as e: print(f"Save msg IDs error: {e}")
 
 # ---------- توابع ارسال ----------
 def get_category(title):
@@ -182,8 +189,9 @@ def get_image_url(entry):
             if link.get('type', '').startswith('image/'): return link.get('href')
     return None
 
+# 🌟 آپدیت: حالا message_id برمی‌گردونه
 def send_to_telegram(text, image_url=None):
-    if not TG_TOKEN or not TG_CHANNEL: return False
+    if not TG_TOKEN or not TG_CHANNEL: return None
     if image_url:
         url = f"https://api.telegram.org/bot{TG_TOKEN}/sendPhoto"
         payload = {"chat_id": TG_CHANNEL, "photo": image_url, "caption": text, "parse_mode": "HTML"}
@@ -193,13 +201,12 @@ def send_to_telegram(text, image_url=None):
     try:
         r = requests.post(url, data=payload, timeout=20)
         if not r.ok:
-            print("Telegram error:", r.text)
             if image_url: return send_to_telegram(text, None)
-            return False
-        return True
-    except Exception as e:
-        print("Telegram exception:", e)
-        return False
+            return None
+        data = r.json()
+        if data.get("ok"): return data["result"]["message_id"]
+        return None
+    except: return None
 
 def send_to_eita(text, image_url=None):
     if not EITA_TOKEN or not EITA_CHANNEL: return False
@@ -227,37 +234,29 @@ def send_to_eita(text, image_url=None):
     payload = {"chat_id": EITA_CHANNEL, "text": text_md, "parse_mode": "Markdown", "disable_web_page_preview": False}
     try:
         r = requests.post(url, data=payload, timeout=20)
-        print(f"Eitaa Response: {r.status_code}")
         if not r.ok:
             print("Eitaa error:", r.text)
             return False
         return True
-    except Exception as e:
-        print("Eitaa exception:", e)
-        return False
+    except: return False
 
 def send_to_all(text, image_url=None):
-    print("-> Sending to Telegram...")
-    tg_ok = send_to_telegram(text, image_url)
-    print("-> Sending to Eitaa...")
+    tg_id = send_to_telegram(text, image_url)
     eita_ok = send_to_eita(text, None) 
-    return tg_ok or eita_ok
+    return tg_id, eita_ok
 
 def summarize_with_ai(title):
     if not METIS_KEY: return title
-    
     url = "https://api.metisai.ir/openai/v1/chat/completions"
     headers = {"Authorization": f"Bearer {METIS_KEY}", "Content-Type": "application/json"}
     prompt = f"این تیتر خبر در حوزه گردشگری یا هواپیمایی است: '{title}'\nیک خلاصه بسیار کوتاه و جذاب (حداکثر ۲ خط) به زبان فارسی برای کانال تلگرام بنویس. لحن آن خبری و حرفه‌ای باشد. فقط متن خلاصه را برگردان."
     data = {"model": "gpt-4o-mini", "messages": [{"role": "user", "content": prompt}]}
-    
     try:
         r = requests.post(url, headers=headers, json=data, timeout=25)
         if r.ok: 
             summary = r.json()['choices'][0]['message']['content'].strip()
             english_chars = sum(1 for c in summary if c.isascii() and c.isalpha())
-            if english_chars > len(summary) * 0.5: 
-                return None
+            if english_chars > len(summary) * 0.5: return None
             return summary
         return None
     except: return None
@@ -302,18 +301,26 @@ async def get_prices_for_route(browser, route_name, route_url):
         result_text += f"\n🌐 <a href='{route_url}'>مشاهده و خرید در سایت</a>"
         return result_text
     except Exception as e:
-        print(f"Playwright error for {route_name}: {e}")
         await page.close()
         return None
 
+# 🌟 آپدیت: پاک کردن قیمت‌های قبلی قبل از ارسال جدید
 async def fetch_random_flight_prices():
+    delete_previous_price_messages()
+    
     selected_routes = random.sample(ALL_ROUTES, NUMBER_OF_ROUTES)
+    new_msg_ids = []
+    
     async with async_playwright() as p:
         browser = await p.chromium.launch(headless=True)
         for route in selected_routes:
             price_text = await get_prices_for_route(browser, route["name"], route["url"])
-            if price_text: send_to_all(price_text)
+            if price_text: 
+                tg_id, _ = send_to_all(price_text)
+                if tg_id: new_msg_ids.append(tg_id)
         await browser.close()
+    
+    save_price_message_ids(new_msg_ids)
 
 def send_news_only():
     news = fetch_news()
@@ -322,11 +329,10 @@ def send_news_only():
         for title, link, image_url in news_to_send:
             summary = summarize_with_ai(title)
             if not summary: continue
-                
             category = get_category(title)
             text = f"🔹 <b>{summary}</b>\n\n🔗 <a href='{link}'>مشاهده خبر کامل</a>\n\n{category}"
-            if send_to_all(text, image_url): 
-                save_sent_to_gist(link)
+            tg_id, _ = send_to_all(text, image_url)
+            if tg_id: save_sent_to_gist(link)
 
 def get_weather_and_currency():
     msg = "🌤 <b>گزارش روزانه سفر</b>\n\n"
@@ -335,15 +341,13 @@ def get_weather_and_currency():
     for fa, en in cities.items():
         try:
             r = requests.get(f"https://wttr.in/{en}?format=%C+%t&m&lang=fa", timeout=10)
-            if r.ok:
-                msg += f"📍 {fa}: {r.text.strip()}\n"
+            if r.ok: msg += f"📍 {fa}: {r.text.strip()}\n"
         except: pass
     msg += "\n<b>نرخ لحظه‌ای ارز (تومان):</b>\n"
     try:
         r_rates = requests.get("https://nerkh.jahankhahan.shop/data/live.json", timeout=15)
         if r_rates.ok:
-            data = r_rates.json()
-            rates = data.get("rates", {})
+            rates = r_rates.json().get("rates", {})
             usd_toman = rates.get("dollar")
             eur_toman = rates.get("euro")
             aed_toman = rates.get("aed")
