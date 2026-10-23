@@ -1,6 +1,7 @@
 import asyncio
 import requests
 import re
+import os
 from playwright.async_api import async_playwright
 
 async def main():
@@ -33,10 +34,10 @@ async def main():
             except: continue
         
         # حذف تکراری‌ها
-        unique_results = list(set(results))[:8] # حداکثر ۸ هتل
+        unique_results = list(set(results))[:8]
         print(f"Found {len(unique_results)} hotels.")
 
-        # ساخت صفحه HTML برای عکس
+        # ساخت صفحه HTML
         html_content = """
         <!DOCTYPE html>
         <html lang="fa" dir="rtl">
@@ -104,20 +105,21 @@ async def main():
         </html>
         """
 
-        # ذخیره HTML در یک فایل موقت
+        # 🌟 ذخیره HTML با مسیر ساده و مطمئن
         with open("temp.html", "w", encoding="utf-8") as f:
             f.write(html_content)
 
-        # باز کردن فایل HTML و گرفتن عکس
+        # 🌟 باز کردن فایل HTML
         print("Taking screenshot...")
-        page2 = await browser.new_page(viewport={"width": 650, "height": 200}) # ارتفاع اولیه، بعدا تنظیم میشه
-        await page2.goto("file://" + requests.utils.quote("/".join([asyncio.get_event_loop()._run_once.__globals__['__file__'].rsplit('/',1)[0], "temp.html"])), timeout=30000)
+        # گرفتن مسیر کامل فایل در لینوکس
+        file_path = os.path.abspath("temp.html")
+        await page.goto(f"file://{file_path}")
         
         # صبر برای لود فونت
-        await page2.wait_for_timeout(3000)
+        await page.wait_for_timeout(3000)
         
-        # گرفتن اسکرین‌شات از کل صفحه
-        await page2.screenshot(path="hotels_list.jpg", full_page=True)
+        # گرفتن اسکرین‌شات
+        await page.screenshot(path="hotels_list.jpg", full_page=True)
         
         print("Image saved as hotels_list.jpg!")
         await browser.close()
