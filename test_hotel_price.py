@@ -1,88 +1,21 @@
 import asyncio
 import requests
 import re
-import os
 from playwright.async_api import async_playwright
-from PIL import Image, ImageDraw, ImageFont
-import arabic_reshaper
-from bidi.algorithm import get_display
-
-def download_font():
-    # دانلود فونت وزیرمتن
-    font_url = "https://github.com/rastikerdar/vazirmatn/raw/master/fonts/ttf/Vazirmatn-Bold.ttf"
-    if not os.path.exists("Vazirmatn-Bold.ttf"):
-        print("Downloading font...")
-        r = requests.get(font_url)
-        with open("Vazirmatn-Bold.ttf", "wb") as f:
-            f.write(r.content)
-
-def create_hotel_image(hotels):
-    print("Creating image...")
-    # تنظیمات ابعاد عکس
-    width, height = 800, 800
-    img = Image.new('RGB', (width, height), color='#f0f4f8') # رنگ پس‌زمینه آبی روشن
-    draw = ImageDraw.Draw(img)
-    
-    # بارگذاری فونت
-    try:
-        font_title = ImageFont.truetype("Vazirmatn-Bold.ttf", 50)
-        font_text = ImageFont.truetype("Vazirmatn-Bold.ttf", 35)
-        font_footer = ImageFont.truetype("Vazirmatn-Bold.ttf", 25)
-    except:
-        print("Font load failed. Using default.")
-        font_title = font_text = font_footer = ImageFont.load_default()
-
-    # تابع کمکی برای نوشتن متن فارسی
-    def draw_fa_text(draw, text, position, font, fill):
-        reshaped = arabic_reshaper.reshape(text)
-        bidi_text = get_display(reshaped)
-        draw.text(position, bidi_text, font=font, fill=fill)
-
-    # ۱. هدر عکس
-    draw.rectangle([0, 0, width, 100], fill='#1e3a8a') # نوار آبی تیره
-    draw_fa_text(draw, "قیمت لحظه‌ای هتل‌های مشهد", (width//2 - 200, 25), font_title, 'white')
-    
-    # ۲. لیست هتل‌ها
-    y_offset = 150
-    for i, (name, price) in enumerate(hotels):
-        # خط جداکننده
-        draw.line([(50, y_offset - 10), (width - 50, y_offset - 10)], fill='#cbd5e1', width=2)
-        
-        # اسم هتل (سمت راست)
-        draw_fa_text(draw, name, (width - 400, y_offset), font_text, '#1e293b')
-        
-        # قیمت (سمت چپ)
-        price_str = f"{price:,} تومان"
-        draw_fa_text(draw, price_str, (50, y_offset), font_text, '#16a34a') # رنگ سبز
-        
-        y_offset += 80
-
-    # ۳. فوتر (درنا سفر و رزرو تلفنی)
-    draw.rectangle([0, height - 120, width, height], fill='#1e3a8a')
-    draw_fa_text(draw, "برای رزرو با ما تماس بگیرید: 0915XXXXXXX", (width//2 - 220, height - 90), font_text, 'white')
-    draw_fa_text(draw, "درنا سفر", (width//2 - 50, height - 40), font_footer, '#fbbf24')
-
-    img.save("hotels_list.jpg")
-    print("Image saved as hotels_list.jpg!")
-
 
 async def main():
-    download_font()
-    
     async with async_playwright() as p:
         browser = await p.chromium.launch(headless=True)
         page = await browser.new_page()
         
         print("Opening Mashhad Hotels list...")
         await page.goto("https://www.eghamat24.com/MashhadHotels.html", timeout=60000, wait_until="domcontentloaded")
-        
-        print("Waiting 10 seconds...")
         await page.wait_for_timeout(10000)
         
         hotels = await page.locator("a[href*='Hotels/']").all()
         
         results = []
-        for hotel in hotels[:10]: 
+        for hotel in hotels[:15]: 
             try:
                 name = await hotel.get_attribute("title")
                 if not name: name = await hotel.inner_text()
@@ -99,13 +32,94 @@ async def main():
                     results.append((name, min_price))
             except: continue
         
-        unique_results = list(set(results))
-        print(f"Found {len(unique_results)} hotels with prices!")
+        # حذف تکراری‌ها
+        unique_results = list(set(results))[:8] # حداکثر ۸ هتل
+        print(f"Found {len(unique_results)} hotels.")
+
+        # ساخت صفحه HTML برای عکس
+        html_content = """
+        <!DOCTYPE html>
+        <html lang="fa" dir="rtl">
+        <head>
+            <meta charset="UTF-8">
+            <style>
+                @import url('https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.0.3/Vazirmatn-font-face.css');
+                body {
+                    font-family: 'Vazirmatn', sans-serif;
+                    background-color: #f0f4f8;
+                    margin: 0;
+                    padding: 20px;
+                    width: 600px;
+                    direction: rtl;
+                }
+                .header {
+                    background-color: #1e3a8a;
+                    color: white;
+                    text-align: center;
+                    padding: 20px;
+                    border-radius: 10px 10px 0 0;
+                    font-size: 28px;
+                    font-weight: bold;
+                }
+                .list {
+                    background: white;
+                    padding: 10px 20px;
+                    border-radius: 0 0 10px 10px;
+                    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+                }
+                .item {
+                    display: flex;
+                    justify-content: space-between;
+                    padding: 15px 0;
+                    border-bottom: 1px solid #e2e8f0;
+                    font-size: 22px;
+                }
+                .item:last-child { border-bottom: none; }
+                .name { color: #1e293b; font-weight: bold; }
+                .price { color: #16a34a; font-weight: bold; }
+                .footer {
+                    background-color: #1e3a8a;
+                    color: white;
+                    text-align: center;
+                    padding: 15px;
+                    border-radius: 10px;
+                    margin-top: 20px;
+                    font-size: 20px;
+                }
+                .footer span { color: #fbbf24; font-weight: bold; }
+            </style>
+        </head>
+        <body>
+            <div class="header">قیمت لحظه‌ای هتل‌های مشهد</div>
+            <div class="list">
+        """
         
-        # ساخت عکس با ۶ هتل اول
-        if unique_results:
-            create_hotel_image(unique_results[:6])
+        for name, price in unique_results:
+            html_content += f'<div class="item"><span class="name">{name}</span><span class="price">{price:,} تومان</span></div>'
             
+        html_content += """
+            </div>
+            <div class="footer">برای رزرو تلفنی با ما در تماس باشید: <span>0915XXXXXXX</span><br><br>✈️ درنا سفر</div>
+        </body>
+        </html>
+        """
+
+        # ذخیره HTML در یک فایل موقت
+        with open("temp.html", "w", encoding="utf-8") as f:
+            f.write(html_content)
+
+        # باز کردن فایل HTML و گرفتن عکس
+        print("Taking screenshot...")
+        page2 = await browser.new_page(viewport={"width": 650, "height": 200}) # ارتفاع اولیه، بعدا تنظیم میشه
+        await page2.goto("file://" + requests.utils.quote("/".join([asyncio.get_event_loop()._run_once.__globals__['__file__'].rsplit('/',1)[0], "temp.html"])), timeout=30000)
+        
+        # صبر برای لود فونت
+        await page2.wait_for_timeout(3000)
+        
+        # گرفتن اسکرین‌شات از کل صفحه
+        await page2.screenshot(path="hotels_list.jpg", full_page=True)
+        
+        print("Image saved as hotels_list.jpg!")
         await browser.close()
 
 if __name__ == "__main__":
