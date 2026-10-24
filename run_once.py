@@ -6,7 +6,7 @@ import asyncio
 import random
 import urllib.parse
 import re
-from datetime import datetime
+from datetime import datetime, timedelta
 from playwright.async_api import async_playwright
 
 TG_TOKEN = os.environ.get("BOT_TOKEN")
@@ -337,20 +337,20 @@ async def fetch_random_flight_prices():
     
     save_message_ids("last_price_msgs.txt", new_msg_ids)
 
-# 🌟 تابع نهایی هتل‌ها (قیمت از لیست، با فیلتر و بدون تکرار)
+# 🌟 تابع نهایی هتل‌ها با استفاده از API
 async def fetch_and_send_hotels():
     delete_previous_messages("last_hotel_msgs.txt")
     
     selected_cities = random.sample(HOTEL_CITIES, 3)
     new_msg_ids = []
     
+    # تاریخ‌ها برای API
+    from_date = datetime.now().strftime("%Y-%m-%d")
+    to_date = (datetime.now() + timedelta(days=1)).strftime("%Y-%m-%d")
+    
     async with async_playwright() as p:
         browser = await p.chromium.launch(headless=True)
         page = await browser.new_page()
-        
-        # تاریخ‌ها برای API (فردا و پس فردا)
-        from_date = "2026-10-24"
-        to_date = "2026-10-25"
         
         for city in selected_cities:
             print(f"Processing {city['name']}...")
@@ -386,7 +386,7 @@ async def fetch_and_send_hotels():
                 city_hotels = []
                 for h in hotel_urls[:10]: # بررسی ۱۰ هتل اول
                     try:
-                        # رفتن به صفحه هتل برای پیدا کردن آیدی و ستاره
+                        # رفتن به صفحه هتل
                         await page.goto(h["url"], timeout=60000, wait_until="domcontentloaded")
                         await page.wait_for_timeout(3000)
                         
@@ -402,25 +402,20 @@ async def fetch_and_send_hotels():
                             
                         if stars not in [3, 4, 5]: continue
                         
-                        # 🌟 پیدا کردن property_id از کدهای HTML (توی تگ body یا اسکریپت‌ها)
-                        # 🌟 پیدا کردن property_id از کدهای HTML (روش دقیق‌تر)
+                        # 🌟 پیدا کردن property_id (روش‌های مختلف)
                         html_content = await page.content()
-                        
-                        # جستجوی الگوهای مختلف برای پیدا کردن آیدی
-                        id_match = re.search(r'property_id["\']?\s*[:=]\s*["\']?(\d+)', html_content)
+                        id_match = re.search(r'/properties/(\d+)/', html_content)
                         if not id_match:
-                            # اگر پیدا نشد، از روی لینک API که توی صفحه هست پیدا میکنیم
-                            id_match = re.search(r'/properties/(\d+)/', html_content)
-                            
+                            id_match = re.search(r'"property_id"\s*:\s*(\d+)', html_content)
                         if not id_match:
-                            # اگر باز هم پیدا نشد، سعی میکنیم از لینک صفحه استفاده کنیم
-                            # (بعضی وقتا آیدی توی لینک صفحه هست)
+                            id_match = re.search(r'data-property-id=["\'](\d+)["\']', html_content)
+                        if not id_match:
                             print(f"Could not find property_id for {h['name']}")
                             continue
                             
                         property_id = id_match.group(1)
                         
-                        # 🌟 درخواست به API برای گرفتن قیمت دقیق
+                        # 🌟 درخواست به API
                         api_url = f"https://www.eghamat24.com/properties/{property_id}/v2/rooms-rates?from_date={from_date}&to_date={to_date}"
                         r = requests.get(api_url, timeout=10)
                         
@@ -428,7 +423,6 @@ async def fetch_and_send_hotels():
                             data = r.json()
                             if data.get("code") == 200 and data.get("value", {}).get("room_rates"):
                                 rates = data["value"]["room_rates"]
-                                # پیدا کردن کمترین قیمت (daily_rate به ریال هست)
                                 valid_rates = [rate["daily_rate"] for rate in rates if rate.get("daily_rate") and not rate.get("closed")]
                                 if valid_rates:
                                     min_rate_rial = min(valid_rates)
@@ -472,6 +466,7 @@ async def fetch_and_send_hotels():
     
     if new_msg_ids:
         save_message_ids("last_hotel_msgs.txt", new_msg_ids)
+
 def send_news_only():
     news = fetch_news()
     if news:
