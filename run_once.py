@@ -15,7 +15,6 @@ EITA_TOKEN = os.environ.get("EITA_TOKEN")
 EITA_CHANNEL = os.environ.get("EITA_CHANNEL_ID")
 METIS_KEY = os.environ.get("METIS_KEY")
 
-# 🌟 اطلاعات Gist
 GIST_ID = os.environ.get("GIST_ID")
 GIST_TOKEN = os.environ.get("GIST_TOKEN")
 
@@ -54,27 +53,29 @@ ALL_ROUTES = [
     {"name": "تهران به مسقط", "url": "https://dornatravel.ir/flight/IKA-MCT"},
 ]
 
-# 🌟 لیست شهرها برای هتل‌ها
+# 🌟 لیست شهرها برای هتل‌ها (بر اساس آیدی جستجوی سایت)
 HOTEL_CITIES = [
-    {"name": "مشهد", "url": "https://www.eghamat24.com/MashhadHotels.html"},
-    {"name": "تهران", "url": "https://www.eghamat24.com/TehranHotels.html"},
-    {"name": "کیش", "url": "https://www.eghamat24.com/KishHotels.html"},
-    {"name": "اصفهان", "url": "https://www.eghamat24.com/IsfahanHotels.html"},
-    {"name": "شیراز", "url": "https://www.eghamat24.com/ShirazHotels.html"},
-    {"name": "قم", "url": "https://www.eghamat24.com/QomHotels.html"},
+    {"name": "مشهد", "id": "2"}, # آیدی‌ها ممکنه متفاوت باشن، بهتره از لینک خود سایت چک بشه. فعلا فرض می‌کنیم اینطوره
+    {"name": "تهران", "id": "1"},
+    {"name": "کیش", "id": "14"},
+    {"name": "شیراز", "id": "100"},
+    {"name": "اصفهان", "id": "26"},
+    {"name": "یزد", "id": "80"},
+    {"name": "تبریز", "id": "18"},
+    {"name": "قم", "id": "45"},
+    {"name": "قشم", "id": "25"},
 ]
 
-NUMBER_OF_ROUTES = 5
-MAX_NEWS_TO_SEND = 9 
+NUMBER_OF_ROUTES = 3
+MAX_NEWS_TO_SEND = 7 
+MAX_HOTELS_PER_STAR = 3
 
 FEEDS = [
+    "https://www.chtn.ir/rss/tp/134",
+    "https://www.chtn.ir/rss",
     "https://www.tinn.ir/fa/feeds/?p=Y2F0ZWdvcmllcz03Ng,,",
-    "https://www.tinn.ir/fa/feeds/?p=cG9zaXRpb25Gcm9udD00",
     "https://biatrip.com/tag/اخبار-خطوط-هوایی/feed",
-    "https://biatrip.com/tag/سازمان-هواپیمایی-فدرال/feed",
     "https://www.mehrnews.com/rss",
-    "https://www.mehrnews.com/rss?kw=شرکت+فرودگاهها+و+ناوبری+هوایی+ایران",
-    "https://www.khabaronline.ir/rss?kw=CIP+فرودگاه",
     "https://www.irna.ir/rss",
     "https://skift.com/feed/",
 ]
@@ -126,7 +127,7 @@ TRAVEL_TIPS = [
     "سعی کن برنامه سفرت رو کمی انعطاف‌پذیر بذاری؛ گاهی بهترین خاطرات از یک مسیر برنامه‌ریزی نشده به دست میاد!"
 ]
 
-# ---------- 🌟 توابع Gist ----------
+# ---------- توابع Gist ----------
 def load_sent_from_gist():
     if not GIST_ID or not GIST_TOKEN: return set()
     try:
@@ -155,7 +156,7 @@ def save_sent_to_gist(new_link):
         if not r.ok: print(f"Gist save error: {r.text}")
     except Exception as e: print(f"Gist save warning: {e}")
 
-# ---------- 🌟 توابع پاک کردن پیام‌های قیمت (پرواز و هتل) ----------
+# ---------- توابع پاک کردن پیام‌های قیمت ----------
 def delete_previous_messages(file_name):
     if not GIST_ID or not GIST_TOKEN: return
     try:
@@ -238,7 +239,7 @@ def send_to_eita(text, image_url=None):
         text_md = f"{text_md}\n\n➖➖➖➖➖➖➖➖"
     else:
         text_md = text_md.replace("🔹", "📰")
-        text_md = f"{text_md}\n\n➖➖➖➖➖➖➖➖\n📢 کانال اخبار درنا تراول"
+        text_md = f"{text_md}\n\n➖➖➖➖➖➖➖➖\n📢 کانال اخبار درنا سفر"
     
     base_url = f"https://eitaayar.ir/api/{EITA_TOKEN}"
     url = f"{base_url}/sendMessage"
@@ -316,7 +317,6 @@ async def get_prices_for_route(browser, route_name, route_url):
         return None
 
 async def fetch_random_flight_prices():
-    # پاک کردن پیام‌های قیمت پرواز قبلی
     delete_previous_messages("last_price_msgs.txt")
     
     selected_routes = random.sample(ALL_ROUTES, NUMBER_OF_ROUTES)
@@ -333,82 +333,104 @@ async def fetch_random_flight_prices():
     
     save_message_ids("last_price_msgs.txt", new_msg_ids)
 
+# 🌟 تابع نهایی هتل‌ها (انتخاب ۳ شهر رندوم و دسته‌بندی ستاره)
 async def fetch_and_send_hotels():
-    # پاک کردن پیام‌های هتل قبلی
     delete_previous_messages("last_hotel_msgs.txt")
     
-    city = random.choice(HOTEL_CITIES)
-    print(f"Selected city: {city['name']}")
+    # انتخاب ۳ شهر به صورت رندوم
+    selected_cities = random.sample(HOTEL_CITIES, 3)
+    new_msg_ids = []
     
     async with async_playwright() as p:
         browser = await p.chromium.launch(headless=True)
-        page = await browser.new_page()
         
-        try:
-            print(f"Opening {city['name']} hotels...")
-            await page.goto(city["url"], timeout=60000, wait_until="domcontentloaded")
-            await page.wait_for_timeout(10000)
+        for city in selected_cities:
+            print(f"Processing {city['name']}...")
             
-            hotels = await page.locator("a[href*='Hotels/']").all()
+            # آدرس جستجو برای هر شهر (تاریخ فرضی 2026-10-27)
+            url = f"https://www.eghamat24.com/search/property?destination_id={city['id']}&destination_name={city['name']}&check_in=2026-10-27&length_of_stay=1"
             
-            results = []
-            for hotel in hotels[:40]:
-                try:
-                    name = await hotel.get_attribute("title")
-                    if not name: name = await hotel.inner_text()
-                    name = name.strip()
-                    if not name or len(name) < 3: continue
-                    
-                    parent = hotel.locator("xpath=..").locator("xpath=..")
-                    parent_text = await parent.inner_text()
-                    
-                    stars = 0
-                    star_match = re.search(r'([1-5])\s*ستاره', parent_text)
-                    if star_match: stars = int(star_match.group(1))
-                    
-                    prices = re.findall(r'([\d,]+)\s*تومان', parent_text)
-                    if prices:
-                        numeric_prices = [int(p.replace(',', '')) for p in prices]
-                        min_price = min(numeric_prices)
-                        results.append({"name": name, "price": min_price, "stars": stars})
-                except: continue
-            
-            unique_hotels = {}
-            for h in results:
-                if h["name"] not in unique_hotels: unique_hotels[h["name"]] = h
-            
-            final_list = list(unique_hotels.values())
-            
-            grouped = {5: [], 4: [], 3: []}
-            for h in final_list:
-                if h["stars"] in grouped: grouped[h["stars"]].append(h)
+            page = await browser.new_page()
+            try:
+                await page.goto(url, timeout=60000, wait_until="domcontentloaded")
+                await page.wait_for_timeout(12000)
                 
-            if not any(grouped.values()):
-                print("No hotels found.")
-                await browser.close()
-                return
-
-            msg = f"🏨 <b>قیمت لحظه‌ای هتل‌های {city['name']}</b>\n\n"
-            
-            for star_level in [5, 4, 3]:
-                if grouped[star_level]:
-                    selected = random.sample(grouped[star_level], min(3, len(grouped[star_level])))
-                    msg += f"⭐ <b>هتل‌های {star_level} ستاره:</b>\n"
-                    for h in selected:
-                        msg += f"🔹 {h['name']}: {h['price']:,} تومان\n"
-                    msg += "\n"
-
-            msg += "📞 <b>برای رزرو تلفنی با ما در تماس باشید:</b>\n☎️ 09153092528\n\n✈️ <b>درنا تراول</b>"
-            
-            print("Sending hotel list...")
-            tg_id, _ = send_to_all(msg)
-            if tg_id:
-                save_message_ids("last_hotel_msgs.txt", [tg_id])
-            
-        except Exception as e:
-            print(f"Hotel error: {e}")
-        finally:
-            await browser.close()
+                # پیدا کردن لینک‌های هتل در این شهر
+                links = await page.locator(f"a[href*='/{city['name']}Hotels/']").all()
+                
+                results = []
+                seen_names = set()
+                
+                for link in links:
+                    try:
+                        name = await link.inner_text()
+                        name = name.strip()
+                        
+                        # فیلتر کردن لینک‌های منو و دکمه‌ها
+                        if not name or name in seen_names: continue
+                        if "هتل" not in name: continue
+                        if any(word in name for word in ["های", "مشاهده", "انتخاب", "پیشنهاد", "تخفیف", "ثبت", "همه"]): continue
+                        
+                        seen_names.add(name)
+                        
+                        parent = link.locator("xpath=..").locator("xpath=..").locator("xpath=..")
+                        parent_text = await parent.inner_text()
+                        
+                        stars = 0
+                        star_match = re.search(r'([1-5])\s*ستاره', parent_text)
+                        if star_match: stars = int(star_match.group(1))
+                        
+                        prices = re.findall(r'([\d,]+)\s*تومان', parent_text)
+                        if prices:
+                            numeric_prices = [int(p.replace(',', '')) for p in prices]
+                            min_price = min(numeric_prices)
+                            results.append({"name": name, "price": min_price, "stars": stars})
+                    except: pass
+                    
+                # حذف تکراری‌ها
+                unique_hotels = {}
+                for h in results:
+                    if h["name"] not in unique_hotels: unique_hotels[h["name"]] = h
+                final_list = list(unique_hotels.values())
+                
+                # گروه‌بندی بر اساس ستاره
+                grouped = {5: [], 4: [], 3: []}
+                for h in final_list:
+                    if h["stars"] in grouped: grouped[h["stars"]].append(h)
+                
+                # اگر هتلی پیدا نشد، برو شهر بعدی
+                if not any(grouped.values()):
+                    print(f"No hotels found for {city['name']}.")
+                    await page.close()
+                    continue
+                
+                # ساخت پیام برای این شهر
+                msg = f"🏨 <b>قیمت لحظه‌ای هتل‌های {city['name']}</b>\n\n"
+                
+                for star_level in [5, 4, 3]:
+                    if grouped[star_level]:
+                        selected = random.sample(grouped[star_level], min(MAX_HOTELS_PER_STAR, len(grouped[star_level])))
+                        msg += f"⭐ <b>هتل‌های {star_level} ستاره:</b>\n"
+                        for h in selected:
+                            msg += f"🔹 {h['name']}: {h['price']:,} تومان\n"
+                        msg += "\n"
+                        
+                msg += "📞 <b>برای رزرو تلفنی با ما در تماس باشید:</b>\n☎️ 0915XXXXXXX\n\n✈️ <b>درنا سفر</b>"
+                
+                tg_id, _ = send_to_all(msg)
+                if tg_id: new_msg_ids.append(tg_id)
+                
+            except Exception as e:
+                print(f"Error processing {city['name']}: {e}")
+            finally:
+                await page.close()
+                
+        await browser.close()
+    
+    if new_msg_ids:
+        save_message_ids("last_hotel_msgs.txt", new_msg_ids)
+    else:
+        print("No hotel messages sent.")
 
 def send_news_only():
     news = fetch_news()
