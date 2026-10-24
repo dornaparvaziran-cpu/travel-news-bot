@@ -6,26 +6,38 @@ async def main():
         browser = await p.chromium.launch(headless=True)
         page = await browser.new_page()
         
-        print("Opening Shiraz Hotels...")
-        await page.goto("https://www.eghamat24.com/ShirazHotels.html", timeout=60000, wait_until="domcontentloaded")
-        await page.wait_for_timeout(10000)
+        # آدرس جستجوی هتل‌های شیراز برای یک شب
+        url = "https://www.eghamat24.com/search/property?destination_id=100&destination_name=Shiraz&check_in=2026-10-27&length_of_stay=1"
+        print(f"Opening Search Page...")
+        await page.goto(url, timeout=60000, wait_until="domcontentloaded")
         
-        # پیدا کردن کارت‌های هتل بر اساس کلاس‌های رایج
-        cards = await page.locator("div[class*='hotel'], div[class*='Hotel'], article[class*='hotel'], article[class*='Hotel']").all()
+        # صبر برای لود کامل نتایج
+        print("Waiting 12 seconds...")
+        await page.wait_for_timeout(12000)
         
-        print(f"Found {len(cards)} hotel cards!")
+        # گرفتن تمام متن صفحه
+        body_text = await page.locator("body").inner_text()
         
-        found_hotels = []
-        for card in cards[:20]:
-            try:
-                text = await card.inner_text()
-                if "تومان" in text and len(text) < 1000:
-                    lines = text.split("\n")
-                    name = lines[0].strip()
-                    found_hotels.append(name)
-            except: pass
-            
-        for name in found_hotels[:10]:
+        # پیدا کردن خطوطی که شامل قیمت (تومان) هستن
+        import re
+        # الگوی پیدا کردن اسم هتل و قیمت
+        # معمولاً اسم هتل قبل از قیمت میاد
+        lines = body_text.split("\n")
+        results = []
+        
+        for i, line in enumerate(lines):
+            if "تومان" in line:
+                # ۳ خط بالاتر رو به عنوان اسم هتل چک میکنیم
+                for j in range(1, 4):
+                    if i - j >= 0:
+                        potential_name = lines[i - j].strip()
+                        if len(potential_name) > 5 and "هتل" in potential_name:
+                            results.append(potential_name)
+                            break
+                            
+        unique_results = list(set(results))
+        print(f"Found {len(unique_results)} hotel names!")
+        for name in unique_results[:10]:
             print(f"- {name}")
             
         await browser.close()
