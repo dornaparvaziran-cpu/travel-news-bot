@@ -54,17 +54,27 @@ ALL_ROUTES = [
     {"name": "تهران به مسقط", "url": "https://dornatravel.ir/flight/IKA-MCT"},
 ]
 
+# 🌟 لیست شهرها برای هتل‌ها
+HOTEL_CITIES = [
+    {"name": "مشهد", "url": "https://www.eghamat24.com/MashhadHotels.html"},
+    {"name": "تهران", "url": "https://www.eghamat24.com/TehranHotels.html"},
+    {"name": "کیش", "url": "https://www.eghamat24.com/KishHotels.html"},
+    {"name": "اصفهان", "url": "https://www.eghamat24.com/IsfahanHotels.html"},
+    {"name": "شیراز", "url": "https://www.eghamat24.com/ShirazHotels.html"},
+    {"name": "قم", "url": "https://www.eghamat24.com/QomHotels.html"},
+]
+
 NUMBER_OF_ROUTES = 5
 MAX_NEWS_TO_SEND = 9 
 
 FEEDS = [
     "https://www.tinn.ir/fa/feeds/?p=Y2F0ZWdvcmllcz03Ng,,",
-    "https://www.tinn.ir/fa/feeds/?p=cG9zaXRpb25Gcm9udD00", # جدید (تین نیوز - تحلیل)
+    "https://www.tinn.ir/fa/feeds/?p=cG9zaXRpb25Gcm9udD00",
     "https://biatrip.com/tag/اخبار-خطوط-هوایی/feed",
-    "https://biatrip.com/tag/سازمان-هواپیمایی-فدرال/feed", # جدید (بیا تریپ - FAA)
+    "https://biatrip.com/tag/سازمان-هواپیمایی-فدرال/feed",
     "https://www.mehrnews.com/rss",
-    "https://www.mehrnews.com/rss?kw=شرکت+فرودگاهها+و+ناوبری+هوایی+ایران", # جدید (مهر - هوانوردی)
-    "https://www.khabaronline.ir/rss?kw=CIP+فرودگاه", # جدید (خبرآنلاین - فرودگاه)
+    "https://www.mehrnews.com/rss?kw=شرکت+فرودگاهها+و+ناوبری+هوایی+ایران",
+    "https://www.khabaronline.ir/rss?kw=CIP+فرودگاه",
     "https://www.irna.ir/rss",
     "https://skift.com/feed/",
 ]
@@ -222,7 +232,7 @@ def send_to_eita(text, image_url=None):
             return f"{match.group(2)}:\n{url}"
     text_md = re.sub(r"<a href='([^']+)'>([^<]+)</a>", clean_link, text_md)
     
-    if "قیمت‌های لحظه‌ای" in text_md:
+    if "قیمت‌های لحظه‌ای" in text_md or "قیمت لحظه‌ای هتل‌های" in text_md:
         text_md = text_md.replace("🔹", "✈️")
         text_md = f"{text_md}\n\n➖➖➖➖➖➖➖➖"
     elif "🌤" in text_md or "💱" in text_md or "💡" in text_md:
@@ -324,6 +334,79 @@ async def fetch_random_flight_prices():
     
     save_price_message_ids(new_msg_ids)
 
+# 🌟 تابع جدید برای دریافت و ارسال قیمت هتل‌ها
+async def fetch_and_send_hotels():
+    city = random.choice(HOTEL_CITIES)
+    print(f"Selected city: {city['name']}")
+    
+    async with async_playwright() as p:
+        browser = await p.chromium.launch(headless=True)
+        page = await browser.new_page()
+        
+        try:
+            print(f"Opening {city['name']} hotels...")
+            await page.goto(city["url"], timeout=60000, wait_until="domcontentloaded")
+            await page.wait_for_timeout(10000)
+            
+            hotels = await page.locator("a[href*='Hotels/']").all()
+            
+            results = []
+            for hotel in hotels[:40]:
+                try:
+                    name = await hotel.get_attribute("title")
+                    if not name: name = await hotel.inner_text()
+                    name = name.strip()
+                    if not name or len(name) < 3: continue
+                    
+                    parent = hotel.locator("xpath=..").locator("xpath=..")
+                    parent_text = await parent.inner_text()
+                    
+                    stars = 0
+                    star_match = re.search(r'([1-5])\s*ستاره', parent_text)
+                    if star_match: stars = int(star_match.group(1))
+                    
+                    prices = re.findall(r'([\d,]+)\s*تومان', parent_text)
+                    if prices:
+                        numeric_prices = [int(p.replace(',', '')) for p in prices]
+                        min_price = min(numeric_prices)
+                        results.append({"name": name, "price": min_price, "stars": stars})
+                except: continue
+            
+            unique_hotels = {}
+            for h in results:
+                if h["name"] not in unique_hotels: unique_hotels[h["name"]] = h
+            
+            final_list = list(unique_hotels.values())
+            
+            grouped = {5: [], 4: [], 3: []}
+            for h in final_list:
+                if h["stars"] in grouped: grouped[h["stars"]].append(h)
+                
+            if not any(grouped.values()):
+                print("No hotels found.")
+                await browser.close()
+                return
+
+            msg = f"🏨 <b>قیمت لحظه‌ای هتل‌های {city['name']}</b>\n\n"
+            
+            for star_level in [5, 4, 3]:
+                if grouped[star_level]:
+                    selected = random.sample(grouped[star_level], min(3, len(grouped[star_level])))
+                    msg += f"⭐ <b>هتل‌های {star_level} ستاره:</b>\n"
+                    for h in selected:
+                        msg += f"🔹 {h['name']}: {h['price']:,} تومان\n"
+                    msg += "\n"
+
+            msg += "📞 <b>برای رزرو تلفنی با ما در تماس باشید:</b>\n☎️ 0915XXXXXXX\n\n✈️ <b>درنا سفر</b>"
+            
+            print("Sending hotel list...")
+            send_to_all(msg)
+            
+        except Exception as e:
+            print(f"Hotel error: {e}")
+        finally:
+            await browser.close()
+
 def send_news_only():
     news = fetch_news()
     if news:
@@ -381,10 +464,12 @@ def main():
     if mode == "news": send_news_only()
     elif mode == "prices": asyncio.run(fetch_random_flight_prices())
     elif mode == "extras": send_extras()
+    elif mode == "hotels": asyncio.run(fetch_and_send_hotels())
     else:
         send_news_only()
         asyncio.run(fetch_random_flight_prices())
         send_extras()
+        asyncio.run(fetch_and_send_hotels())
 
 if __name__ == "__main__":
     main()
