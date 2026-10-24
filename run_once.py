@@ -337,15 +337,12 @@ async def fetch_random_flight_prices():
     
     save_message_ids("last_price_msgs.txt", new_msg_ids)
 
-# 🌟 تابع نهایی هتل‌ها (محدود به ۵ هتل اول، بدون چاپ خطا)
+# 🌟 تابع نهایی هتل‌ها
 async def fetch_and_send_hotels():
     delete_previous_messages("last_hotel_msgs.txt")
     
     selected_cities = random.sample(HOTEL_CITIES, 3)
     new_msg_ids = []
-    
-    from_date = datetime.now().strftime("%Y-%m-%d")
-    to_date = (datetime.now() + timedelta(days=1)).strftime("%Y-%m-%d")
     
     async with async_playwright() as p:
         browser = await p.chromium.launch(headless=True)
@@ -375,7 +372,7 @@ async def fetch_and_send_hotels():
                         seen_names.add(name)
                         
                         hotel_urls.append({"name": name, "url": f"https://www.eghamat24.com{href}"})
-                        if len(hotel_urls) >= 5: break # فقط ۵ هتل
+                        if len(hotel_urls) >= 8: break
                     except: pass
                 
                 if not hotel_urls:
@@ -386,9 +383,9 @@ async def fetch_and_send_hotels():
                 for h in hotel_urls:
                     try:
                         await page.goto(h["url"], timeout=60000, wait_until="domcontentloaded")
-                        await page.wait_for_timeout(3000)
-                        
+                        await page.wait_for_timeout(4000)
                         body_text = await page.locator("body").inner_text()
+                        
                         stars = 0
                         star_match = re.search(r'هتل\s*(پنج|5|چهار|4|سه|3)\s*ستاره', body_text)
                         if star_match:
@@ -399,31 +396,21 @@ async def fetch_and_send_hotels():
                             
                         if stars not in [3, 4, 5]: continue
                         
-                        html_content = await page.content()
-                        id_match = re.search(r'/properties/(\d+)/', html_content)
-                        if not id_match:
-                            id_match = re.search(r'"property_id"\s*:\s*(\d+)', html_content)
-                        if not id_match:
-                            id_match = re.search(r'data-property-id=["\'](\d+)["\']', html_content)
-                            
-                        if not id_match: continue # بدون چاپ خطا
-                            
-                        property_id = id_match.group(1)
+                        room_section = body_text.split("لیست اتاق‌های")[-1].split("قوانین هتل")[0]
+                        price_matches = re.findall(r'قیمت برای امروز\s*([\d,]+)\s*تومان', room_section)
                         
-                        api_url = f"https://www.eghamat24.com/properties/{property_id}/v2/rooms-rates?from_date={from_date}&to_date={to_date}"
-                        r = requests.get(api_url, timeout=10)
-                        
-                        if r.ok:
-                            data = r.json()
-                            if data.get("code") == 200 and data.get("value", {}).get("room_rates"):
-                                rates = data["value"]["room_rates"]
-                                valid_rates = [rate["daily_rate"] for rate in rates if rate.get("daily_rate") and not rate.get("closed")]
-                                if valid_rates:
-                                    min_rate_rial = min(valid_rates)
-                                    min_price_toman = int(min_rate_rial / 10)
-                                    city_hotels.append({"name": h["name"], "price": min_price_toman, "stars": stars})
-                                    
-                    except: pass # بدون چاپ خطا
+                        if price_matches:
+                            valid_prices = [int(p.replace(',', '')) for p in price_matches]
+                            min_price = min(valid_prices)
+                            city_hotels.append({"name": h["name"], "price": min_price, "stars": stars})
+                        else:
+                            prices = re.findall(r'([\d,]+)\s*تومان', room_section)
+                            valid_prices = [int(p.replace(',', '')) for p in prices if int(p.replace(',', '')) > 100000]
+                            if valid_prices:
+                                min_price = min(valid_prices)
+                                city_hotels.append({"name": h["name"], "price": min_price, "stars": stars})
+                                
+                    except: pass
                 
                 if not city_hotels: 
                     print(f"No hotels found for {city['name']}.")
