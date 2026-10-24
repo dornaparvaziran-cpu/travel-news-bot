@@ -337,7 +337,7 @@ async def fetch_random_flight_prices():
     
     save_message_ids("last_price_msgs.txt", new_msg_ids)
 
-# 🌟 تابع نهایی هتل‌ها (با دیکشنری بزرگ برای ترجمه)
+# 🌟 تابع نهایی هتل‌ها (بدون پرینت و با دیکشنری بزرگ)
 async def fetch_and_send_hotels():
     delete_previous_messages("last_hotel_msgs.txt")
     
@@ -345,43 +345,34 @@ async def fetch_and_send_hotels():
     new_msg_ids = []
     
     name_map = {
-        # --- مشهد ---
         "Almas 2": "الماس ۲", "Qasr Talaee": "قصر طلایی", "Qasr Almas": "قصر الماس",
         "Sinoor": "سینور", "Almas": "الماس", "Darvishi": "درویشی", "Madineh Alreza": "مدینه الرضا",
         "Shokooh Sharestan": "شکوه شهرستان", "Ferdous": "فردوس", "Imperator": "امپراطور",
         "Almas Novin": "الماس نوین", "Tabarok": "تبارک", "Homa": "هما", "Ghasre Talaee": "قصر طلایی",
         "Javad": "جواد", "Venus": "ونوس", "Atlas": "اطلس", "Cyrus": "کوروش", "Razavieh": "رضویه",
-        # --- تهران ---
         "Parsian Azadi": "پارسیان آزادی", "Parsian Evin": "پارسیان اوین", "Aramis": "آرامیس",
-        "Espinas": "اسپیناس", "Esteghlal": "استقلال", "Laleh": "لاله", "Homa": "هما",
+        "Espinas": "اسپیناس", "Esteghlal": "استقلال", "Laleh": "لاله",
         "Simorgh": "سیمرغ", "Enghelab": "انقلاب", "Ferdowsi": "فردوسی", "Kowsar": "کوثر",
         "Mina": "مینا", "Arman": "آرمان", "Saina": "ساینا",
-        # --- کیش ---
         "Dariush": "داریوش", "Shayan": "شایان", "Marina": "مارینا", "Kish Eram": "کیش ارم",
         "Tamasha": "تماشا", "Sadaf": "صدف", "Mirage": "میراژ", "Pardis": "پردیس",
         "Kish Sunny": "کیش سانی", "Helia": "هلیا", "Ariana": "آریانا",
-        # --- شیراز ---
         "Zandiyeh": "زندیه", "Bozorg": "بزرگ", "Chamran": "چمران", "Elizeh": "الیزه",
-        "rose": "رز", "Perspolis": "پرسپولیس", "Homa": "هما", "Pars": "پارس",
+        "rose": "رز", "Perspolis": "پرسپولیس", "Pars": "پارس",
         "Arg": "ارگ", "Karim Khan": "کریم خان", "Beynalharamain": "بین‌الحرمین",
         "Shiraz Grand": "شیراز گراند", "Tachara": "تچرا",
-        # --- اصفهان ---
         "Abbasi": "عباسی", "Ali Qapu": "علی قاپو", "Piroozi": "پیروزی", "Janat": "جنت",
         "Safavi": "صفوی", "Esfahan": "اصفهان", "Zohreh": "زهره", "Parsian Kosar": "پارسیان کوثر",
-        "Kowsar": "کوثر", "Avicenna": "ابوعلی سینا", "Melal": "ملل",
-        # --- یزد ---
+        "Avicenna": "ابوعلی سینا", "Melal": "ملل",
         "Dad": "داد", "Safaiyeh": "صفائیه", "Parsian Safaiyeh": "پارسیان صفائیه",
         "Moshir": "مشیر", "Orient": "اورینت", "Yazd Grand": "یزد گراند", "Fazeli": "فاضلی",
-        # --- تبریز ---
-        "Pars Elgoli": "پارس ائل گلی", "Shariyar": "شهریار", "Laleh": "لاله", 
+        "Pars Elgoli": "پارس ائل گلی", "Shariyar": "شهریار", 
         "Royal Palace": "کاخ سلطنتی", "Azaditabriz": "آزادی تبریز", "Sorkheyi": "سرخه‌ای",
         "Saray": "سرای", "Petroshimi Tabriz": "پتروشیمی تبریز", "Gostaresh": "گسترش",
         "Tabriz International": "بین‌المللی تبریز", "Arta": "آرتا",
-        # --- قم ---
-        "Qom Grand": "قم گراند", "Parsian Qom": "پارسیان قم", "Kowsar": "کوثر",
-        "Niloofar": "نیلوفر", "Homa": "هما", "Alborz": "البرز", "Saina": "ساینا",
-        # --- قشم ---
-        "Barracuda": "باراکودا", "Sarina": "سارینا", "Arta": "آرتا", "falamingo": "فلامینگو",
+        "Qom Grand": "قم گراند", "Parsian Qom": "پارسیان قم", 
+        "Niloofar": "نیلوفر", "Alborz": "البرز",
+        "Barracuda": "باراکودا", "Sarina": "سارینا", "falamingo": "فلامینگو",
         "Singo": "سینگو", "Kimiya4": "کیمیا ۴", "Qeshm Grand": "قشم گراند", "Iran": "ایران",
         "Hormoz": "هرمز", "Khalij Fars": "خلیج فارس"
     }
@@ -391,8 +382,6 @@ async def fetch_and_send_hotels():
         page = await browser.new_page()
         
         for city in selected_cities:
-            print(f"Processing {city['name']}...")
-            
             try:
                 await page.goto(city["url"], timeout=60000, wait_until="domcontentloaded")
                 await page.wait_for_timeout(8000)
@@ -414,18 +403,16 @@ async def fetch_and_send_hotels():
                         seen_names.add(name)
                         
                         hotel_urls.append({"name": name, "url": f"https://www.eghamat24.com{href}"})
-                        if len(hotel_urls) >= 8: break
+                        if len(hotel_urls) >= 5: break
                     except: pass
                 
-                if not hotel_urls:
-                    print(f"No hotels found for {city['name']}.")
-                    continue
+                if not hotel_urls: continue
                 
                 city_hotels = []
                 for h in hotel_urls:
                     try:
                         await page.goto(h["url"], timeout=60000, wait_until="domcontentloaded")
-                        await page.wait_for_timeout(4000)
+                        await page.wait_for_timeout(3000)
                         body_text = await page.locator("body").inner_text()
                         
                         stars = 0
@@ -456,9 +443,7 @@ async def fetch_and_send_hotels():
                                 
                     except: pass
                 
-                if not city_hotels: 
-                    print(f"No hotels found for {city['name']}.")
-                    continue
+                if not city_hotels: continue
                 
                 grouped = {5: [], 4: [], 3: []}
                 for h in city_hotels:
@@ -481,8 +466,7 @@ async def fetch_and_send_hotels():
                     tg_id, _ = send_to_all(msg)
                     if tg_id: new_msg_ids.append(tg_id)
                     
-            except Exception as e:
-                print(f"Error processing {city['name']}: {e}")
+            except: pass
                 
         await browser.close()
     
