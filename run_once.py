@@ -336,15 +336,13 @@ async def fetch_random_flight_prices():
     save_message_ids("last_price_msgs.txt", new_msg_ids)
 
 # 🌟 تابع نهایی هتل‌ها (رفتن به صفحه هر هتل برای قیمت دقیق)
-# 🌟 تابع نهایی هتل‌ها (همه در یک پیام)
+# 🌟 تابع نهایی هتل‌ها (برای هر شهر یک پیام با تیتر ستاره‌ها)
 async def fetch_and_send_hotels():
     delete_previous_messages("last_hotel_msgs.txt")
     
     # انتخاب ۳ شهر به صورت رندوم
     selected_cities = random.sample(HOTEL_CITIES, 3)
-    
-    # دیکشنری برای جمع‌آوری همه هتل‌ها بر اساس ستاره
-    all_hotels_by_stars = {5: [], 4: [], 3: []}
+    new_msg_ids = []
     
     async with async_playwright() as p:
         browser = await p.chromium.launch(headless=True)
@@ -374,63 +372,63 @@ async def fetch_and_send_hotels():
                         if name in seen_names: continue
                         seen_names.add(name)
                         
-                        # پیدا کردن ستاره و قیمت از والد (برای دسته‌بندی اولیه)
+                        # پیدا کردن ستاره از والد
                         parent = link.locator("xpath=..").locator("xpath=..").locator("xpath=..")
                         parent_text = await parent.inner_text()
                         
                         stars = 0
                         star_match = re.search(r'([1-5])\s*ستاره', parent_text)
                         if star_match: stars = int(star_match.group(1))
-                        
-                        # اگر ستاره پیدا نشد، پیش‌فرض ۳ می‌گیریم
                         if stars not in [3, 4, 5]: stars = 3
                         
-                        hotel_list.append({"name": name, "url": f"https://www.eghamat24.com{href}", "stars": stars, "city": city['name']})
+                        hotel_list.append({"name": name, "url": f"https://www.eghamat24.com{href}", "stars": stars})
                     except: pass
                 
-                # انتخاب حداکثر ۱ هتل از هر ستاره برای هر شهر (تا پیام خیلی طولانی نشه)
+                if not hotel_list: 
+                    print(f"No hotels found for {city['name']}.")
+                    continue
+                
+                # گروه‌بندی بر اساس ستاره
+                grouped = {5: [], 4: [], 3: []}
+                for h in hotel_list:
+                    if h["stars"] in grouped:
+                        grouped[h["stars"]].append(h)
+                
+                # ساخت پیام برای این شهر
+                msg = f"🏨 <b>قیمت لحظه‌ای هتل‌های {city['name']}</b>\n\n"
+                has_valid_hotel = False
+                
                 for star in [5, 4, 3]:
-                    star_hotels = [h for h in hotel_list if h["stars"] == star]
-                    if star_hotels:
-                        selected = random.sample(star_hotels, min(1, len(star_hotels)))
+                    if grouped[star]:
+                        # انتخاب حداکثر ۳ هتل از هر ستاره
+                        selected = random.sample(grouped[star], min(3, len(grouped[star])))
+                        msg += f"⭐ <b>هتل‌های {star} ستاره:</b>\n"
                         for h in selected:
-                            # رفتن به صفحه هتل برای گرفتن قیمت دقیق
                             try:
+                                # رفتن به صفحه هتل برای گرفتن قیمت دقیق
                                 await page.goto(h["url"], timeout=60000, wait_until="domcontentloaded")
                                 await page.wait_for_timeout(3000)
                                 body_text = await page.locator("body").inner_text()
                                 prices = re.findall(r'([\d,]+)\s*تومان', body_text)
                                 if prices:
                                     min_price = min([int(p.replace(',', '')) for p in prices])
-                                    h["price"] = min_price
-                                    all_hotels_by_stars[star].append(h)
+                                    msg += f"🔹 {h['name']}: {min_price:,} تومان\n"
+                                    has_valid_hotel = True
                             except: pass
-                            
+                        msg += "\n"
+                        
+                if has_valid_hotel:
+                    msg += "📞 <b>برای رزرو تلفنی با ما در تماس باشید:</b>\n☎️ 0915XXXXXXX\n\n✈️ <b>درنا سفر</b>"
+                    tg_id, _ = send_to_all(msg)
+                    if tg_id: new_msg_ids.append(tg_id)
+                    
             except Exception as e:
                 print(f"Error processing {city['name']}: {e}")
                 
         await browser.close()
     
-    # ساخت پیام واحد
-    msg = "🏨 <b>قیمت لحظه‌ای هتل‌ها</b>\n\n"
-    
-    for star in [5, 4, 3]:
-        if all_hotels_by_stars[star]:
-            msg += f"⭐ <b>هتل‌های {star} ستاره:</b>\n"
-            for h in all_hotels_by_stars[star]:
-                msg += f"🔹 {h['name']} ({h['city']}): {h['price']:,} تومان\n"
-            msg += "\n"
-            
-    if msg == "🏨 <b>قیمت لحظه‌ای هتل‌ها</b>\n\n":
-        print("No hotels found.")
-        return
-        
-    msg += "📞 <b>برای رزرو تلفنی با ما در تماس باشید:</b>\n☎️ 09153092528\n\n✈️ <b>درنا تراول</b>"
-    
-    print("Sending combined hotel message...")
-    tg_id, _ = send_to_all(msg)
-    if tg_id:
-        save_message_ids("last_hotel_msgs.txt", [tg_id])
+    if new_msg_ids:
+        save_message_ids("last_hotel_msgs.txt", new_msg_ids)
 
 def send_news_only():
     news = fetch_news()
