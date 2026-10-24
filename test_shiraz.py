@@ -1,7 +1,6 @@
 import asyncio
 from playwright.async_api import async_playwright
 import re
-import random
 
 async def main():
     async with async_playwright() as p:
@@ -13,10 +12,10 @@ async def main():
         await page.goto(url, timeout=60000, wait_until="domcontentloaded")
         await page.wait_for_timeout(12000)
         
-        # پیدا کردن همه لینک‌های هتل
+        # پیدا کردن لینک‌های هتل‌ها
         links = await page.locator("a[href*='/MashhadHotels/']").all()
         
-        results = []
+        hotel_urls = []
         seen_names = set()
         
         for link in links:
@@ -31,42 +30,33 @@ async def main():
                 if name in seen_names: continue
                 seen_names.add(name)
                 
-                # 🌟 پیدا کردن دقیق قیمت با استفاده از تگ‌های همسایه
-                # به جای xpath های طولانی، از یک روش ساده‌تر استفاده میکنیم:
-                # کل کارت رو از روی لینک پیدا میکنیم
-                card = link.locator("xpath=ancestor::div[contains(@class, 'card') or contains(@class, 'item')][1]")
+                hotel_urls.append({"name": name, "url": f"https://www.eghamat24.com{href}"})
+                if len(hotel_urls) >= 5: break # فقط ۵ هتل اول برای تست
+            except: pass
+            
+        print(f"Testing {len(hotel_urls)} hotels...")
+        
+        # رفتن به صفحه هر هتل و خواندن قیمت
+        for hotel in hotel_urls:
+            try:
+                print(f"\nChecking {hotel['name']}...")
+                await page.goto(hotel["url"], timeout=60000, wait_until="domcontentloaded")
+                await page.wait_for_timeout(5000) # صبر برای لود قیمت‌ها
                 
-                # اگر کارت پیدا نشد، از والد معمولی استفاده میکنیم
-                if await card.count() == 0:
-                    card = link.locator("xpath=..").locator("xpath=..").locator("xpath=..")
-                    
-                card_text = await card.inner_text()
-                prices = re.findall(r'([\d,]+)\s*تومان', card_text)
+                # خواندن متن کل صفحه
+                body_text = await page.locator("body").inner_text()
                 
+                # پیدا کردن قیمت‌ها
+                prices = re.findall(r'([\d,]+)\s*تومان', body_text)
                 if prices:
                     numeric_prices = [int(p.replace(',', '')) for p in prices]
                     min_price = min(numeric_prices)
-                    results.append({"name": name, "price": min_price})
-            except: pass
-            
-        # حذف تکراری‌ها
-        unique_hotels = {}
-        for h in results:
-            if h["name"] not in unique_hotels:
-                unique_hotels[h["name"]] = h
-        final_list = list(unique_hotels.values())
-                
-        print(f"Found {len(final_list)} hotels!")
-        
-        msg = "🏨 <b>قیمت لحظه‌ای هتل‌های مشهد</b>\n\n"
-        for h in final_list[:10]:
-            msg += f"🔹 {h['name']}: {h['price']:,} تومان\n"
-            
-        msg += "\n📞 <b>برای رزرو تلفنی با ما در تماس باشید:</b>\n☎️ 0915XXXXXXX\n\n✈️ <b>درنا سفر</b>"
-        
-        print("--- پیام نهایی ---")
-        print(msg)
-        print("------------------")
+                    print(f"-> Min price: {min_price:,} تومان")
+                else:
+                    print("-> No price found.")
+                    
+            except Exception as e:
+                print(f"-> Error: {e}")
             
         await browser.close()
 
