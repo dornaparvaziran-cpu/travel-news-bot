@@ -53,29 +53,31 @@ ALL_ROUTES = [
     {"name": "تهران به مسقط", "url": "https://dornatravel.ir/flight/IKA-MCT"},
 ]
 
-# 🌟 لیست شهرها برای هتل‌ها (بر اساس آیدی جستجوی سایت)
+# 🌟 لیست شهرها با آدرس مستقیم صفحه هتل‌هاشون
 HOTEL_CITIES = [
-    {"name": "مشهد", "id": "2"}, # آیدی‌ها ممکنه متفاوت باشن، بهتره از لینک خود سایت چک بشه. فعلا فرض می‌کنیم اینطوره
-    {"name": "تهران", "id": "1"},
-    {"name": "کیش", "id": "14"},
-    {"name": "شیراز", "id": "100"},
-    {"name": "اصفهان", "id": "26"},
-    {"name": "یزد", "id": "80"},
-    {"name": "تبریز", "id": "18"},
-    {"name": "قم", "id": "45"},
-    {"name": "قشم", "id": "25"},
+    {"name": "مشهد", "url": "https://www.eghamat24.com/MashhadHotels.html", "prefix": "/MashhadHotels/"},
+    {"name": "تهران", "url": "https://www.eghamat24.com/TehranHotels.html", "prefix": "/TehranHotels/"},
+    {"name": "کیش", "url": "https://www.eghamat24.com/KishHotels.html", "prefix": "/KishHotels/"},
+    {"name": "شیراز", "url": "https://www.eghamat24.com/ShirazHotels.html", "prefix": "/ShirazHotels/"},
+    {"name": "اصفهان", "url": "https://www.eghamat24.com/EsfahanHotels.html", "prefix": "/EsfahanHotels/"},
+    {"name": "یزد", "url": "https://www.eghamat24.com/YazdHotels.html", "prefix": "/YazdHotels/"},
+    {"name": "تبریز", "url": "https://www.eghamat24.com/TabrizHotels.html", "prefix": "/TabrizHotels/"},
+    {"name": "قم", "url": "https://www.eghamat24.com/QomHotels.html", "prefix": "/QomHotels/"},
+    {"name": "قشم", "url": "https://www.eghamat24.com/QeshmHotels.html", "prefix": "/QeshmHotels/"},
 ]
 
-NUMBER_OF_ROUTES = 3
-MAX_NEWS_TO_SEND = 7 
+NUMBER_OF_ROUTES = 5
+MAX_NEWS_TO_SEND = 9 
 MAX_HOTELS_PER_STAR = 3
 
 FEEDS = [
-    "https://www.chtn.ir/rss/tp/134",
-    "https://www.chtn.ir/rss",
     "https://www.tinn.ir/fa/feeds/?p=Y2F0ZWdvcmllcz03Ng,,",
+    "https://www.tinn.ir/fa/feeds/?p=cG9zaXRpb25Gcm9udD00",
     "https://biatrip.com/tag/اخبار-خطوط-هوایی/feed",
+    "https://biatrip.com/tag/سازمان-هواپیمایی-فدرال/feed",
     "https://www.mehrnews.com/rss",
+    "https://www.mehrnews.com/rss?kw=شرکت+فرودگاهها+و+ناوبری+هوایی+ایران",
+    "https://www.khabaronline.ir/rss?kw=CIP+فرودگاه",
     "https://www.irna.ir/rss",
     "https://skift.com/feed/",
 ]
@@ -333,7 +335,7 @@ async def fetch_random_flight_prices():
     
     save_message_ids("last_price_msgs.txt", new_msg_ids)
 
-# 🌟 تابع نهایی هتل‌ها (انتخاب ۳ شهر رندوم و دسته‌بندی ستاره)
+# 🌟 تابع نهایی هتل‌ها (رفتن به صفحه هر هتل برای قیمت دقیق)
 async def fetch_and_send_hotels():
     delete_previous_messages("last_hotel_msgs.txt")
     
@@ -343,94 +345,78 @@ async def fetch_and_send_hotels():
     
     async with async_playwright() as p:
         browser = await p.chromium.launch(headless=True)
+        page = await browser.new_page()
         
         for city in selected_cities:
             print(f"Processing {city['name']}...")
             
-            # آدرس جستجو برای هر شهر (تاریخ فرضی 2026-10-27)
-            url = f"https://www.eghamat24.com/search/property?destination_id={city['id']}&destination_name={city['name']}&check_in=2026-10-27&length_of_stay=1"
-            
-            page = await browser.new_page()
             try:
-                await page.goto(url, timeout=60000, wait_until="domcontentloaded")
+                await page.goto(city["url"], timeout=60000, wait_until="domcontentloaded")
                 await page.wait_for_timeout(12000)
                 
-                # پیدا کردن لینک‌های هتل در این شهر
-                links = await page.locator(f"a[href*='/{city['name']}Hotels/']").all()
+                # پیدا کردن لینک‌های هتل
+                links = await page.locator(f"a[href*='{city['prefix']}']").all()
                 
-                results = []
+                # استخراج اسم و لینک هتل
+                hotel_list = []
                 seen_names = set()
-                
                 for link in links:
                     try:
-                        name = await link.inner_text()
-                        name = name.strip()
+                        href = await link.get_attribute("href")
+                        if not href or not href.endswith(".html"): continue
                         
-                        # فیلتر کردن لینک‌های منو و دکمه‌ها
-                        if not name or name in seen_names: continue
-                        if "هتل" not in name: continue
-                        if any(word in name for word in ["های", "مشاهده", "انتخاب", "پیشنهاد", "تخفیف", "ثبت", "همه"]): continue
+                        hotel_id = href.split("/")[-1].replace(".html", "")
+                        if "Hotels" in hotel_id: continue # لینک صفحه اصلی
                         
+                        name = re.sub(r'(?<!^)(?=[A-Z])', ' ', hotel_id).replace("_", " ").strip()
+                        if name in seen_names: continue
                         seen_names.add(name)
                         
-                        parent = link.locator("xpath=..").locator("xpath=..").locator("xpath=..")
-                        parent_text = await parent.inner_text()
+                        hotel_list.append({"name": name, "url": f"https://www.eghamat24.com{href}"})
+                    except: pass
+                
+                if not hotel_list:
+                    print(f"No hotels found for {city['name']}.")
+                    continue
+                
+                # انتخاب ۳ هتل تصادفی برای تست (برای اینکه زمان کمتری بگیره)
+                selected_hotels = random.sample(hotel_list, min(3, len(hotel_list)))
+                
+                # رفتن به صفحه هر هتل و خواندن قیمت
+                city_results = []
+                for h in selected_hotels:
+                    try:
+                        await page.goto(h["url"], timeout=60000, wait_until="domcontentloaded")
+                        await page.wait_for_timeout(5000)
                         
-                        stars = 0
-                        star_match = re.search(r'([1-5])\s*ستاره', parent_text)
-                        if star_match: stars = int(star_match.group(1))
+                        body_text = await page.locator("body").inner_text()
+                        prices = re.findall(r'([\d,]+)\s*تومان', body_text)
                         
-                        prices = re.findall(r'([\d,]+)\s*تومان', parent_text)
                         if prices:
                             numeric_prices = [int(p.replace(',', '')) for p in prices]
                             min_price = min(numeric_prices)
-                            results.append({"name": name, "price": min_price, "stars": stars})
+                            city_results.append({"name": h["name"], "price": min_price})
                     except: pass
                     
-                # حذف تکراری‌ها
-                unique_hotels = {}
-                for h in results:
-                    if h["name"] not in unique_hotels: unique_hotels[h["name"]] = h
-                final_list = list(unique_hotels.values())
-                
-                # گروه‌بندی بر اساس ستاره
-                grouped = {5: [], 4: [], 3: []}
-                for h in final_list:
-                    if h["stars"] in grouped: grouped[h["stars"]].append(h)
-                
-                # اگر هتلی پیدا نشد، برو شهر بعدی
-                if not any(grouped.values()):
-                    print(f"No hotels found for {city['name']}.")
-                    await page.close()
-                    continue
+                if not city_results: continue
                 
                 # ساخت پیام برای این شهر
                 msg = f"🏨 <b>قیمت لحظه‌ای هتل‌های {city['name']}</b>\n\n"
-                
-                for star_level in [5, 4, 3]:
-                    if grouped[star_level]:
-                        selected = random.sample(grouped[star_level], min(MAX_HOTELS_PER_STAR, len(grouped[star_level])))
-                        msg += f"⭐ <b>هتل‌های {star_level} ستاره:</b>\n"
-                        for h in selected:
-                            msg += f"🔹 {h['name']}: {h['price']:,} تومان\n"
-                        msg += "\n"
-                        
-                msg += "📞 <b>برای رزرو تلفنی با ما در تماس باشید:</b>\n☎️ 0915XXXXXXX\n\n✈️ <b>درنا سفر</b>"
+                for h in city_results:
+                    msg += f"🔹 {h['name']}: {h['price']:,} تومان\n"
+                    
+                msg += "\n📞 <b>برای رزرو تلفنی با ما در تماس باشید:</b>\n☎️ 0915XXXXXXX\n\n✈️ <b>درنا سفر</b>"
                 
                 tg_id, _ = send_to_all(msg)
                 if tg_id: new_msg_ids.append(tg_id)
                 
             except Exception as e:
                 print(f"Error processing {city['name']}: {e}")
-            finally:
-                await page.close()
                 
         await browser.close()
     
     if new_msg_ids:
         save_message_ids("last_hotel_msgs.txt", new_msg_ids)
-    else:
-        print("No hotel messages sent.")
 
 def send_news_only():
     news = fetch_news()
