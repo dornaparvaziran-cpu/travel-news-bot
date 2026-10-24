@@ -337,14 +337,13 @@ async def fetch_random_flight_prices():
     
     save_message_ids("last_price_msgs.txt", new_msg_ids)
 
-# 🌟 تابع نهایی هتل‌ها با استفاده از API
+# 🌟 تابع نهایی هتل‌ها (محدود به ۵ هتل اول، بدون چاپ خطا)
 async def fetch_and_send_hotels():
     delete_previous_messages("last_hotel_msgs.txt")
     
     selected_cities = random.sample(HOTEL_CITIES, 3)
     new_msg_ids = []
     
-    # تاریخ‌ها برای API
     from_date = datetime.now().strftime("%Y-%m-%d")
     to_date = (datetime.now() + timedelta(days=1)).strftime("%Y-%m-%d")
     
@@ -359,7 +358,6 @@ async def fetch_and_send_hotels():
                 await page.goto(city["url"], timeout=60000, wait_until="domcontentloaded")
                 await page.wait_for_timeout(8000)
                 
-                # پیدا کردن لینک‌های هتل
                 links = await page.locator(f"a[href*='{city['prefix']}']").all()
                 
                 hotel_urls = []
@@ -377,6 +375,7 @@ async def fetch_and_send_hotels():
                         seen_names.add(name)
                         
                         hotel_urls.append({"name": name, "url": f"https://www.eghamat24.com{href}"})
+                        if len(hotel_urls) >= 5: break # فقط ۵ هتل
                     except: pass
                 
                 if not hotel_urls:
@@ -384,13 +383,11 @@ async def fetch_and_send_hotels():
                     continue
                 
                 city_hotels = []
-                for h in hotel_urls[:10]: # بررسی ۱۰ هتل اول
+                for h in hotel_urls:
                     try:
-                        # رفتن به صفحه هتل
                         await page.goto(h["url"], timeout=60000, wait_until="domcontentloaded")
                         await page.wait_for_timeout(3000)
                         
-                        # استخراج ستاره
                         body_text = await page.locator("body").inner_text()
                         stars = 0
                         star_match = re.search(r'هتل\s*(پنج|5|چهار|4|سه|3)\s*ستاره', body_text)
@@ -402,20 +399,17 @@ async def fetch_and_send_hotels():
                             
                         if stars not in [3, 4, 5]: continue
                         
-                        # 🌟 پیدا کردن property_id (روش‌های مختلف)
                         html_content = await page.content()
                         id_match = re.search(r'/properties/(\d+)/', html_content)
                         if not id_match:
                             id_match = re.search(r'"property_id"\s*:\s*(\d+)', html_content)
                         if not id_match:
                             id_match = re.search(r'data-property-id=["\'](\d+)["\']', html_content)
-                        if not id_match:
-                            print(f"Could not find property_id for {h['name']}")
-                            continue
+                            
+                        if not id_match: continue # بدون چاپ خطا
                             
                         property_id = id_match.group(1)
                         
-                        # 🌟 درخواست به API
                         api_url = f"https://www.eghamat24.com/properties/{property_id}/v2/rooms-rates?from_date={from_date}&to_date={to_date}"
                         r = requests.get(api_url, timeout=10)
                         
@@ -429,19 +423,16 @@ async def fetch_and_send_hotels():
                                     min_price_toman = int(min_rate_rial / 10)
                                     city_hotels.append({"name": h["name"], "price": min_price_toman, "stars": stars})
                                     
-                    except Exception as e:
-                        print(f"Error for {h['name']}: {e}")
+                    except: pass # بدون چاپ خطا
                 
                 if not city_hotels: 
                     print(f"No hotels found for {city['name']}.")
                     continue
                 
-                # گروه‌بندی بر اساس ستاره
                 grouped = {5: [], 4: [], 3: []}
                 for h in city_hotels:
                     if h["stars"] in grouped: grouped[h["stars"]].append(h)
                 
-                # ساخت پیام
                 msg = f"🏨 <b>قیمت لحظه‌ای هتل‌های {city['name']}</b>\n\n"
                 has_valid = False
                 
