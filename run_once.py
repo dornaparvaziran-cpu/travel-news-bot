@@ -54,15 +54,17 @@ ALL_ROUTES = [
     {"name": "تهران به مسقط", "url": "https://dornatravel.ir/flight/IKA-MCT"},
 ]
 
-NUMBER_OF_ROUTES = 3
-MAX_NEWS_TO_SEND = 7 
+NUMBER_OF_ROUTES = 5
+MAX_NEWS_TO_SEND = 9 
 
 FEEDS = [
-    "https://www.chtn.ir/rss/tp/134",
-    "https://www.chtn.ir/rss",
     "https://www.tinn.ir/fa/feeds/?p=Y2F0ZWdvcmllcz03Ng,,",
+    "https://www.tinn.ir/fa/feeds/?p=cG9zaXRpb25Gcm9udD00", # جدید (تین نیوز - تحلیل)
     "https://biatrip.com/tag/اخبار-خطوط-هوایی/feed",
+    "https://biatrip.com/tag/سازمان-هواپیمایی-فدرال/feed", # جدید (بیا تریپ - FAA)
     "https://www.mehrnews.com/rss",
+    "https://www.mehrnews.com/rss?kw=شرکت+فرودگاهها+و+ناوبری+هوایی+ایران", # جدید (مهر - هوانوردی)
+    "https://www.khabaronline.ir/rss?kw=CIP+فرودگاه", # جدید (خبرآنلاین - فرودگاه)
     "https://www.irna.ir/rss",
     "https://skift.com/feed/",
 ]
