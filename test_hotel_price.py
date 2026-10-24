@@ -13,7 +13,7 @@ async def main():
         await page.goto(url, timeout=60000, wait_until="domcontentloaded")
         await page.wait_for_timeout(12000)
         
-        # پیدا کردن تمام لینک‌های مربوط به هتل‌های شیراز
+        # پیدا کردن لینک‌هایی که دقیقاً به هتل‌های شیراز اشاره می‌کنن (نه منو)
         links = await page.locator("a[href*='/ShirazHotels/']").all()
         
         results = []
@@ -21,30 +21,25 @@ async def main():
         
         for link in links:
             try:
-                # 🌟 تغییر اصلی: استفاده از title به جای متن لینک
-                name = await link.get_attribute("title")
-                if not name:
-                    continue
-                
+                name = await link.inner_text()
                 name = name.strip()
                 
-                # فیلتر کردن اسم‌های تکراری
-                if name in seen_names: continue
+                # 🌟 فیلتر هوشمند: فقط اسم‌هایی که کلمه "هتل" دارن و کلمات منو توشون نیست
+                if not name or name in seen_names: continue
+                if "هتل" not in name: continue
+                if any(word in name for word in ["های", "مشاهده", "انتخاب", "پیشنهاد", "تخفیف", "ثبت", "همه"]): continue
+                
                 seen_names.add(name)
                 
-                # پیدا کردن متن والد برای استخراج قیمت و ستاره
+                # پیدا کردن والد برای استخراج قیمت
                 parent = link.locator("xpath=..").locator("xpath=..").locator("xpath=..")
                 parent_text = await parent.inner_text()
-                
-                stars = 0
-                star_match = re.search(r'([1-5])\s*ستاره', parent_text)
-                if star_match: stars = int(star_match.group(1))
                 
                 prices = re.findall(r'([\d,]+)\s*تومان', parent_text)
                 if prices:
                     numeric_prices = [int(p.replace(',', '')) for p in prices]
                     min_price = min(numeric_prices)
-                    results.append({"name": name, "price": min_price, "stars": stars})
+                    results.append({"name": name, "price": min_price})
             except: pass
             
         # حذف تکراری‌ها
@@ -53,27 +48,14 @@ async def main():
             if h["name"] not in unique_hotels:
                 unique_hotels[h["name"]] = h
         final_list = list(unique_hotels.values())
-        
-        # گروه‌بندی بر اساس ستاره
-        grouped = {5: [], 4: [], 3: []}
-        for h in final_list:
-            if h["stars"] in grouped:
-                grouped[h["stars"]].append(h)
                 
-        print(f"Found {len(final_list)} hotels with stars!")
+        print(f"Found {len(final_list)} hotels!")
         
-        # ساخت پیش‌نمایش پیام
         msg = "🏨 <b>قیمت لحظه‌ای هتل‌های شیراز</b>\n\n"
-        
-        for star_level in [5, 4, 3]:
-            if grouped[star_level]:
-                selected = random.sample(grouped[star_level], min(3, len(grouped[star_level])))
-                msg += f"⭐ <b>هتل‌های {star_level} ستاره:</b>\n"
-                for h in selected:
-                    msg += f"🔹 {h['name']}: {h['price']:,} تومان\n"
-                msg += "\n"
-                
-        msg += "📞 <b>برای رزرو تلفنی با ما در تماس باشید:</b>\n☎️ 0915XXXXXXX\n\n✈️ <b>درنا سفر</b>"
+        for h in final_list[:10]:
+            msg += f"🔹 {h['name']}: {h['price']:,} تومان\n"
+            
+        msg += "\n📞 <b>برای رزرو تلفنی با ما در تماس باشید:</b>\n☎️ 0915XXXXXXX\n\n✈️ <b>درنا سفر</b>"
         
         print("--- پیام نهایی ---")
         print(msg)
