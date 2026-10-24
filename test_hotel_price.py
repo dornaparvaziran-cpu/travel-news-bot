@@ -1,7 +1,6 @@
 import asyncio
 from playwright.async_api import async_playwright
 import re
-import random
 
 async def main():
     async with async_playwright() as p:
@@ -13,7 +12,7 @@ async def main():
         await page.goto(url, timeout=60000, wait_until="domcontentloaded")
         await page.wait_for_timeout(12000)
         
-        # پیدا کردن لینک‌هایی که دقیقاً به هتل‌های شیراز اشاره می‌کنن (نه منو)
+        # پیدا کردن تمام لینک‌های هتل در شیراز
         links = await page.locator("a[href*='/ShirazHotels/']").all()
         
         results = []
@@ -21,17 +20,16 @@ async def main():
         
         for link in links:
             try:
-                name = await link.inner_text()
+                # 🌟 استخراج اسم هتل از ویژگی title
+                name = await link.get_attribute("title")
+                if not name:
+                    continue
+                
                 name = name.strip()
-                
-                # 🌟 فیلتر هوشمند: فقط اسم‌هایی که کلمه "هتل" دارن و کلمات منو توشون نیست
-                if not name or name in seen_names: continue
-                if "هتل" not in name: continue
-                if any(word in name for word in ["های", "مشاهده", "انتخاب", "پیشنهاد", "تخفیف", "ثبت", "همه"]): continue
-                
+                if name in seen_names: continue
                 seen_names.add(name)
                 
-                # پیدا کردن والد برای استخراج قیمت
+                # پیدا کردن قیمت از والد
                 parent = link.locator("xpath=..").locator("xpath=..").locator("xpath=..")
                 parent_text = await parent.inner_text()
                 
@@ -42,17 +40,10 @@ async def main():
                     results.append({"name": name, "price": min_price})
             except: pass
             
-        # حذف تکراری‌ها
-        unique_hotels = {}
-        for h in results:
-            if h["name"] not in unique_hotels:
-                unique_hotels[h["name"]] = h
-        final_list = list(unique_hotels.values())
-                
-        print(f"Found {len(final_list)} hotels!")
+        print(f"Found {len(results)} hotels with prices!")
         
         msg = "🏨 <b>قیمت لحظه‌ای هتل‌های شیراز</b>\n\n"
-        for h in final_list[:10]:
+        for h in results[:10]:
             msg += f"🔹 {h['name']}: {h['price']:,} تومان\n"
             
         msg += "\n📞 <b>برای رزرو تلفنی با ما در تماس باشید:</b>\n☎️ 0915XXXXXXX\n\n✈️ <b>درنا سفر</b>"
