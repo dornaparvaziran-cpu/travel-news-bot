@@ -1,38 +1,39 @@
-import asyncio
-from playwright.async_api import async_playwright
-import re
+import requests
+import os
 
-async def main():
-    async with async_playwright() as p:
-        browser = await p.chromium.launch(headless=True)
-        page = await browser.new_page()
+def main():
+    API_KEY = os.environ.get("PARSE_KEY")
+    if not API_KEY:
+        print("API KEY NOT FOUND!")
+        return
         
-        # یک هتل تستی در تبریز
-        url = "https://www.eghamat24.com/TabrizHotels/ParsElgoliHotel.html"
-        print(f"Opening {url}...")
-        await page.goto(url, timeout=60000, wait_until="domcontentloaded")
-        await page.wait_for_timeout(5000)
+    print("Testing Snapptrip API...")
+    
+    # آدرس API جستجوی هتل در مشهد
+    url = "https://api.parse.bot/snapptrip/hotels/search"
+    headers = {
+        "Authorization": f"Bearer {API_KEY}",
+        "Content-Type": "application/json"
+    }
+    data = {
+        "city": "مشهد",
+        "checkin": "2026-10-28",
+        "checkout": "2026-10-29"
+    }
+    
+    try:
+        r = requests.post(url, headers=headers, json=data, timeout=30)
+        print(f"Status Code: {r.status_code}")
         
-        # روش ۱: خواندن کل متن صفحه
-        body_text = await page.locator("body").inner_text()
-        prices = re.findall(r'([\d,]+)\s*تومان', body_text)
-        print(f"All prices found in text: {prices[:10]}")
-        
-        # روش ۲: پیدا کردن تگ‌هایی که کلاس price دارن
-        price_elements = await page.locator("[class*='price'], [class*='Price']").all()
-        print(f"Elements with 'price' class: {len(price_elements)}")
-        for el in price_elements[:5]:
-            text = await el.inner_text()
-            print(f"- {text.strip()[:50]}")
+        if r.ok:
+            res_data = r.json()
+            print("Response:")
+            print(res_data)
+        else:
+            print(f"Error: {r.text}")
             
-        # روش ۳: پیدا کردن دکمه‌های رزرو یا انتخاب اتاق
-        buttons = await page.locator("button, a").all()
-        for btn in buttons:
-            text = await btn.inner_text()
-            if "اتاق" in text or "رزرو" in text or "قیمت" in text:
-                print(f"Button/Link: {text.strip()[:50]}")
-                
-        await browser.close()
+    except Exception as e:
+        print(f"Exception: {e}")
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    main()
