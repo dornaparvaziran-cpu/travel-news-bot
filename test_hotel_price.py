@@ -13,6 +13,7 @@ async def main():
         await page.goto(url, timeout=60000, wait_until="domcontentloaded")
         await page.wait_for_timeout(12000)
         
+        # پیدا کردن تمام لینک‌های مربوط به هتل‌های شیراز
         links = await page.locator("a[href*='/ShirazHotels/']").all()
         
         results = []
@@ -20,18 +21,18 @@ async def main():
         
         for link in links:
             try:
-                href = await link.get_attribute("href")
-                name = await link.inner_text()
+                # 🌟 تغییر اصلی: استفاده از title به جای متن لینک
+                name = await link.get_attribute("title")
+                if not name:
+                    continue
+                
                 name = name.strip()
                 
-                # 🌟 فیلتر کردن لینک‌های منو و دکمه‌ها
-                if not name or name in seen_names: continue
-                # اسم هتل باید حتماً کلمه "هتل" رو داشته باشه و از کلمات منو نباشه
-                if "هتل" not in name: continue
-                if "های" in name or "ثبت" in name or "مشاهده" in name or "انتخاب" in name or "پیشنهاد" in name: continue
-                
+                # فیلتر کردن اسم‌های تکراری
+                if name in seen_names: continue
                 seen_names.add(name)
                 
+                # پیدا کردن متن والد برای استخراج قیمت و ستاره
                 parent = link.locator("xpath=..").locator("xpath=..").locator("xpath=..")
                 parent_text = await parent.inner_text()
                 
@@ -46,12 +47,14 @@ async def main():
                     results.append({"name": name, "price": min_price, "stars": stars})
             except: pass
             
+        # حذف تکراری‌ها
         unique_hotels = {}
         for h in results:
             if h["name"] not in unique_hotels:
                 unique_hotels[h["name"]] = h
         final_list = list(unique_hotels.values())
         
+        # گروه‌بندی بر اساس ستاره
         grouped = {5: [], 4: [], 3: []}
         for h in final_list:
             if h["stars"] in grouped:
@@ -59,6 +62,7 @@ async def main():
                 
         print(f"Found {len(final_list)} hotels with stars!")
         
+        # ساخت پیش‌نمایش پیام
         msg = "🏨 <b>قیمت لحظه‌ای هتل‌های شیراز</b>\n\n"
         
         for star_level in [5, 4, 3]:
