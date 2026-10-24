@@ -336,11 +336,10 @@ async def fetch_random_flight_prices():
     save_message_ids("last_price_msgs.txt", new_msg_ids)
 
 # 🌟 تابع نهایی هتل‌ها (رفتن به صفحه هر هتل برای قیمت دقیق)
-# 🌟 تابع نهایی هتل‌ها (برای هر شهر یک پیام با تیتر ستاره‌ها)
+# 🌟 تابع نهایی هتل‌ها (خواندن ستاره و قیمت از صفحه هر هتل)
 async def fetch_and_send_hotels():
     delete_previous_messages("last_hotel_msgs.txt")
     
-    # انتخاب ۳ شهر به صورت رندوم
     selected_cities = random.sample(HOTEL_CITIES, 3)
     new_msg_ids = []
     
@@ -355,10 +354,9 @@ async def fetch_and_send_hotels():
                 await page.goto(city["url"], timeout=60000, wait_until="domcontentloaded")
                 await page.wait_for_timeout(12000)
                 
-                # پیدا کردن لینک‌های هتل
                 links = await page.locator(f"a[href*='{city['prefix']}']").all()
                 
-                hotel_list = []
+                hotel_urls = []
                 seen_names = set()
                 for link in links:
                     try:
@@ -372,27 +370,46 @@ async def fetch_and_send_hotels():
                         if name in seen_names: continue
                         seen_names.add(name)
                         
-                        # پیدا کردن ستاره از والد
-                        parent = link.locator("xpath=..").locator("xpath=..").locator("xpath=..")
-                        parent_text = await parent.inner_text()
-                        
-                        stars = 0
-                        star_match = re.search(r'([1-5])\s*ستاره', parent_text)
-                        if star_match: stars = int(star_match.group(1))
-                        if stars not in [3, 4, 5]: stars = 3
-                        
-                        hotel_list.append({"name": name, "url": f"https://www.eghamat24.com{href}", "stars": stars})
+                        hotel_urls.append({"name": name, "url": f"https://www.eghamat24.com{href}"})
                     except: pass
                 
-                if not hotel_list: 
+                if not hotel_urls:
                     print(f"No hotels found for {city['name']}.")
                     continue
                 
+                # بررسی ۱۲ هتل اول برای پیدا کردن ستاره و قیمت
+                city_hotels = []
+                for h in hotel_urls[:12]:
+                    try:
+                        await page.goto(h["url"], timeout=60000, wait_until="domcontentloaded")
+                        await page.wait_for_timeout(3000)
+                        body_text = await page.locator("body").inner_text()
+                        
+                        # 🌟 استخراج ستاره از متن صفحه
+                        stars = 0
+                        star_match = re.search(r'هتل\s*(پنج|5|چهار|4|سه|3)\s*ستاره', body_text)
+                        if star_match:
+                            star_word = star_match.group(1)
+                            if star_word in ["پنج", "5"]: stars = 5
+                            elif star_word in ["چهار", "4"]: stars = 4
+                            elif star_word in ["سه", "3"]: stars = 3
+                        
+                        # اگر ستاره پیدا نشد، رد کن
+                        if stars not in [3, 4, 5]: continue
+                        
+                        # استخراج قیمت
+                        prices = re.findall(r'([\d,]+)\s*تومان', body_text)
+                        if prices:
+                            min_price = min([int(p.replace(',', '')) for p in prices])
+                            city_hotels.append({"name": h["name"], "price": min_price, "stars": stars})
+                    except: pass
+                
+                if not city_hotels: continue
+                
                 # گروه‌بندی بر اساس ستاره
                 grouped = {5: [], 4: [], 3: []}
-                for h in hotel_list:
-                    if h["stars"] in grouped:
-                        grouped[h["stars"]].append(h)
+                for h in city_hotels:
+                    if h["stars"] in grouped: grouped[h["stars"]].append(h)
                 
                 # ساخت پیام برای این شهر
                 msg = f"🏨 <b>قیمت لحظه‌ای هتل‌های {city['name']}</b>\n\n"
@@ -400,21 +417,11 @@ async def fetch_and_send_hotels():
                 
                 for star in [5, 4, 3]:
                     if grouped[star]:
-                        # انتخاب حداکثر ۳ هتل از هر ستاره
                         selected = random.sample(grouped[star], min(3, len(grouped[star])))
                         msg += f"⭐ <b>هتل‌های {star} ستاره:</b>\n"
                         for h in selected:
-                            try:
-                                # رفتن به صفحه هتل برای گرفتن قیمت دقیق
-                                await page.goto(h["url"], timeout=60000, wait_until="domcontentloaded")
-                                await page.wait_for_timeout(3000)
-                                body_text = await page.locator("body").inner_text()
-                                prices = re.findall(r'([\d,]+)\s*تومان', body_text)
-                                if prices:
-                                    min_price = min([int(p.replace(',', '')) for p in prices])
-                                    msg += f"🔹 {h['name']}: {min_price:,} تومان\n"
-                                    has_valid_hotel = True
-                            except: pass
+                            msg += f"🔹 {h['name']}: {h['price']:,} تومان\n"
+                            has_valid_hotel = True
                         msg += "\n"
                         
                 if has_valid_hotel:
