@@ -8,13 +8,11 @@ async def main():
         browser = await p.chromium.launch(headless=True)
         page = await browser.new_page()
         
-        # آدرس جستجوی شیراز
         url = "https://www.eghamat24.com/search/property?destination_id=100&destination_name=Shiraz&check_in=2026-10-27&length_of_stay=1"
         print("Opening Shiraz Search Page...")
         await page.goto(url, timeout=60000, wait_until="domcontentloaded")
         await page.wait_for_timeout(12000)
         
-        # پیدا کردن لینک‌هایی که دقیقاً به صفحه هتل اشاره می‌کنن
         links = await page.locator("a[href*='/ShirazHotels/']").all()
         
         results = []
@@ -28,20 +26,19 @@ async def main():
                 
                 # 🌟 فیلتر کردن لینک‌های منو و دکمه‌ها
                 if not name or name in seen_names: continue
-                if "های" in name or "ثبت" in name or "مشاهده" in name or "انتخاب" in name: continue
+                # اسم هتل باید حتماً کلمه "هتل" رو داشته باشه و از کلمات منو نباشه
+                if "هتل" not in name: continue
+                if "های" in name or "ثبت" in name or "مشاهده" in name or "انتخاب" in name or "پیشنهاد" in name: continue
                 
                 seen_names.add(name)
                 
-                # پیدا کردن متن والد برای استخراج قیمت و ستاره
                 parent = link.locator("xpath=..").locator("xpath=..").locator("xpath=..")
                 parent_text = await parent.inner_text()
                 
-                # استخراج ستاره
                 stars = 0
                 star_match = re.search(r'([1-5])\s*ستاره', parent_text)
                 if star_match: stars = int(star_match.group(1))
                 
-                # استخراج قیمت
                 prices = re.findall(r'([\d,]+)\s*تومان', parent_text)
                 if prices:
                     numeric_prices = [int(p.replace(',', '')) for p in prices]
@@ -49,14 +46,12 @@ async def main():
                     results.append({"name": name, "price": min_price, "stars": stars})
             except: pass
             
-        # حذف تکراری‌ها
         unique_hotels = {}
         for h in results:
             if h["name"] not in unique_hotels:
                 unique_hotels[h["name"]] = h
         final_list = list(unique_hotels.values())
         
-        # گروه‌بندی بر اساس ستاره
         grouped = {5: [], 4: [], 3: []}
         for h in final_list:
             if h["stars"] in grouped:
@@ -64,7 +59,6 @@ async def main():
                 
         print(f"Found {len(final_list)} hotels with stars!")
         
-        # ساخت پیش‌نمایش پیام
         msg = "🏨 <b>قیمت لحظه‌ای هتل‌های شیراز</b>\n\n"
         
         for star_level in [5, 4, 3]:
