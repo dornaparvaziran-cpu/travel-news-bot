@@ -19,14 +19,17 @@ async def main():
         
         for link in links:
             try:
-                name = await link.inner_text()
-                name = name.strip()
+                href = await link.get_attribute("href")
+                if not href or not href.endswith(".html"): continue
                 
-                # 🌟 فیلتر نهایی: اسم باید کلمه "هتل" رو داشته باشه ولی کلمات منو رو نه
-                if not name or name in seen_names: continue
-                if "هتل" not in name: continue
-                if any(word in name for word in ["های", "مشاهده", "انتخاب", "پیشنهاد", "تخفیف", "ثبت", "همه"]): continue
+                # 🌟 استخراج اسم هتل از آدرس (مثلاً ZandiyehHotel)
+                hotel_id = href.split("/")[-1].replace(".html", "")
+                if hotel_id == "ShirazHotels": continue # لینک صفحه اصلی شهر
                 
+                # تبدیل CamelCase به اسم خوانا
+                name = re.sub(r'(?<!^)(?=[A-Z])', ' ', hotel_id).strip()
+                
+                if name in seen_names: continue
                 seen_names.add(name)
                 
                 # پیدا کردن قیمت از والد
