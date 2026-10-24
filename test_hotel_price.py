@@ -12,7 +12,6 @@ async def main():
         await page.goto(url, timeout=60000, wait_until="domcontentloaded")
         await page.wait_for_timeout(12000)
         
-        # پیدا کردن تمام لینک‌های هتل در شیراز
         links = await page.locator("a[href*='/ShirazHotels/']").all()
         
         results = []
@@ -20,13 +19,14 @@ async def main():
         
         for link in links:
             try:
-                # 🌟 استخراج اسم هتل از ویژگی title
-                name = await link.get_attribute("title")
-                if not name:
-                    continue
-                
+                name = await link.inner_text()
                 name = name.strip()
-                if name in seen_names: continue
+                
+                # 🌟 فیلتر نهایی: اسم باید کلمه "هتل" رو داشته باشه ولی کلمات منو رو نه
+                if not name or name in seen_names: continue
+                if "هتل" not in name: continue
+                if any(word in name for word in ["های", "مشاهده", "انتخاب", "پیشنهاد", "تخفیف", "ثبت", "همه"]): continue
+                
                 seen_names.add(name)
                 
                 # پیدا کردن قیمت از والد
@@ -40,10 +40,17 @@ async def main():
                     results.append({"name": name, "price": min_price})
             except: pass
             
-        print(f"Found {len(results)} hotels with prices!")
+        # حذف تکراری‌ها
+        unique_hotels = {}
+        for h in results:
+            if h["name"] not in unique_hotels:
+                unique_hotels[h["name"]] = h
+        final_list = list(unique_hotels.values())
+                
+        print(f"Found {len(final_list)} hotels!")
         
         msg = "🏨 <b>قیمت لحظه‌ای هتل‌های شیراز</b>\n\n"
-        for h in results[:10]:
+        for h in final_list[:10]:
             msg += f"🔹 {h['name']}: {h['price']:,} تومان\n"
             
         msg += "\n📞 <b>برای رزرو تلفنی با ما در تماس باشید:</b>\n☎️ 0915XXXXXXX\n\n✈️ <b>درنا سفر</b>"
