@@ -337,13 +337,55 @@ async def fetch_random_flight_prices():
     
     save_message_ids("last_price_msgs.txt", new_msg_ids)
 
-# 🌟 تابع نهایی هتل‌ها (با ترجمه اسم به فارسی)
+# 🌟 تابع نهایی هتل‌ها (با دیکشنری بزرگ برای ترجمه)
 async def fetch_and_send_hotels():
     delete_previous_messages("last_hotel_msgs.txt")
     
     selected_cities = random.sample(HOTEL_CITIES, 3)
     new_msg_ids = []
     
+    name_map = {
+        # --- مشهد ---
+        "Almas 2": "الماس ۲", "Qasr Talaee": "قصر طلایی", "Qasr Almas": "قصر الماس",
+        "Sinoor": "سینور", "Almas": "الماس", "Darvishi": "درویشی", "Madineh Alreza": "مدینه الرضا",
+        "Shokooh Sharestan": "شکوه شهرستان", "Ferdous": "فردوس", "Imperator": "امپراطور",
+        "Almas Novin": "الماس نوین", "Tabarok": "تبارک", "Homa": "هما", "Ghasre Talaee": "قصر طلایی",
+        "Javad": "جواد", "Venus": "ونوس", "Atlas": "اطلس", "Cyrus": "کوروش", "Razavieh": "رضویه",
+        # --- تهران ---
+        "Parsian Azadi": "پارسیان آزادی", "Parsian Evin": "پارسیان اوین", "Aramis": "آرامیس",
+        "Espinas": "اسپیناس", "Esteghlal": "استقلال", "Laleh": "لاله", "Homa": "هما",
+        "Simorgh": "سیمرغ", "Enghelab": "انقلاب", "Ferdowsi": "فردوسی", "Kowsar": "کوثر",
+        "Mina": "مینا", "Arman": "آرمان", "Saina": "ساینا",
+        # --- کیش ---
+        "Dariush": "داریوش", "Shayan": "شایان", "Marina": "مارینا", "Kish Eram": "کیش ارم",
+        "Tamasha": "تماشا", "Sadaf": "صدف", "Mirage": "میراژ", "Pardis": "پردیس",
+        "Kish Sunny": "کیش سانی", "Helia": "هلیا", "Ariana": "آریانا",
+        # --- شیراز ---
+        "Zandiyeh": "زندیه", "Bozorg": "بزرگ", "Chamran": "چمران", "Elizeh": "الیزه",
+        "rose": "رز", "Perspolis": "پرسپولیس", "Homa": "هما", "Pars": "پارس",
+        "Arg": "ارگ", "Karim Khan": "کریم خان", "Beynalharamain": "بین‌الحرمین",
+        "Shiraz Grand": "شیراز گراند", "Tachara": "تچرا",
+        # --- اصفهان ---
+        "Abbasi": "عباسی", "Ali Qapu": "علی قاپو", "Piroozi": "پیروزی", "Janat": "جنت",
+        "Safavi": "صفوی", "Esfahan": "اصفهان", "Zohreh": "زهره", "Parsian Kosar": "پارسیان کوثر",
+        "Kowsar": "کوثر", "Avicenna": "ابوعلی سینا", "Melal": "ملل",
+        # --- یزد ---
+        "Dad": "داد", "Safaiyeh": "صفائیه", "Parsian Safaiyeh": "پارسیان صفائیه",
+        "Moshir": "مشیر", "Orient": "اورینت", "Yazd Grand": "یزد گراند", "Fazeli": "فاضلی",
+        # --- تبریز ---
+        "Pars Elgoli": "پارس ائل گلی", "Shariyar": "شهریار", "Laleh": "لاله", 
+        "Royal Palace": "کاخ سلطنتی", "Azaditabriz": "آزادی تبریز", "Sorkheyi": "سرخه‌ای",
+        "Saray": "سرای", "Petroshimi Tabriz": "پتروشیمی تبریز", "Gostaresh": "گسترش",
+        "Tabriz International": "بین‌المللی تبریز", "Arta": "آرتا",
+        # --- قم ---
+        "Qom Grand": "قم گراند", "Parsian Qom": "پارسیان قم", "Kowsar": "کوثر",
+        "Niloofar": "نیلوفر", "Homa": "هما", "Alborz": "البرز", "Saina": "ساینا",
+        # --- قشم ---
+        "Barracuda": "باراکودا", "Sarina": "سارینا", "Arta": "آرتا", "falamingo": "فلامینگو",
+        "Singo": "سینگو", "Kimiya4": "کیمیا ۴", "Qeshm Grand": "قشم گراند", "Iran": "ایران",
+        "Hormoz": "هرمز", "Khalij Fars": "خلیج فارس"
+    }
+
     async with async_playwright() as p:
         browser = await p.chromium.launch(headless=True)
         page = await browser.new_page()
@@ -403,19 +445,13 @@ async def fetch_and_send_hotels():
                             valid_prices = [int(p.replace(',', '')) for p in price_matches]
                             min_price = min(valid_prices)
                             
-                            # 🌟 ترجمه اسم هتل به فارسی
-                            fa_name = h["name"]
-                            if METIS_KEY:
-                                try:
-                                    prompt = f"این اسم هتل است: '{h['name']}'\nفقط معادل فارسی و رسمی این هتل را بنویس. هیچ توضیح اضافه‌ای نده."
-                                    data = {"model": "gpt-4o-mini", "messages": [{"role": "user", "content": prompt}]}
-                                    tr_res = requests.post("https://api.metisai.ir/openai/v1/chat/completions", 
-                                                           headers={"Authorization": f"Bearer {METIS_KEY}", "Content-Type": "application/json"}, 
-                                                           json=data, timeout=15)
-                                    if tr_res.ok:
-                                        fa_name = tr_res.json()['choices'][0]['message']['content'].strip()
-                                except: pass
-                                
+                            en_name = h["name"]
+                            fa_name = en_name
+                            for key, val in name_map.items():
+                                if key.lower() in en_name.lower():
+                                    fa_name = f"هتل {val}"
+                                    break
+                                    
                             city_hotels.append({"name": fa_name, "price": min_price, "stars": stars})
                                 
                     except: pass
