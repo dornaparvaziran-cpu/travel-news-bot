@@ -6,26 +6,27 @@ async def main():
         browser = await p.chromium.launch(headless=True)
         page = await browser.new_page()
         
-        # باز کردن صفحه هتل‌های شیراز
         print("Opening Shiraz Hotels...")
         await page.goto("https://www.eghamat24.com/ShirazHotels.html", timeout=60000, wait_until="domcontentloaded")
         await page.wait_for_timeout(10000)
         
-        # پیدا کردن تمام لینک‌هایی که کلمه Hotel توشون هست
-        links = await page.locator("a").all()
-        hotel_links = []
-        for link in links:
+        # پیدا کردن کارت‌های هتل بر اساس کلاس‌های رایج
+        cards = await page.locator("div[class*='hotel'], div[class*='Hotel'], article[class*='hotel'], article[class*='Hotel']").all()
+        
+        print(f"Found {len(cards)} hotel cards!")
+        
+        found_hotels = []
+        for card in cards[:20]:
             try:
-                href = await link.get_attribute("href")
-                if href and "Hotel" in href:
-                    text = await link.inner_text()
-                    if text.strip():
-                        hotel_links.append((text.strip(), href))
+                text = await card.inner_text()
+                if "تومان" in text and len(text) < 1000:
+                    lines = text.split("\n")
+                    name = lines[0].strip()
+                    found_hotels.append(name)
             except: pass
             
-        print(f"Found {len(hotel_links)} hotel links!")
-        for name, href in hotel_links[:5]:
-            print(f"- {name}: {href}")
+        for name in found_hotels[:10]:
+            print(f"- {name}")
             
         await browser.close()
 
