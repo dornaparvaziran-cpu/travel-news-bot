@@ -233,8 +233,11 @@ def send_to_eita(text, image_url=None):
             return f"{match.group(2)}:\n{url}"
     text_md = re.sub(r"<a href='([^']+)'>([^<]+)</a>", clean_link, text_md)
     
-    if "قیمت‌های لحظه‌ای" in text_md or "قیمت لحظه‌ای هتل‌های" in text_md:
+    if "قیمت‌های لحظه‌ای پرواز" in text_md:
         text_md = text_md.replace("🔹", "✈️")
+        text_md = f"{text_md}\n\n➖➖➖➖➖➖➖➖"
+    elif "قیمت لحظه‌ای هتل‌های" in text_md:
+        text_md = text_md.replace("🔹", "🏨")
         text_md = f"{text_md}\n\n➖➖➖➖➖➖➖➖"
     elif "🌤" in text_md or "💱" in text_md or "💡" in text_md:
         text_md = f"{text_md}\n\n➖➖➖➖➖➖➖➖"
@@ -334,7 +337,7 @@ async def fetch_random_flight_prices():
     
     save_message_ids("last_price_msgs.txt", new_msg_ids)
 
-# 🌟 تابع نهایی هتل‌ها (رفتن به صفحه هر هتل برای قیمت دقیق)
+# 🌟 تابع نهایی هتل‌ها (قیمت از لیست، با فیلتر و بدون تکرار)
 async def fetch_and_send_hotels():
     delete_previous_messages("last_hotel_msgs.txt")
     
@@ -350,12 +353,13 @@ async def fetch_and_send_hotels():
             
             try:
                 await page.goto(city["url"], timeout=60000, wait_until="domcontentloaded")
-                await page.wait_for_timeout(10000)
+                await page.wait_for_timeout(12000)
                 
                 links = await page.locator(f"a[href*='{city['prefix']}']").all()
                 
-                hotel_urls = []
+                city_hotels = []
                 seen_names = set()
+                
                 for link in links:
                     try:
                         href = await link.get_attribute("href")
@@ -368,40 +372,37 @@ async def fetch_and_send_hotels():
                         if name in seen_names: continue
                         seen_names.add(name)
                         
-                        hotel_urls.append({"name": name, "url": f"https://www.eghamat24.com{href}"})
-                    except: pass
-                
-                if not hotel_urls:
-                    print(f"No hotels found for {city['name']}.")
-                    continue
-                
-                city_hotels = []
-                for h in hotel_urls[:10]:
-                    try:
-                        await page.goto(h["url"], timeout=60000, wait_until="domcontentloaded")
-                        await page.wait_for_timeout(4000)
-                        body_text = await page.locator("body").inner_text()
+                        # 🌟 پیدا کردن قیمت از والد سطح ۲ و ۳
+                        parent2 = link.locator("xpath=../..")
+                        parent3 = link.locator("xpath=../../..")
                         
-                        stars = 0
-                        star_match = re.search(r'هتل\s*(پنج|5|چهار|4|سه|3)\s*ستاره', body_text)
-                        if star_match:
-                            star_word = star_match.group(1)
-                            if star_word in ["پنج", "5"]: stars = 5
-                            elif star_word in ["چهار", "4"]: stars = 4
-                            elif star_word in ["سه", "3"]: stars = 3
+                        text_to_search = ""
+                        if await parent2.count() > 0:
+                            text_to_search += await parent2.inner_text()
+                        if await parent3.count() > 0:
+                            text_to_search += " " + await parent3.inner_text()
                             
-                        if stars not in [3, 4, 5]: continue
-                        
-                        prices = re.findall(r'([\d,]+)\s*تومان', body_text)
+                        prices = re.findall(r'([\d,]+)\s*تومان', text_to_search)
                         if not prices: continue
                         
                         valid_prices = [int(p.replace(',', '')) for p in prices if int(p.replace(',', '')) > 100000]
-                        if valid_prices:
-                            min_price = min(valid_prices)
-                            city_hotels.append({"name": h["name"], "price": min_price, "stars": stars})
+                        if not valid_prices: continue
+                        
+                        min_price = min(valid_prices)
+                        
+                        stars = 0
+                        star_match = re.search(r'([1-5])\s*ستاره', text_to_search)
+                        if star_match: stars = int(star_match.group(1))
+                        else: stars = 3 # پیش‌فرض
+                            
+                        if stars not in [3, 4, 5]: continue
+                        
+                        city_hotels.append({"name": name, "price": min_price, "stars": stars})
                     except: pass
                 
-                if not city_hotels: continue
+                if not city_hotels: 
+                    print(f"No hotels found for {city['name']}.")
+                    continue
                 
                 grouped = {5: [], 4: [], 3: []}
                 for h in city_hotels:
