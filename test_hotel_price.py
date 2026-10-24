@@ -1,127 +1,37 @@
 import asyncio
-import requests
-import re
-import os
 from playwright.async_api import async_playwright
+import re
 
 async def main():
     async with async_playwright() as p:
         browser = await p.chromium.launch(headless=True)
         page = await browser.new_page()
         
-        print("Opening Mashhad Hotels list...")
-        await page.goto("https://www.eghamat24.com/MashhadHotels.html", timeout=60000, wait_until="domcontentloaded")
+        print("Opening Shiraz Hotels...")
+        await page.goto("https://www.eghamat24.com/ShirazHotels.html", timeout=60000, wait_until="domcontentloaded")
         await page.wait_for_timeout(10000)
         
-        hotels = await page.locator("a[href*='Hotels/']").all()
+        # 🌟 روش جدید: پیدا کردن کارت‌های هتل بر اساس کلاس‌های رایج
+        # ما دنبال تگ‌های div یا article می‌گردیم که کلاسشون شامل hotel یا Hotel باشه
+        cards = await page.locator("div[class*='hotel'], div[class*='Hotel'], article[class*='hotel'], article[class*='Hotel']").all()
         
-        results = []
-        for hotel in hotels[:15]: 
+        print(f"Found {len(cards)} hotel cards!")
+        
+        found_hotels = []
+        for card in cards[:20]: # بررسی ۲۰ کارت اول
             try:
-                name = await hotel.get_attribute("title")
-                if not name: name = await hotel.inner_text()
-                name = name.strip()
-                if not name or len(name) < 3: continue
-                
-                parent = hotel.locator("xpath=..").locator("xpath=..")
-                price_text = await parent.inner_text()
-                
-                prices = re.findall(r'([\d,]+)\s*تومان', price_text)
-                if prices:
-                    numeric_prices = [int(p.replace(',', '')) for p in prices]
-                    min_price = min(numeric_prices)
-                    results.append((name, min_price))
-            except: continue
-        
-        # حذف تکراری‌ها
-        unique_results = list(set(results))[:8]
-        print(f"Found {len(unique_results)} hotels.")
-
-        # ساخت صفحه HTML
-        html_content = """
-        <!DOCTYPE html>
-        <html lang="fa" dir="rtl">
-        <head>
-            <meta charset="UTF-8">
-            <style>
-                @import url('https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.0.3/Vazirmatn-font-face.css');
-                body {
-                    font-family: 'Vazirmatn', sans-serif;
-                    background-color: #f0f4f8;
-                    margin: 0;
-                    padding: 20px;
-                    width: 600px;
-                    direction: rtl;
-                }
-                .header {
-                    background-color: #1e3a8a;
-                    color: white;
-                    text-align: center;
-                    padding: 20px;
-                    border-radius: 10px 10px 0 0;
-                    font-size: 28px;
-                    font-weight: bold;
-                }
-                .list {
-                    background: white;
-                    padding: 10px 20px;
-                    border-radius: 0 0 10px 10px;
-                    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-                }
-                .item {
-                    display: flex;
-                    justify-content: space-between;
-                    padding: 15px 0;
-                    border-bottom: 1px solid #e2e8f0;
-                    font-size: 22px;
-                }
-                .item:last-child { border-bottom: none; }
-                .name { color: #1e293b; font-weight: bold; }
-                .price { color: #16a34a; font-weight: bold; }
-                .footer {
-                    background-color: #1e3a8a;
-                    color: white;
-                    text-align: center;
-                    padding: 15px;
-                    border-radius: 10px;
-                    margin-top: 20px;
-                    font-size: 20px;
-                }
-                .footer span { color: #fbbf24; font-weight: bold; }
-            </style>
-        </head>
-        <body>
-            <div class="header">قیمت لحظه‌ای هتل‌های مشهد</div>
-            <div class="list">
-        """
-        
-        for name, price in unique_results:
-            html_content += f'<div class="item"><span class="name">{name}</span><span class="price">{price:,} تومان</span></div>'
+                text = await card.inner_text()
+                # اگر متن شامل "تومان" بود، یعنی این یک کارت هتل واقعیه
+                if "تومان" in text and len(text) < 1000:
+                    # پیدا کردن اسم (اولین خط متن)
+                    lines = text.split("\n")
+                    name = lines[0].strip()
+                    found_hotels.append(name)
+            except: pass
             
-        html_content += """
-            </div>
-            <div class="footer">برای رزرو تلفنی با ما در تماس باشید: <span>0915XXXXXXX</span><br><br>✈️ درنا سفر</div>
-        </body>
-        </html>
-        """
-
-        # 🌟 ذخیره HTML با مسیر ساده و مطمئن
-        with open("temp.html", "w", encoding="utf-8") as f:
-            f.write(html_content)
-
-        # 🌟 باز کردن فایل HTML
-        print("Taking screenshot...")
-        # گرفتن مسیر کامل فایل در لینوکس
-        file_path = os.path.abspath("temp.html")
-        await page.goto(f"file://{file_path}")
-        
-        # صبر برای لود فونت
-        await page.wait_for_timeout(3000)
-        
-        # گرفتن اسکرین‌شات
-        await page.screenshot(path="hotels_list.jpg", full_page=True)
-        
-        print("Image saved as hotels_list.jpg!")
+        for name in found_hotels[:10]:
+            print(f"- {name}")
+            
         await browser.close()
 
 if __name__ == "__main__":
