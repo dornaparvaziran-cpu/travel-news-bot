@@ -8,7 +8,7 @@ async def main():
         browser = await p.chromium.launch(headless=True)
         page = await browser.new_page()
         
-        # 🌟 آدرس جستجوی شیراز
+        # آدرس جستجوی شیراز
         url = "https://www.eghamat24.com/search/property?destination_id=100&destination_name=Shiraz&check_in=2026-10-27&length_of_stay=1"
         print("Opening Shiraz Search Page...")
         await page.goto(url, timeout=60000, wait_until="domcontentloaded")
@@ -26,9 +26,10 @@ async def main():
                 name = await link.inner_text()
                 name = name.strip()
                 
-                # فیلتر کردن لینک‌های منو و تکراری‌ها
-                if not name or name in seen_names or "های" in name or "ثبت" in name or "مشاهده" in name:
-                    continue
+                # 🌟 فیلتر کردن لینک‌های منو و دکمه‌ها
+                if not name or name in seen_names: continue
+                if "های" in name or "ثبت" in name or "مشاهده" in name or "انتخاب" in name: continue
+                
                 seen_names.add(name)
                 
                 # پیدا کردن متن والد برای استخراج قیمت و ستاره
