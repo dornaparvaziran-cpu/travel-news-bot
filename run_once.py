@@ -403,11 +403,19 @@ async def fetch_and_send_hotels():
                         if stars not in [3, 4, 5]: continue
                         
                         # 🌟 پیدا کردن property_id از کدهای HTML (توی تگ body یا اسکریپت‌ها)
+                        # 🌟 پیدا کردن property_id از کدهای HTML (روش دقیق‌تر)
                         html_content = await page.content()
-                        id_match = re.search(r'property_id[\'"]?\s*[:=]\s*[\'"]?(\d+)', html_content)
                         
+                        # جستجوی الگوهای مختلف برای پیدا کردن آیدی
+                        id_match = re.search(r'property_id["\']?\s*[:=]\s*["\']?(\d+)', html_content)
                         if not id_match:
-                            # اگر پیدا نشد، سعی می‌کنیم از API خود صفحه استفاده کنیم
+                            # اگر پیدا نشد، از روی لینک API که توی صفحه هست پیدا میکنیم
+                            id_match = re.search(r'/properties/(\d+)/', html_content)
+                            
+                        if not id_match:
+                            # اگر باز هم پیدا نشد، سعی میکنیم از لینک صفحه استفاده کنیم
+                            # (بعضی وقتا آیدی توی لینک صفحه هست)
+                            print(f"Could not find property_id for {h['name']}")
                             continue
                             
                         property_id = id_match.group(1)
