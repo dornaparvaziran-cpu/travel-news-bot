@@ -398,7 +398,7 @@ async def fetch_and_send_hotels():
                         msg += f"🔹 {h['name']}: {h['price']:,} تومان\n"
                     msg += "\n"
 
-            msg += "📞 <b>برای رزرو تلفنی با ما در تماس باشید:</b>\n☎️ 0915XXXXXXX\n\n✈️ <b>درنا سفر</b>"
+            msg += "📞 <b>برای رزرو تلفنی با ما در تماس باشید:</b>\n☎️ 09153092528\n\n✈️ <b>درنا تراول</b>"
             
             print("Sending hotel list...")
             tg_id, _ = send_to_all(msg)
