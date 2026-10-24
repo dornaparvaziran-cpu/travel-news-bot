@@ -337,51 +337,20 @@ async def fetch_random_flight_prices():
     
     save_message_ids("last_price_msgs.txt", new_msg_ids)
 
-# 🌟 تابع نهایی هتل‌ها (بدون پرینت و با دیکشنری بزرگ)
+# 🌟 تابع نهایی هتل‌ها
 async def fetch_and_send_hotels():
     delete_previous_messages("last_hotel_msgs.txt")
     
     selected_cities = random.sample(HOTEL_CITIES, 3)
     new_msg_ids = []
     
-    name_map = {
-        "Almas 2": "الماس ۲", "Qasr Talaee": "قصر طلایی", "Qasr Almas": "قصر الماس",
-        "Sinoor": "سینور", "Almas": "الماس", "Darvishi": "درویشی", "Madineh Alreza": "مدینه الرضا",
-        "Shokooh Sharestan": "شکوه شهرستان", "Ferdous": "فردوس", "Imperator": "امپراطور",
-        "Almas Novin": "الماس نوین", "Tabarok": "تبارک", "Homa": "هما", "Ghasre Talaee": "قصر طلایی",
-        "Javad": "جواد", "Venus": "ونوس", "Atlas": "اطلس", "Cyrus": "کوروش", "Razavieh": "رضویه",
-        "Parsian Azadi": "پارسیان آزادی", "Parsian Evin": "پارسیان اوین", "Aramis": "آرامیس",
-        "Espinas": "اسپیناس", "Esteghlal": "استقلال", "Laleh": "لاله",
-        "Simorgh": "سیمرغ", "Enghelab": "انقلاب", "Ferdowsi": "فردوسی", "Kowsar": "کوثر",
-        "Mina": "مینا", "Arman": "آرمان", "Saina": "ساینا",
-        "Dariush": "داریوش", "Shayan": "شایان", "Marina": "مارینا", "Kish Eram": "کیش ارم",
-        "Tamasha": "تماشا", "Sadaf": "صدف", "Mirage": "میراژ", "Pardis": "پردیس",
-        "Kish Sunny": "کیش سانی", "Helia": "هلیا", "Ariana": "آریانا",
-        "Zandiyeh": "زندیه", "Bozorg": "بزرگ", "Chamran": "چمران", "Elizeh": "الیزه",
-        "rose": "رز", "Perspolis": "پرسپولیس", "Pars": "پارس",
-        "Arg": "ارگ", "Karim Khan": "کریم خان", "Beynalharamain": "بین‌الحرمین",
-        "Shiraz Grand": "شیراز گراند", "Tachara": "تچرا",
-        "Abbasi": "عباسی", "Ali Qapu": "علی قاپو", "Piroozi": "پیروزی", "Janat": "جنت",
-        "Safavi": "صفوی", "Esfahan": "اصفهان", "Zohreh": "زهره", "Parsian Kosar": "پارسیان کوثر",
-        "Avicenna": "ابوعلی سینا", "Melal": "ملل",
-        "Dad": "داد", "Safaiyeh": "صفائیه", "Parsian Safaiyeh": "پارسیان صفائیه",
-        "Moshir": "مشیر", "Orient": "اورینت", "Yazd Grand": "یزد گراند", "Fazeli": "فاضلی",
-        "Pars Elgoli": "پارس ائل گلی", "Shariyar": "شهریار", 
-        "Royal Palace": "کاخ سلطنتی", "Azaditabriz": "آزادی تبریز", "Sorkheyi": "سرخه‌ای",
-        "Saray": "سرای", "Petroshimi Tabriz": "پتروشیمی تبریز", "Gostaresh": "گسترش",
-        "Tabriz International": "بین‌المللی تبریز", "Arta": "آرتا",
-        "Qom Grand": "قم گراند", "Parsian Qom": "پارسیان قم", 
-        "Niloofar": "نیلوفر", "Alborz": "البرز",
-        "Barracuda": "باراکودا", "Sarina": "سارینا", "falamingo": "فلامینگو",
-        "Singo": "سینگو", "Kimiya4": "کیمیا ۴", "Qeshm Grand": "قشم گراند", "Iran": "ایران",
-        "Hormoz": "هرمز", "Khalij Fars": "خلیج فارس"
-    }
-
     async with async_playwright() as p:
         browser = await p.chromium.launch(headless=True)
         page = await browser.new_page()
         
         for city in selected_cities:
+            print(f"Processing {city['name']}...")
+            
             try:
                 await page.goto(city["url"], timeout=60000, wait_until="domcontentloaded")
                 await page.wait_for_timeout(8000)
@@ -403,16 +372,18 @@ async def fetch_and_send_hotels():
                         seen_names.add(name)
                         
                         hotel_urls.append({"name": name, "url": f"https://www.eghamat24.com{href}"})
-                        if len(hotel_urls) >= 5: break
+                        if len(hotel_urls) >= 8: break
                     except: pass
                 
-                if not hotel_urls: continue
+                if not hotel_urls:
+                    print(f"No hotels found for {city['name']}.")
+                    continue
                 
                 city_hotels = []
                 for h in hotel_urls:
                     try:
                         await page.goto(h["url"], timeout=60000, wait_until="domcontentloaded")
-                        await page.wait_for_timeout(3000)
+                        await page.wait_for_timeout(4000)
                         body_text = await page.locator("body").inner_text()
                         
                         stars = 0
@@ -431,19 +402,19 @@ async def fetch_and_send_hotels():
                         if price_matches:
                             valid_prices = [int(p.replace(',', '')) for p in price_matches]
                             min_price = min(valid_prices)
-                            
-                            en_name = h["name"]
-                            fa_name = en_name
-                            for key, val in name_map.items():
-                                if key.lower() in en_name.lower():
-                                    fa_name = f"هتل {val}"
-                                    break
-                                    
-                            city_hotels.append({"name": fa_name, "price": min_price, "stars": stars})
+                            city_hotels.append({"name": h["name"], "price": min_price, "stars": stars})
+                        else:
+                            prices = re.findall(r'([\d,]+)\s*تومان', room_section)
+                            valid_prices = [int(p.replace(',', '')) for p in prices if int(p.replace(',', '')) > 100000]
+                            if valid_prices:
+                                min_price = min(valid_prices)
+                                city_hotels.append({"name": h["name"], "price": min_price, "stars": stars})
                                 
                     except: pass
                 
-                if not city_hotels: continue
+                if not city_hotels: 
+                    print(f"No hotels found for {city['name']}.")
+                    continue
                 
                 grouped = {5: [], 4: [], 3: []}
                 for h in city_hotels:
@@ -466,7 +437,8 @@ async def fetch_and_send_hotels():
                     tg_id, _ = send_to_all(msg)
                     if tg_id: new_msg_ids.append(tg_id)
                     
-            except: pass
+            except Exception as e:
+                print(f"Error processing {city['name']}: {e}")
                 
         await browser.close()
     
