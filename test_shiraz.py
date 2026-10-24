@@ -1,32 +1,69 @@
 import asyncio
 from playwright.async_api import async_playwright
 import re
+import random
 
 async def main():
     async with async_playwright() as p:
         browser = await p.chromium.launch(headless=True)
         page = await browser.new_page()
         
-        # فقط برای تست، صفحه هتل‌های مشهد رو باز می‌کنیم
+        # تست روی مشهد
         url = "https://www.eghamat24.com/MashhadHotels.html"
-        print(f"Opening {url}...")
+        print("Opening Mashhad Hotels...")
         await page.goto(url, timeout=60000, wait_until="domcontentloaded")
         await page.wait_for_timeout(10000)
         
-        # پیدا کردن همه لینک‌های صفحه
-        links = await page.locator("a").all()
+        # پیدا کردن لینک‌هایی که به هتل‌های مشهد اشاره می‌کنن
+        links = await page.locator("a[href*='/MashhadHotels/']").all()
         
-        # چاپ ۲۰ لینک اولی که حاوی کلمه Hotel هستن
-        count = 0
+        results = []
+        seen_names = set()
+        
         for link in links:
             try:
                 href = await link.get_attribute("href")
-                text = await link.inner_text()
-                if href and "Hotel" in href:
-                    print(f"- Text: {text.strip()[:30]} | Href: {href}")
-                    count += 1
-                    if count >= 20: break
+                if not href or not href.endswith(".html"): continue
+                
+                # 🌟 استخراج اسم هتل از آدرس (مثلاً Almas_2Hotel)
+                hotel_id = href.split("/")[-1].replace(".html", "")
+                if hotel_id in ["MashhadHotels", "CheapHotels"]: continue
+                
+                # تبدیل CamelCase به اسم خوانا (Almas_2 Hotel)
+                name = re.sub(r'(?<!^)(?=[A-Z])', ' ', hotel_id).replace("_", " ").strip()
+                
+                if name in seen_names: continue
+                seen_names.add(name)
+                
+                # پیدا کردن قیمت از والد
+                parent = link.locator("xpath=..").locator("xpath=..").locator("xpath=..")
+                parent_text = await parent.inner_text()
+                
+                prices = re.findall(r'([\d,]+)\s*تومان', parent_text)
+                if prices:
+                    numeric_prices = [int(p.replace(',', '')) for p in prices]
+                    min_price = min(numeric_prices)
+                    results.append({"name": name, "price": min_price})
             except: pass
+            
+        # حذف تکراری‌ها
+        unique_hotels = {}
+        for h in results:
+            if h["name"] not in unique_hotels:
+                unique_hotels[h["name"]] = h
+        final_list = list(unique_hotels.values())
+                
+        print(f"Found {len(final_list)} hotels!")
+        
+        msg = "🏨 <b>قیمت لحظه‌ای هتل‌های مشهد</b>\n\n"
+        for h in final_list[:10]:
+            msg += f"🔹 {h['name']}: {h['price']:,} تومان\n"
+            
+        msg += "\n📞 <b>برای رزرو تلفنی با ما در تماس باشید:</b>\n☎️ 0915XXXXXXX\n\n✈️ <b>درنا سفر</b>"
+        
+        print("--- پیام نهایی ---")
+        print(msg)
+        print("------------------")
             
         await browser.close()
 
