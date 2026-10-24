@@ -229,7 +229,7 @@ def send_to_eita(text, image_url=None):
         text_md = f"{text_md}\n\n➖➖➖➖➖➖➖➖"
     else:
         text_md = text_md.replace("🔹", "📰")
-        text_md = f"{text_md}\n\n➖➖➖➖➖➖➖➖\n📢 کانال اخبار درنا سفر"
+        text_md = f"{text_md}\n\n➖➖➖➖➖➖➖➖\n📢 کانال اخبار درنا تراول"
     
     base_url = f"https://eitaayar.ir/api/{EITA_TOKEN}"
     url = f"{base_url}/sendMessage"
