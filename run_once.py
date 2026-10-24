@@ -155,8 +155,8 @@ def save_sent_to_gist(new_link):
         if not r.ok: print(f"Gist save error: {r.text}")
     except Exception as e: print(f"Gist save warning: {e}")
 
-# ---------- 🌟 توابع پاک کردن پیام‌های قیمت ----------
-def delete_previous_price_messages():
+# ---------- 🌟 توابع پاک کردن پیام‌های قیمت (پرواز و هتل) ----------
+def delete_previous_messages(file_name):
     if not GIST_ID or not GIST_TOKEN: return
     try:
         url = f"https://api.github.com/gists/{GIST_ID}"
@@ -164,21 +164,21 @@ def delete_previous_price_messages():
         r = requests.get(url, headers=headers, timeout=10)
         if r.ok:
             files = r.json().get("files", {})
-            content = files.get("last_price_msgs.txt", {}).get("content", "").strip()
+            content = files.get(file_name, {}).get("content", "").strip()
             if content:
                 msg_ids = content.splitlines()
                 for msg_id in msg_ids:
                     requests.post(f"https://api.telegram.org/bot{TG_TOKEN}/deleteMessage", 
                                   data={"chat_id": TG_CHANNEL, "message_id": msg_id}, timeout=10)
-                print(f"Deleted {len(msg_ids)} previous price messages.")
+                print(f"Deleted {len(msg_ids)} previous messages from {file_name}.")
     except Exception as e: print(f"Delete messages error: {e}")
 
-def save_price_message_ids(msg_ids):
+def save_message_ids(file_name, msg_ids):
     if not GIST_ID or not GIST_TOKEN: return
     new_content = "\n".join(str(i) for i in msg_ids if i)
     url = f"https://api.github.com/gists/{GIST_ID}"
     headers = {"Authorization": f"token {GIST_TOKEN}"}
-    data = {"files": {"last_price_msgs.txt": {"content": new_content}}}
+    data = {"files": {file_name: {"content": new_content}}}
     try:
         requests.patch(url, headers=headers, json=data, timeout=10)
     except Exception as e: print(f"Save msg IDs error: {e}")
@@ -201,7 +201,6 @@ def get_image_url(entry):
             if link.get('type', '').startswith('image/'): return link.get('href')
     return None
 
-# 🌟 آپدیت: حالا message_id برمی‌گردونه
 def send_to_telegram(text, image_url=None):
     if not TG_TOKEN or not TG_CHANNEL: return None
     if image_url:
@@ -316,9 +315,9 @@ async def get_prices_for_route(browser, route_name, route_url):
         await page.close()
         return None
 
-# 🌟 آپدیت: پاک کردن قیمت‌های قبلی قبل از ارسال جدید
 async def fetch_random_flight_prices():
-    delete_previous_price_messages()
+    # پاک کردن پیام‌های قیمت پرواز قبلی
+    delete_previous_messages("last_price_msgs.txt")
     
     selected_routes = random.sample(ALL_ROUTES, NUMBER_OF_ROUTES)
     new_msg_ids = []
@@ -332,10 +331,12 @@ async def fetch_random_flight_prices():
                 if tg_id: new_msg_ids.append(tg_id)
         await browser.close()
     
-    save_price_message_ids(new_msg_ids)
+    save_message_ids("last_price_msgs.txt", new_msg_ids)
 
-# 🌟 تابع جدید برای دریافت و ارسال قیمت هتل‌ها
 async def fetch_and_send_hotels():
+    # پاک کردن پیام‌های هتل قبلی
+    delete_previous_messages("last_hotel_msgs.txt")
+    
     city = random.choice(HOTEL_CITIES)
     print(f"Selected city: {city['name']}")
     
@@ -400,7 +401,9 @@ async def fetch_and_send_hotels():
             msg += "📞 <b>برای رزرو تلفنی با ما در تماس باشید:</b>\n☎️ 0915XXXXXXX\n\n✈️ <b>درنا سفر</b>"
             
             print("Sending hotel list...")
-            send_to_all(msg)
+            tg_id, _ = send_to_all(msg)
+            if tg_id:
+                save_message_ids("last_hotel_msgs.txt", [tg_id])
             
         except Exception as e:
             print(f"Hotel error: {e}")
