@@ -337,7 +337,7 @@ async def fetch_random_flight_prices():
     
     save_message_ids("last_price_msgs.txt", new_msg_ids)
 
-# 🌟 تابع نهایی هتل‌ها
+# 🌟 تابع نهایی هتل‌ها (با ترجمه اسم به فارسی)
 async def fetch_and_send_hotels():
     delete_previous_messages("last_hotel_msgs.txt")
     
@@ -402,13 +402,21 @@ async def fetch_and_send_hotels():
                         if price_matches:
                             valid_prices = [int(p.replace(',', '')) for p in price_matches]
                             min_price = min(valid_prices)
-                            city_hotels.append({"name": h["name"], "price": min_price, "stars": stars})
-                        else:
-                            prices = re.findall(r'([\d,]+)\s*تومان', room_section)
-                            valid_prices = [int(p.replace(',', '')) for p in prices if int(p.replace(',', '')) > 100000]
-                            if valid_prices:
-                                min_price = min(valid_prices)
-                                city_hotels.append({"name": h["name"], "price": min_price, "stars": stars})
+                            
+                            # 🌟 ترجمه اسم هتل به فارسی
+                            fa_name = h["name"]
+                            if METIS_KEY:
+                                try:
+                                    prompt = f"این اسم هتل است: '{h['name']}'\nفقط معادل فارسی و رسمی این هتل را بنویس. هیچ توضیح اضافه‌ای نده."
+                                    data = {"model": "gpt-4o-mini", "messages": [{"role": "user", "content": prompt}]}
+                                    tr_res = requests.post("https://api.metisai.ir/openai/v1/chat/completions", 
+                                                           headers={"Authorization": f"Bearer {METIS_KEY}", "Content-Type": "application/json"}, 
+                                                           json=data, timeout=15)
+                                    if tr_res.ok:
+                                        fa_name = tr_res.json()['choices'][0]['message']['content'].strip()
+                                except: pass
+                                
+                            city_hotels.append({"name": fa_name, "price": min_price, "stars": stars})
                                 
                     except: pass
                 
