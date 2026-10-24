@@ -353,13 +353,12 @@ async def fetch_and_send_hotels():
             
             try:
                 await page.goto(city["url"], timeout=60000, wait_until="domcontentloaded")
-                await page.wait_for_timeout(12000)
+                await page.wait_for_timeout(10000)
                 
                 links = await page.locator(f"a[href*='{city['prefix']}']").all()
                 
-                city_hotels = []
+                hotel_urls = []
                 seen_names = set()
-                
                 for link in links:
                     try:
                         href = await link.get_attribute("href")
@@ -372,37 +371,47 @@ async def fetch_and_send_hotels():
                         if name in seen_names: continue
                         seen_names.add(name)
                         
-                        # 🌟 پیدا کردن قیمت از والد سطح ۲ و ۳
-                        parent2 = link.locator("xpath=../..")
-                        parent3 = link.locator("xpath=../../..")
+                        hotel_urls.append({"name": name, "url": f"https://www.eghamat24.com{href}"})
+                    except: pass
+                
+                if not hotel_urls:
+                    print(f"No hotels found for {city['name']}.")
+                    continue
+                
+                city_hotels = []
+                for h in hotel_urls[:10]: # بررسی ۱۰ هتل اول
+                    try:
+                        await page.goto(h["url"], timeout=60000, wait_until="domcontentloaded")
+                        await page.wait_for_timeout(4000)
+                        body_text = await page.locator("body").inner_text()
                         
-                        text_to_search = ""
-                        if await parent2.count() > 0:
-                            text_to_search += await parent2.inner_text()
-                        if await parent3.count() > 0:
-                            text_to_search += " " + await parent3.inner_text()
-                            
-                        prices = re.findall(r'([\d,]+)\s*تومان', text_to_search)
-                        if not prices: continue
-                        
-                        valid_prices = [int(p.replace(',', '')) for p in prices if int(p.replace(',', '')) > 100000]
-                        if not valid_prices: continue
-                        
-                        min_price = min(valid_prices)
-                        
+                        # ۱. استخراج ستاره
                         stars = 0
-                        star_match = re.search(r'([1-5])\s*ستاره', text_to_search)
-                        if star_match: stars = int(star_match.group(1))
-                        else: stars = 3 # پیش‌فرض
+                        star_match = re.search(r'هتل\s*(پنج|5|چهار|4|سه|3)\s*ستاره', body_text)
+                        if star_match:
+                            star_word = star_match.group(1)
+                            if star_word in ["پنج", "5"]: stars = 5
+                            elif star_word in ["چهار", "4"]: stars = 4
+                            elif star_word in ["سه", "3"]: stars = 3
                             
                         if stars not in [3, 4, 5]: continue
                         
-                        city_hotels.append({"name": name, "price": min_price, "stars": stars})
+                        # 🌟 ۲. استخراج قیمت دقیق (فقط از بخش «قیمت برای امروز»)
+                        # پیدا کردن متنی که دقیقاً بعد از عبارت «قیمت برای امروز» اومده
+                        price_match = re.search(r'قیمت برای امروز\s*([\d,]+)\s*تومان', body_text)
+                        
+                        if price_match:
+                            price = int(price_match.group(1).replace(',', ''))
+                            city_hotels.append({"name": h["name"], "price": price, "stars": stars})
+                        else:
+                            # اگر با این عبارت پیدا نشد، از اولین قیمت معتبر صفحه استفاده کن
+                            prices = re.findall(r'([\d,]+)\s*تومان', body_text)
+                            valid_prices = [int(p.replace(',', '')) for p in prices if int(p.replace(',', '')) > 100000]
+                            if valid_prices:
+                                city_hotels.append({"name": h["name"], "price": min(valid_prices), "stars": stars})
                     except: pass
                 
-                if not city_hotels: 
-                    print(f"No hotels found for {city['name']}.")
-                    continue
+                if not city_hotels: continue
                 
                 grouped = {5: [], 4: [], 3: []}
                 for h in city_hotels:
