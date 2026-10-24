@@ -1,44 +1,52 @@
 import asyncio
 from playwright.async_api import async_playwright
 import re
-import urllib.parse
 
 async def main():
     async with async_playwright() as p:
         browser = await p.chromium.launch(headless=True)
-        page = await browser.new_page()
         
-        # لیست شهرها
-        cities = ["مشهد", "تهران", "کیش", "قشم", "شیراز", "اصفهان", "یزد", "تبریز", "قم"]
+        # لیست شهرها با لینک مستقیم صفحه هتل‌هاشون
+        cities = {
+            "مشهد": "https://www.eghamat24.com/MashhadHotels.html",
+            "تهران": "https://www.eghamat24.com/TehranHotels.html",
+            "کیش": "https://www.eghamat24.com/KishHotels.html",
+            "شیراز": "https://www.eghamat24.com/ShirazHotels.html",
+            "اصفهان": "https://www.eghamat24.com/EsfahanHotels.html",
+            "یزد": "https://www.eghamat24.com/YazdHotels.html",
+            "تبریز": "https://www.eghamat24.com/TabrizHotels.html",
+            "قم": "https://www.eghamat24.com/QomHotels.html",
+            "قشم": "https://www.eghamat24.com/QeshmHotels.html",
+        }
         
-        for city in cities:
-            print(f"\n--- Searching for {city} ---")
+        for city_name, url in cities.items():
+            print(f"\n--- Checking {city_name} ---")
+            page = await browser.new_page()
             try:
-                # جستجو در سایت برای پیدا کردن لینک شهر
-                await page.goto(f"https://www.eghamat24.com/search?q={city}", timeout=30000)
-                await page.wait_for_timeout(3000)
+                await page.goto(url, timeout=60000, wait_until="domcontentloaded")
+                await page.wait_for_timeout(10000)
                 
-                # پیدا کردن لینک‌های مربوط به هتل‌های این شهر
-                links = await page.locator("a").all()
-                found_id = None
+                # پیدا کردن لینک‌هایی که به هتل‌های این شهر اشاره می‌کنن
+                links = await page.locator("a[href*='Hotel']").all()
                 
+                hotel_count = 0
                 for link in links:
-                    href = await link.get_attribute("href")
-                    if href and "destination_name" in href and city in urllib.parse.unquote(href):
-                        # استخراج آیدی از لینک
-                        id_match = re.search(r'destination_id=(\d+)', href)
-                        if id_match:
-                            found_id = id_match.group(1)
-                            break
-                            
-                if found_id:
-                    print(f"Found ID for {city}: {found_id}")
-                else:
-                    print(f"ID not found for {city}")
-                    
+                    try:
+                        href = await link.get_attribute("href")
+                        text = await link.inner_text()
+                        # اگر لینک شامل اسم شهر و Hotel بود و متنش هم شبیه اسم هتل بود
+                        if href and city_name in href and "Hotel" in href:
+                            if text.strip() and len(text.strip()) > 5 and "هتل" in text:
+                                hotel_count += 1
+                    except: pass
+                
+                print(f"Found {hotel_count} potential hotel links for {city_name}")
+                
             except Exception as e:
-                print(f"Error for {city}: {e}")
-
+                print(f"Error for {city_name}: {e}")
+            finally:
+                await page.close()
+                
         await browser.close()
 
 if __name__ == "__main__":
