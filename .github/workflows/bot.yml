@@ -8,7 +8,7 @@ on:
   workflow_dispatch:
     inputs:
       job_type:
-        description: 'نوع جاب (news, prices, extras)'
+        description: 'نوع جاب (news, prices, extras, hotels)'
         required: true
         default: 'news'
 
@@ -26,7 +26,6 @@ jobs:
       - name: Run News
         env:
           GIST_ID: ${{ secrets.GIST_ID }}
-          GIST_RAW_URL: ${{ secrets.GIST_RAW_URL }}
           GIST_TOKEN: ${{ secrets.GIST_TOKEN }}
           BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
           CHANNEL_ID: ${{ secrets.CHANNEL_ID }}
@@ -42,42 +41,4 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
-      - name: Install deps
-        run: |
-          pip install -r requirements.txt
-          playwright install chromium
-          playwright install-deps chromium
-      - name: Run Prices
-        env:
-          GIST_ID: ${{ secrets.GIST_ID }}
-          GIST_RAW_URL: ${{ secrets.GIST_RAW_URL }}
-          GIST_TOKEN: ${{ secrets.GIST_TOKEN }}
-          BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
-          CHANNEL_ID: ${{ secrets.CHANNEL_ID }}
-          METIS_KEY: ${{ secrets.METIS_KEY }}
-          EITA_TOKEN: ${{ secrets.EITA_TOKEN }}
-          EITA_CHANNEL_ID: ${{ secrets.EITA_CHANNEL_ID }}
-        run: python run_once.py prices
-
-  run-extras:
-    if: github.event.inputs.job_type == 'extras'
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-      - name: Install deps
-        run: pip install -r requirements.txt
-      - name: Run Extras
-        env:
-          GIST_ID: ${{ secrets.GIST_ID }}
-          GIST_RAW_URL: ${{ secrets.GIST_RAW_URL }}
-          GIST_TOKEN: ${{ secrets.GIST_TOKEN }}
-          BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
-          CHANNEL_ID: ${{ secrets.CHANNEL_ID }}
-          METIS_KEY: ${{ secrets.METIS_KEY }}
-          EITA_TOKEN: ${{ secrets.EITA_TOKEN }}
-          EITA_CHANNEL_ID: ${{ secrets.EITA_CHANNEL_ID }}
-        run: python run_once.py extras
+          python-version: '3
