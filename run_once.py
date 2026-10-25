@@ -277,7 +277,7 @@ def summarize_with_ai(title):
         return None
     except: return None
 
-def fetch_news(max_per_feed=2):
+def _news(max_per_feed=2):
     sent = load_sent_from_gist()
     collected = []
     for feed_url in FEEDS:
@@ -339,9 +339,17 @@ async def fetch_random_flight_prices():
 
 # 🌟 تابع نهایی هتل‌ها
 # 🌟 تابع نهایی هتل‌ها (با ترجمه اسم‌ها به فارسی)
+# 🌟 تابع نهایی هتل‌ها (فقط دیکشنری محلی)
 async def fetch_and_send_hotels():
     delete_previous_messages("last_hotel_msgs.txt")
     
+    hotel_dict = {}
+    try:
+        with open("hotels_fa.json", "r", encoding="utf-8") as f:
+            hotel_dict = json.load(f)
+    except Exception as e:
+        print(f"Warning: hotels_fa.json not found. {e}")
+
     selected_cities = random.sample(HOTEL_CITIES, 3)
     new_msg_ids = []
     
@@ -381,10 +389,10 @@ async def fetch_and_send_hotels():
                 if not hotel_urls: continue
                 
                 city_hotels = []
-                for h in hotel_urls[:10]:
+                for h in hotel_urls[:6]: 
                     try:
                         await page.goto(h["url"], timeout=60000, wait_until="domcontentloaded")
-                        await page.wait_for_timeout(3000)
+                        await page.wait_for_timeout(2500) 
                         
                         body_text = await page.locator("body").inner_text()
                         stars = 0
@@ -412,33 +420,14 @@ async def fetch_and_send_hotels():
                                 valid_rates = [rate["daily_rate"] for rate in rates if rate.get("daily_rate") and not rate.get("closed")]
                                 if valid_rates:
                                     min_price_toman = int(min(valid_rates) / 10)
-                                    city_hotels.append({"name": h["name"], "price": min_price_toman, "stars": stars})
+                                    
+                                    # ترجمه از دیکشنری (بدون متیس)
+                                    fa_name = hotel_dict.get(h["name"], h["name"])
+                                    city_hotels.append({"name": fa_name, "price": min_price_toman, "stars": stars})
                     except: pass
                 
                 if not city_hotels: continue
                 
-                # 🌟 ترجمه اسم هتل‌ها به فارسی با متیس
-                english_names = [h["name"] for h in city_hotels]
-                names_string = " | ".join(english_names)
-                
-                prompt = f"این لیست اسم هتل‌های انگلیسی است: {names_string}\nلطفاً معادل فارسی هر کدام را دقیقاً به همان ترتیب بنویس و با علامت | از هم جدا کن. فقط لیست فارسی را برگردان."
-                
-                headers = {"Authorization": f"Bearer {METIS_KEY}", "Content-Type": "application/json"}
-                data = {"model": "gpt-4o-mini", "messages": [{"role": "user", "content": prompt}]}
-                
-                fa_names = english_names # پیش‌فرض
-                try:
-                    r_ai = requests.post("https://api.metisai.ir/openai/v1/chat/completions", headers=headers, json=data, timeout=30)
-                    if r_ai.ok:
-                        fa_response = r_ai.json()['choices'][0]['message']['content'].strip()
-                        fa_names_list = [x.strip() for x in fa_response.split("|")]
-                        if len(fa_names_list) == len(city_hotels):
-                            for i, h in enumerate(city_hotels):
-                                h["name"] = fa_names_list[i]
-                except Exception as e:
-                    print(f"Translation error: {e}")
-
-                # گروه‌بندی بر اساس ستاره
                 grouped = {5: [], 4: [], 3: []}
                 for h in city_hotels:
                     if h["stars"] in grouped: grouped[h["stars"]].append(h)
@@ -466,8 +455,7 @@ async def fetch_and_send_hotels():
         await browser.close()
     
     if new_msg_ids:
-        save_message_ids("last_hotel_msgs.txt", new_msg_ids)
-def send_news_only():
+        save_message_ids("last_hotel_msgs.txt", new_msg_ids)def send_news_only():
     news = fetch_news()
     if news:
         news_to_send = news[:MAX_NEWS_TO_SEND] 
