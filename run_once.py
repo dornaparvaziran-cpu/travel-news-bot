@@ -7,7 +7,7 @@ import asyncio
 import random
 import urllib.parse
 import re
-from datetime import datetime, timedelta
+from datetime import datetime
 from playwright.async_api import async_playwright
 
 TG_TOKEN = os.environ.get("BOT_TOKEN")
@@ -278,7 +278,7 @@ def summarize_with_ai(title):
         return None
     except: return None
 
-def _news(max_per_feed=2):
+def fetch_news(max_per_feed=2):
     sent = load_sent_from_gist()
     collected = []
     for feed_url in FEEDS:
@@ -455,7 +455,8 @@ async def fetch_and_send_hotels():
     
     if new_msg_ids:
         save_message_ids("last_hotel_msgs.txt", new_msg_ids)
-    def send_news_only():
+
+def send_news_only():
     news = fetch_news()
     if news:
         news_to_send = news[:MAX_NEWS_TO_SEND] 
