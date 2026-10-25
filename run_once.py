@@ -1,4 +1,3 @@
-import json
 import os
 import sys
 import requests
@@ -338,6 +337,7 @@ async def fetch_random_flight_prices():
     
     save_message_ids("last_price_msgs.txt", new_msg_ids)
 
+# 🌟 تابع نهایی هتل‌ها (قیمت از لیست، با فیلتر و بدون تکرار)
 async def fetch_and_send_hotels():
     delete_previous_messages("last_hotel_msgs.txt")
     
@@ -348,6 +348,7 @@ async def fetch_and_send_hotels():
         browser = await p.chromium.launch(headless=True)
         page = await browser.new_page()
         
+        # تاریخ‌ها برای API (فردا و پس فردا)
         from_date = "2026-10-24"
         to_date = "2026-10-25"
         
@@ -358,6 +359,7 @@ async def fetch_and_send_hotels():
                 await page.goto(city["url"], timeout=60000, wait_until="domcontentloaded")
                 await page.wait_for_timeout(8000)
                 
+                # پیدا کردن لینک‌های هتل
                 links = await page.locator(f"a[href*='{city['prefix']}']").all()
                 
                 hotel_urls = []
@@ -377,16 +379,19 @@ async def fetch_and_send_hotels():
                         hotel_urls.append({"name": name, "url": f"https://www.eghamat24.com{href}"})
                     except: pass
                 
-                if not hotel_urls: continue
+                if not hotel_urls:
+                    print(f"No hotels found for {city['name']}.")
+                    continue
                 
                 city_hotels = []
-                for h in hotel_urls[:6]: 
+                for h in hotel_urls[:10]: # بررسی ۱۰ هتل اول
                     try:
+                        # رفتن به صفحه هتل برای پیدا کردن آیدی و ستاره
                         await page.goto(h["url"], timeout=60000, wait_until="domcontentloaded")
-                        await page.wait_for_timeout(2500) 
+                        await page.wait_for_timeout(3000)
                         
+                        # استخراج ستاره
                         body_text = await page.locator("body").inner_text()
-                        
                         stars = 0
                         star_match = re.search(r'هتل\s*(پنج|5|چهار|4|سه|3)\s*ستاره', body_text)
                         if star_match:
@@ -397,12 +402,17 @@ async def fetch_and_send_hotels():
                             
                         if stars not in [3, 4, 5]: continue
                         
+                        # 🌟 پیدا کردن property_id از کدهای HTML (توی تگ body یا اسکریپت‌ها)
                         html_content = await page.content()
-                        id_match = re.search(r'hotel.{0,50}?(\d{3,5})', html_content, re.IGNORECASE)
-                        if not id_match: 
+                        id_match = re.search(r'property_id[\'"]?\s*[:=]\s*[\'"]?(\d+)', html_content)
+                        
+                        if not id_match:
+                            # اگر پیدا نشد، سعی می‌کنیم از API خود صفحه استفاده کنیم
                             continue
                             
                         property_id = id_match.group(1)
+                        
+                        # 🌟 درخواست به API برای گرفتن قیمت دقیق
                         api_url = f"https://www.eghamat24.com/properties/{property_id}/v2/rooms-rates?from_date={from_date}&to_date={to_date}"
                         r = requests.get(api_url, timeout=10)
                         
@@ -410,20 +420,26 @@ async def fetch_and_send_hotels():
                             data = r.json()
                             if data.get("code") == 200 and data.get("value", {}).get("room_rates"):
                                 rates = data["value"]["room_rates"]
+                                # پیدا کردن کمترین قیمت (daily_rate به ریال هست)
                                 valid_rates = [rate["daily_rate"] for rate in rates if rate.get("daily_rate") and not rate.get("closed")]
                                 if valid_rates:
-                                    min_price_toman = int(min(valid_rates) / 10)
-                                    
-                                    # اسم انگلیسی
+                                    min_rate_rial = min(valid_rates)
+                                    min_price_toman = int(min_rate_rial / 10)
                                     city_hotels.append({"name": h["name"], "price": min_price_toman, "stars": stars})
-                    except: pass
+                                    
+                    except Exception as e:
+                        print(f"Error for {h['name']}: {e}")
                 
-                if not city_hotels: continue
+                if not city_hotels: 
+                    print(f"No hotels found for {city['name']}.")
+                    continue
                 
+                # گروه‌بندی بر اساس ستاره
                 grouped = {5: [], 4: [], 3: []}
                 for h in city_hotels:
                     if h["stars"] in grouped: grouped[h["stars"]].append(h)
                 
+                # ساخت پیام
                 msg = f"🏨 <b>قیمت لحظه‌ای هتل‌های {city['name']}</b>\n\n"
                 has_valid = False
                 
