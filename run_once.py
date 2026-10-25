@@ -376,7 +376,8 @@ async def fetch_and_send_hotels():
                         if not href or not href.endswith(".html"): continue
                         
                         hotel_id_str = href.split("/")[-1].replace(".html", "")
-                        if "Hotels" in hotel_id_str: continue
+                        # 🌟 فیلتر کردن صفحات دسته‌بندی
+                        if "Hotels" in hotel_id_str or "Cheap" in hotel_id_str or "Traditional" in hotel_id_str or "Residence" in hotel_id_str: continue
                         
                         name = re.sub(r'(?<!^)(?=[A-Z])', ' ', hotel_id_str).replace("_", " ").strip()
                         if name in seen_names: continue
@@ -388,12 +389,15 @@ async def fetch_and_send_hotels():
                 if not hotel_urls: continue
                 
                 city_hotels = []
+                # فقط ۶ هتل اول رو بررسی میکنیم تا زمان کمتری بگیره
                 for h in hotel_urls[:6]: 
                     try:
                         await page.goto(h["url"], timeout=60000, wait_until="domcontentloaded")
                         await page.wait_for_timeout(2500) 
                         
                         body_text = await page.locator("body").inner_text()
+                        
+                        # استخراج ستاره
                         stars = 0
                         star_match = re.search(r'هتل\s*(پنج|5|چهار|4|سه|3)\s*ستاره', body_text)
                         if star_match:
@@ -402,7 +406,9 @@ async def fetch_and_send_hotels():
                             elif star_word in ["چهار", "4"]: stars = 4
                             elif star_word in ["سه", "3"]: stars = 3
                             
-                        if stars not in [3, 4, 5]: continue
+                        # اگر ستاره پیدا نشد، حداقل قیمت رو از API بگیریم و ۳ ستاره در نظر بگیریم (موقت)
+                        if stars not in [3, 4, 5]: 
+                            stars = 3
                         
                         html_content = await page.content()
                         id_match = re.search(r'property_id[\'"]?\s*[:=]\s*[\'"]?(\d+)', html_content)
@@ -420,12 +426,14 @@ async def fetch_and_send_hotels():
                                 if valid_rates:
                                     min_price_toman = int(min(valid_rates) / 10)
                                     
-                                    # ترجمه از دیکشنری (بدون متیس)
                                     fa_name = hotel_dict.get(h["name"], h["name"])
                                     city_hotels.append({"name": fa_name, "price": min_price_toman, "stars": stars})
-                    except: pass
+                    except Exception as e:
+                        print(f"Error processing {h['name']}: {e}")
                 
-                if not city_hotels: continue
+                if not city_hotels: 
+                    print(f"No valid hotels found for {city['name']}.")
+                    continue
                 
                 grouped = {5: [], 4: [], 3: []}
                 for h in city_hotels:
