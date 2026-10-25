@@ -251,6 +251,13 @@ def send_to_all(text, image_url=None):
 def fetch_news(max_per_feed=2):
     sent = load_sent_from_gist()
     collected = []
+    
+    # 🌟 تاریخ امروز و دیروز (برای فیلتر کردن اخبار قدیمی)
+    from datetime import datetime, timedelta
+    now = datetime.now()
+    # اگر می‌خوای اخبار ۲۴ ساعت گذشته رو بیاری، این خط رو تغییر بده
+    limit_date = now - timedelta(hours=24) 
+    
     for feed_url in FEEDS:
         try:
             feed = feedparser.parse(feed_url)
@@ -259,8 +266,21 @@ def fetch_news(max_per_feed=2):
                 if count >= max_per_feed: break
                 title = entry.get("title", "")
                 link = entry.get("link", "")
+                
                 if not title or not link or link in sent: continue
                 if not any(kw.lower() in title.lower() for kw in ALL_KEYWORDS): continue
+                
+                # 🌟 بررسی تاریخ انتشار خبر
+                pub_date = None
+                if hasattr(entry, 'published_parsed') and entry.published_parsed:
+                    pub_date = datetime(*entry.published_parsed[:6])
+                elif hasattr(entry, 'updated_parsed') and entry.updated_parsed:
+                    pub_date = datetime(*entry.updated_parsed[:6])
+                
+                # اگر تاریخ پیدا شد و از محدوده ما قدیمی‌تر بود، ردش کن
+                if pub_date and pub_date < limit_date:
+                    print(f"Skipping old news: {title[:30]}... (Date: {pub_date})")
+                    continue
                 
                 # 🌟 استخراج متن کامل خبر
                 full_text = ""
@@ -275,15 +295,16 @@ def fetch_news(max_per_feed=2):
                 full_text = re.sub(r'<[^>]+>', '', full_text)
                 full_text = full_text.strip()
                 
-                # اگر متن خیلی طولانی بود، کوتاهش می‌کنیم (مثلاً ۵۰۰ کاراکتر اول)
+                # اگر متن خیلی طولانی بود، کوتاهش می‌کنیم
                 if len(full_text) > 500:
                     full_text = full_text[:500] + "..."
                     
                 collected.append((title, link, get_image_url(entry), full_text))
                 count += 1
-        except Exception as e: print(f"Feed error: {e}")
+        except Exception as e: 
+            print(f"Feed error: {e}")
     return collected
-
+    
 async def get_prices_for_route(browser, route_name, route_url):
     page = await browser.new_page()
     try:
