@@ -1,0 +1,52 @@
+[
+    {
+        "name": "جزیره کیش",
+        "description": "بهشت خرید و تفریح در خلیج فارس. جایی که می‌تونی هم در ساحل آرامش بگیری و هم در بازارهای مدرنش خرید کنی.",
+        "image": "https://images.unsplash.com/photo-1590076214011-3c74f5c16c4a?q=80&w=1000&auto=format&fit=crop"
+    },
+    {
+        "name": "حرم مطهر امام رضا (ع)",
+        "description": "قلب تپنده مشهد و یکی از بزرگترین و زیباترین حرم‌های جهان اسلام. فضایی سرشار از آرامش و معنویت.",
+        "image": "https://images.unsplash.com/photo-1590083745088-3f6e4d6b0e9b?q=80&w=1000&auto=format&fit=crop"
+    },
+    {
+        "name": "میدان نقش جهان",
+        "description": "نگین درخشان اصفهان و یکی از میراث جهانی یونسکو. شکوه معماری صفویه رو در این میدان بی‌نظیر ببین.",
+        "image": "https://images.unsplash.com/photo-1588371894253-5c3e88f8e6d0?q=80&w=1000&auto=format&fit=crop"
+    },
+    {
+        "name": "تخت جمشید",
+        "description": "شکوه تاریخ ایران باستان در نزدیکی شیراز. قدم زدن در این مکان تاریخی، تو رو به هزاران سال پیش می‌بره.",
+        "image": "https://images.unsplash.com/photo-1590076214523-5f6c6c3d0d2b?q=80&w=1000&auto=format&fit=crop"
+    },
+    {
+        "name": "جاده چالوس",
+        "description": "یکی از زیباترین جاده‌های جهان. مسیری پرپیچ و خم در دل کوه‌های البرز که به دریای خزر می‌رسد.",
+        "image": "https://images.unsplash.com/photo-1590076214523-5f6c6c3d0d2b?q=80&w=1000&auto=format&fit=crop"
+    },
+    {
+        "name": "استانبول",
+        "description": "شهر دو قاره! جایی که تاریخ عثمانی با مدرنیته ترکیب شده. از مسجد ایاصوفیه تا خیابان استقلال.",
+        "image": "https://images.unsplash.com/photo-1524231757912-21f4fe3a7200?q=80&w=1000&auto=format&fit=crop"
+    },
+    {
+        "name": "دبی",
+        "description": "شهر آسمان‌خراش‌ها و خریدهای لوکس در قلب خاورمیانه. از برج خلیفه تا پالم جمیرا.",
+        "image": "https://images.unsplash.com/photo-1512453979798-5ea266f8880c?q=80&w=1000&auto=format&fit=crop"
+    },
+    {
+        "name": "کویر لوت",
+        "description": "یکی از گرم‌ترین نقاط زمین و یک مکان بی‌نظیر برای ستاره‌بینی و آرامش در سکوت کویر.",
+        "image": "https://images.unsplash.com/photo-1509316785289-025f5b846b35?q=80&w=1000&auto=format&fit=crop"
+    },
+    {
+        "name": "روستای ماسوله",
+        "description": "روستای پلکانی و تاریخی در دل جنگل‌های گیلان. معماری خاص و هوای خنک و دل‌انگیز.",
+        "image": "https://images.unsplash.com/photo-1590076214523-5f6c6c3d0d2b?q=80&w=1000&auto=format&fit=crop"
+    },
+    {
+        "name": "جزیره قشم",
+        "description": "بزرگترین جزیره خلیج فارس با جاذبه‌های طبیعی شگفت‌انگیز مثل جنگل حرا و تنگه چاهکوه.",
+        "image": "https://images.unsplash.com/photo-1590076214523-5f6c6c3d0d2b?q=80&w=1000&auto=format&fit=crop"
+    }
+]
