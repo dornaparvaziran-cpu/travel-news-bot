@@ -338,9 +338,11 @@ async def fetch_random_flight_prices():
     
     save_message_ids("last_price_msgs.txt", new_msg_ids)
 
+# 🌟 تابع نهایی هتل‌ها (با دیکشنری محلی برای ترجمه)
 async def fetch_and_send_hotels():
     delete_previous_messages("last_hotel_msgs.txt")
     
+    # ۱. خواندن دیکشنری ترجمه از فایل
     hotel_dict = {}
     try:
         with open("hotels_fa.json", "r", encoding="utf-8") as f:
@@ -384,8 +386,6 @@ async def fetch_and_send_hotels():
                         hotel_urls.append({"name": name, "url": f"https://www.eghamat24.com{href}"})
                     except: pass
                 
-                print(f"Found {len(hotel_urls)} hotels for {city['name']}.")
-                
                 if not hotel_urls: continue
                 
                 city_hotels = []
@@ -396,29 +396,19 @@ async def fetch_and_send_hotels():
                         
                         body_text = await page.locator("body").inner_text()
                         
-                        # 🌟 روش جدید: پیدا کردن ستاره از هر جایی که کلمه ستاره اومده
                         stars = 0
-                        star_match = re.search(r'([1-5])\s*ستاره', body_text)
-                        if star_match: 
-                            stars = int(star_match.group(1))
-                        else:
-                            # اگر با عدد پیدا نشد، با کلمه امتحان میکنیم
-                            word_match = re.search(r'هتل\s*(پنج|چهار|سه)\s*ستاره', body_text)
-                            if word_match:
-                                w = word_match.group(1)
-                                if w == "پنج": stars = 5
-                                elif w == "چهار": stars = 4
-                                elif w == "سه": stars = 3
-                                
-                        if stars not in [3, 4, 5]: 
-                            print(f"No stars found for {h['name']}. Skipping.")
-                            continue
+                        star_match = re.search(r'هتل\s*(پنج|5|چهار|4|سه|3)\s*ستاره', body_text)
+                        if star_match:
+                            star_word = star_match.group(1)
+                            if star_word in ["پنج", "5"]: stars = 5
+                            elif star_word in ["چهار", "4"]: stars = 4
+                            elif star_word in ["سه", "3"]: stars = 3
+                            
+                        if stars not in [3, 4, 5]: continue
                         
                         html_content = await page.content()
                         id_match = re.search(r'property_id[\'"]?\s*[:=]\s*[\'"]?(\d+)', html_content)
-                        if not id_match: 
-                            print(f"No property_id found for {h['name']}. Skipping.")
-                            continue
+                        if not id_match: continue
                             
                         property_id = id_match.group(1)
                         api_url = f"https://www.eghamat24.com/properties/{property_id}/v2/rooms-rates?from_date={from_date}&to_date={to_date}"
@@ -431,19 +421,13 @@ async def fetch_and_send_hotels():
                                 valid_rates = [rate["daily_rate"] for rate in rates if rate.get("daily_rate") and not rate.get("closed")]
                                 if valid_rates:
                                     min_price_toman = int(min(valid_rates) / 10)
-                                    fa_name = hotel_dict.get(h["name"], h["name"])
-                                    city_hotels.append({"name": fa_name, "price": min_price_toman, "stars": stars})
-                                else:
-                                    print(f"No valid rates for {h['name']}.")
-                            else:
-                                print(f"API error for {h['name']}.")
-                        else:
-                            print(f"API request failed for {h['name']}.")
                                     
-                    except Exception as e:
-                        print(f"Error processing {h['name']}: {e}")
-                
-                print(f"Found {len(city_hotels)} valid hotels for {city['name']}.")
+                                    # 🌟 ترجمه از دیکشنری
+                                    fa_name = hotel_dict.get(h["name"], h["name"])
+                                    
+                                    # اگر توی دیکشنری نبود، اسم انگلیسی می‌مونه
+                                    city_hotels.append({"name": fa_name, "price": min_price_toman, "stars": stars})
+                    except: pass
                 
                 if not city_hotels: continue
                 
