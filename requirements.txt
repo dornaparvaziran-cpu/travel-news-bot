@@ -1,3 +1,4 @@
 requests
 feedparser
 playwright
+mrbilit-mcp
