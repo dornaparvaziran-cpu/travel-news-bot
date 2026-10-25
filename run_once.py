@@ -384,22 +384,18 @@ async def fetch_and_send_hotels():
                         hotel_urls.append({"name": name, "url": f"https://www.eghamat24.com{href}"})
                     except: pass
                 
-                print(f" -> Found {len(hotel_urls)} hotel links for {city['name']}")
-                
-                if not hotel_urls: 
-                    continue
+                if not hotel_urls: continue
                 
                 city_hotels = []
                 for h in hotel_urls[:6]: 
                     try:
-                        # 🌟 چاپ هتل در حال بررسی
-                        print(f"   Checking {h['name']}...", end=" ")
-                        
                         await page.goto(h["url"], timeout=60000, wait_until="domcontentloaded")
                         await page.wait_for_timeout(2500) 
                         
                         body_text = await page.locator("body").inner_text()
+                        html_content = await page.content()
                         
+                        # استخراج ستاره
                         stars = 0
                         star_match = re.search(r'هتل\s*(پنج|5|چهار|4|سه|3)\s*ستاره', body_text)
                         if star_match:
@@ -408,17 +404,15 @@ async def fetch_and_send_hotels():
                             elif star_word in ["چهار", "4"]: stars = 4
                             elif star_word in ["سه", "3"]: stars = 3
                             
-                        if stars not in [3, 4, 5]: 
-                            print("No stars found. Skipping.")
-                            continue
+                        if stars not in [3, 4, 5]: continue
                         
-                        html_content = await page.content()
-                        id_match = re.search(r'property_id[\'"]?\s*[:=]\s*[\'"]?(\d+)', html_content)
-                        if not id_match: 
-                            print("No property_id found. Skipping.")
+                        # 🌟 استخراج property_id با روش جدید (پیدا کردن عدد نزدیک کلمه hotel)
+                        id_matches = re.findall(r'hotel.{0,50}?(\d{3,5})', html_content, re.IGNORECASE)
+                        if not id_matches: 
+                            print(f"No property_id found for {h['name']}. Skipping.")
                             continue
                             
-                        property_id = id_match.group(1)
+                        property_id = id_matches[0]
                         api_url = f"https://www.eghamat24.com/properties/{property_id}/v2/rooms-rates?from_date={from_date}&to_date={to_date}"
                         r = requests.get(api_url, timeout=10)
                         
@@ -431,20 +425,11 @@ async def fetch_and_send_hotels():
                                     min_price_toman = int(min(valid_rates) / 10)
                                     fa_name = hotel_dict.get(h["name"], h["name"])
                                     city_hotels.append({"name": fa_name, "price": min_price_toman, "stars": stars})
-                                    print(f"Success! Price: {min_price_toman:,}")
-                                else:
-                                    print("No valid rates in API. Skipping.")
-                            else:
-                                print("API data format invalid. Skipping.")
-                        else:
-                            print(f"API request failed ({r.status_code}). Skipping.")
+                                    print(f"Success: {h['name']} - {min_price_toman:,} تومان")
                     except Exception as e:
-                        print(f"Error: {e}")
+                        print(f"Error for {h['name']}: {e}")
                 
-                print(f" -> Found {len(city_hotels)} valid hotels for {city['name']}")
-                
-                if not city_hotels: 
-                    continue
+                if not city_hotels: continue
                 
                 grouped = {5: [], 4: [], 3: []}
                 for h in city_hotels:
@@ -473,7 +458,7 @@ async def fetch_and_send_hotels():
         await browser.close()
     
     if new_msg_ids:
-        save_message_ids("last_hotel_msgs.txt", new_msg_ids)        
+        save_message_ids("last_hotel_msgs.txt", new_msg_ids)      
 def send_news_only():
     news = fetch_news()
     if news:
