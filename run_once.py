@@ -338,8 +338,6 @@ async def fetch_random_flight_prices():
     
     save_message_ids("last_price_msgs.txt", new_msg_ids)
 
-# 🌟 تابع نهایی هتل‌ها
-# 🌟 تابع نهایی هتل‌ها (با ترجمه اسم‌ها به فارسی)
 # 🌟 تابع نهایی هتل‌ها (فقط دیکشنری محلی)
 async def fetch_and_send_hotels():
     delete_previous_messages("last_hotel_msgs.txt")
@@ -456,7 +454,8 @@ async def fetch_and_send_hotels():
         await browser.close()
     
     if new_msg_ids:
-        save_message_ids("last_hotel_msgs.txt", new_msg_ids)def send_news_only():
+        save_message_ids("last_hotel_msgs.txt", new_msg_ids)
+    def send_news_only():
     news = fetch_news()
     if news:
         news_to_send = news[:MAX_NEWS_TO_SEND] 
