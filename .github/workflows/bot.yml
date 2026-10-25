@@ -8,7 +8,7 @@ on:
   workflow_dispatch:
     inputs:
       job_type:
-        description: 'نوع جاب (news, prices, extras, hotels)'
+        description: 'نوع جاب (news, prices, extras, destination)'
         required: true
         default: 'news'
 
@@ -70,17 +70,14 @@ jobs:
         run: pip install -r requirements.txt
       - name: Run Extras
         env:
-          GIST_ID: ${{ secrets.GIST_ID }}
-          GIST_TOKEN: ${{ secrets.GIST_TOKEN }}
           BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
           CHANNEL_ID: ${{ secrets.CHANNEL_ID }}
-          METIS_KEY: ${{ secrets.METIS_KEY }}
           EITA_TOKEN: ${{ secrets.EITA_TOKEN }}
           EITA_CHANNEL_ID: ${{ secrets.EITA_CHANNEL_ID }}
         run: python run_once.py extras
 
-  run-hotels:
-    if: github.event.inputs.job_type == 'hotels'
+  run-destination:
+    if: github.event.inputs.job_type == 'destination'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -88,16 +85,11 @@ jobs:
         with:
           python-version: '3.11'
       - name: Install deps
-        run: |
-          pip install -r requirements.txt
-          playwright install chromium
-          playwright install-deps chromium
-      - name: Run Hotels
+        run: pip install -r requirements.txt
+      - name: Run Destination
         env:
-          GIST_ID: ${{ secrets.GIST_ID }}
-          GIST_TOKEN: ${{ secrets.GIST_TOKEN }}
           BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
           CHANNEL_ID: ${{ secrets.CHANNEL_ID }}
           EITA_TOKEN: ${{ secrets.EITA_TOKEN }}
           EITA_CHANNEL_ID: ${{ secrets.EITA_CHANNEL_ID }}
-        run: python run_once.py hotels
+        run: python run_once.py destination
