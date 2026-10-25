@@ -30,11 +30,6 @@
         "image": "https://images.unsplash.com/photo-1524231757912-21f4fe3a7200?q=80&w=1000&auto=format&fit=crop"
     },
     {
-        "name": "دبی",
-        "description": "شهر آسمان‌خراش‌ها و خریدهای لوکس در قلب خاورمیانه. از برج خلیفه تا پالم جمیرا.",
-        "image": "https://images.unsplash.com/photo-1512453979798-5ea266f8880c?q=80&w=1000&auto=format&fit=crop"
-    },
-    {
         "name": "کویر لوت",
         "description": "یکی از گرم‌ترین نقاط زمین و یک مکان بی‌نظیر برای ستاره‌بینی و آرامش در سکوت کویر.",
         "image": "https://images.unsplash.com/photo-1509316785289-025f5b846b35?q=80&w=1000&auto=format&fit=crop"
@@ -48,5 +43,25 @@
         "name": "جزیره قشم",
         "description": "بزرگترین جزیره خلیج فارس با جاذبه‌های طبیعی شگفت‌انگیز مثل جنگل حرا و تنگه چاهکوه.",
         "image": "https://images.unsplash.com/photo-1590076214523-5f6c6c3d0d2b?q=80&w=1000&auto=format&fit=crop"
+    },
+    {
+        "name": "شهر باستانی یزد",
+        "description": "شهر بادگیرها و کوچه‌های خشتی. یزد یکی از قدیمی‌ترین شهرهای خشتی جهان و نگین کویر است.",
+        "image": "https://images.unsplash.com/photo-1590076214523-5f6c6c3d0d2b?q=80&w=1000&auto=format&fit=crop"
+    },
+    {
+        "name": "کوالالامپور",
+        "description": "پایتخت مدرن مالزی با برج‌های دوقلوی پتروناس، بازارهای رنگارنگ و غذاهای متنوع. سفری بدون نیاز به ویزا برای اقامت کوتاه.",
+        "image": "https://images.unsplash.com/photo-1596422846543-75c6fc197f07?q=80&w=1000&auto=format&fit=crop"
+    },
+    {
+        "name": "بانکوک",
+        "description": "شهر فرشتگان تایلند! ترکیبی از معابد باشکوه، بازارهای شبانه و خیابان‌های پرجنب‌وجوش.",
+        "image": "https://images.unsplash.com/photo-1508009603885-50cf7c579365?q=80&w=1000&auto=format&fit=crop"
+    },
+    {
+        "name": "شانگهای",
+        "description": "کلان‌شهر مدرن چین و نمادی از پیشرفت اقتصادی. از ساحل بوند تا آسمان‌خراش‌های منطقه پودونگ.",
+        "image": "https://images.unsplash.com/photo-1548919973-5cef591cdbc9?q=80&w=1000&auto=format&fit=crop"
     }
 ]
