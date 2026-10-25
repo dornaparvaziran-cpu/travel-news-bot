@@ -6,6 +6,7 @@ import asyncio
 import random
 import urllib.parse
 import re
+import json
 from datetime import datetime
 from playwright.async_api import async_playwright
 
@@ -53,21 +54,8 @@ ALL_ROUTES = [
     {"name": "تهران به مسقط", "url": "https://dornatravel.ir/flight/IKA-MCT"},
 ]
 
-HOTEL_CITIES = [
-    {"name": "مشهد", "url": "https://www.eghamat24.com/MashhadHotels.html", "prefix": "/MashhadHotels/"},
-    {"name": "تهران", "url": "https://www.eghamat24.com/TehranHotels.html", "prefix": "/TehranHotels/"},
-    {"name": "کیش", "url": "https://www.eghamat24.com/KishHotels.html", "prefix": "/KishHotels/"},
-    {"name": "شیراز", "url": "https://www.eghamat24.com/ShirazHotels.html", "prefix": "/ShirazHotels/"},
-    {"name": "اصفهان", "url": "https://www.eghamat24.com/EsfahanHotels.html", "prefix": "/EsfahanHotels/"},
-    {"name": "یزد", "url": "https://www.eghamat24.com/YazdHotels.html", "prefix": "/YazdHotels/"},
-    {"name": "تبریز", "url": "https://www.eghamat24.com/TabrizHotels.html", "prefix": "/TabrizHotels/"},
-    {"name": "قم", "url": "https://www.eghamat24.com/QomHotels.html", "prefix": "/QomHotels/"},
-    {"name": "قشم", "url": "https://www.eghamat24.com/QeshmHotels.html", "prefix": "/QeshmHotels/"},
-]
-
 NUMBER_OF_ROUTES = 5
 MAX_NEWS_TO_SEND = 9 
-MAX_HOTELS_PER_STAR = 3
 
 FEEDS = [
     "https://www.tinn.ir/fa/feeds/?p=Y2F0ZWdvcmllcz03Ng,,",
@@ -236,8 +224,7 @@ def send_to_eita(text, image_url=None):
     if "قیمت‌های لحظه‌ای پرواز" in text_md:
         text_md = text_md.replace("🔹", "✈️")
         text_md = f"{text_md}\n\n➖➖➖➖➖➖➖➖"
-    elif "قیمت لحظه‌ای هتل‌های" in text_md:
-        text_md = text_md.replace("🔹", "🏨")
+    elif "🌍" in text_md:
         text_md = f"{text_md}\n\n➖➖➖➖➖➖➖➖"
     elif "🌤" in text_md or "💱" in text_md or "💡" in text_md:
         text_md = f"{text_md}\n\n➖➖➖➖➖➖➖➖"
@@ -337,114 +324,6 @@ async def fetch_random_flight_prices():
     
     save_message_ids("last_price_msgs.txt", new_msg_ids)
 
-# 🌟 تابع نهایی هتل‌ها (خواندن قیمت از متن صفحه)
-async def fetch_and_send_hotels():
-    delete_previous_messages("last_hotel_msgs.txt")
-    
-    selected_cities = random.sample(HOTEL_CITIES, 3)
-    new_msg_ids = []
-    
-    async with async_playwright() as p:
-        browser = await p.chromium.launch(headless=True)
-        page = await browser.new_page()
-        
-        for city in selected_cities:
-            print(f"Processing {city['name']}...")
-            
-            try:
-                await page.goto(city["url"], timeout=60000, wait_until="domcontentloaded")
-                await page.wait_for_timeout(8000)
-                
-                links = await page.locator(f"a[href*='{city['prefix']}']").all()
-                
-                hotel_urls = []
-                seen_names = set()
-                for link in links:
-                    try:
-                        href = await link.get_attribute("href")
-                        if not href or not href.endswith(".html"): continue
-                        
-                        hotel_id_str = href.split("/")[-1].replace(".html", "")
-                        if "Hotels" in hotel_id_str: continue
-                        
-                        name = re.sub(r'(?<!^)(?=[A-Z])', ' ', hotel_id_str).replace("_", " ").strip()
-                        if name in seen_names: continue
-                        seen_names.add(name)
-                        
-                        hotel_urls.append({"name": name, "url": f"https://www.eghamat24.com{href}"})
-                    except: pass
-                
-                if not hotel_urls:
-                    print(f"No hotels found for {city['name']}.")
-                    continue
-                
-                city_hotels = []
-                for h in hotel_urls[:6]: 
-                    try:
-                        await page.goto(h["url"], timeout=60000, wait_until="domcontentloaded")
-                        await page.wait_for_timeout(3000)
-                        
-                        body_text = await page.locator("body").inner_text()
-                        
-                        # استخراج ستاره
-                        stars = 0
-                        star_match = re.search(r'هتل\s*(پنج|5|چهار|4|سه|3)\s*ستاره', body_text)
-                        if star_match:
-                            star_word = star_match.group(1)
-                            if star_word in ["پنج", "5"]: stars = 5
-                            elif star_word in ["چهار", "4"]: stars = 4
-                            elif star_word in ["سه", "3"]: stars = 3
-                            
-                        if stars not in [3, 4, 5]: continue
-                        
-                        # استخراج قیمت از متن صفحه
-                        price_match = re.search(r'قیمت برای امروز\s*([\d,]+)\s*تومان', body_text)
-                        
-                        if price_match:
-                            price = int(price_match.group(1).replace(',', ''))
-                            city_hotels.append({"name": h["name"], "price": price, "stars": stars})
-                            print(f"Found price for {h['name']}: {price:,} تومان")
-                        else:
-                            print(f"No price found for {h['name']}.")
-                            
-                    except Exception as e:
-                        print(f"Error for {h['name']}: {e}")
-                
-                if not city_hotels: 
-                    print(f"No hotels found for {city['name']}.")
-                    continue
-                
-                # گروه‌بندی بر اساس ستاره
-                grouped = {5: [], 4: [], 3: []}
-                for h in city_hotels:
-                    if h["stars"] in grouped: grouped[h["stars"]].append(h)
-                
-                # ساخت پیام
-                msg = f"🏨 <b>قیمت لحظه‌ای هتل‌های {city['name']}</b>\n\n"
-                has_valid = False
-                
-                for star in [5, 4, 3]:
-                    if grouped[star]:
-                        selected = random.sample(grouped[star], min(3, len(grouped[star])))
-                        msg += f"⭐ <b>هتل‌های {star} ستاره:</b>\n"
-                        for h in selected:
-                            msg += f"🔹 {h['name']}: {h['price']:,} تومان\n"
-                            has_valid = True
-                        msg += "\n"
-                        
-                if has_valid:
-                    msg += "📞 <b>برای رزرو تلفنی با ما در تماس باشید:</b>\n☎️ 05132292292\n📱 09153092528\n\n✈️ <b>درنا تراول</b>"
-                    tg_id, _ = send_to_all(msg)
-                    if tg_id: new_msg_ids.append(tg_id)
-                    
-            except Exception as e:
-                print(f"Error processing {city['name']}: {e}")
-                
-        await browser.close()
-    
-    if new_msg_ids:
-        save_message_ids("last_hotel_msgs.txt", new_msg_ids)
-
 def send_news_only():
     news = fetch_news()
     if news:
@@ -497,17 +376,37 @@ def send_extras():
     text = get_weather_and_currency()
     send_to_all(text)
 
+def send_destination_of_day():
+    print("Sending destination of the day...")
+    try:
+        with open("destinations.json", "r", encoding="utf-8") as f:
+            destinations = json.load(f)
+            
+        dest = random.choice(destinations)
+        
+        text = f"🌍 <b>مقصد گردشگری امروز: {dest['name']}</b>\n\n"
+        text += f"{dest['description']}\n\n"
+        text += "📞 <b>برای رزرو تور و مشاوره سفر با ما در تماس باشید:</b>\n"
+        text += "☎️ 05132292292\n"
+        text += "📱 09153092528\n\n"
+        text += "✈️ <b>درنا تراول</b>"
+        
+        send_to_all(text, dest["image"])
+        
+    except Exception as e:
+        print(f"Error sending destination: {e}")
+
 def main():
     mode = sys.argv[1] if len(sys.argv) > 1 else "all"
     if mode == "news": send_news_only()
     elif mode == "prices": asyncio.run(fetch_random_flight_prices())
     elif mode == "extras": send_extras()
-    elif mode == "hotels": asyncio.run(fetch_and_send_hotels())
+    elif mode == "destination": send_destination_of_day()
     else:
         send_news_only()
         asyncio.run(fetch_random_flight_prices())
         send_extras()
-        asyncio.run(fetch_and_send_hotels())
+        send_destination_of_day()
 
 if __name__ == "__main__":
     main()
