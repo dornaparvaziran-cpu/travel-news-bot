@@ -341,13 +341,6 @@ async def fetch_random_flight_prices():
 async def fetch_and_send_hotels():
     delete_previous_messages("last_hotel_msgs.txt")
     
-    hotel_dict = {}
-    try:
-        with open("hotels_fa.json", "r", encoding="utf-8") as f:
-            hotel_dict = json.load(f)
-    except Exception as e:
-        print(f"Warning: hotels_fa.json not found. {e}")
-
     selected_cities = random.sample(HOTEL_CITIES, 3)
     new_msg_ids = []
     
@@ -393,9 +386,7 @@ async def fetch_and_send_hotels():
                         await page.wait_for_timeout(2500) 
                         
                         body_text = await page.locator("body").inner_text()
-                        html_content = await page.content()
                         
-                        # استخراج ستاره
                         stars = 0
                         star_match = re.search(r'هتل\s*(پنج|5|چهار|4|سه|3)\s*ستاره', body_text)
                         if star_match:
@@ -406,13 +397,12 @@ async def fetch_and_send_hotels():
                             
                         if stars not in [3, 4, 5]: continue
                         
-                        # 🌟 استخراج property_id با روش جدید (پیدا کردن عدد نزدیک کلمه hotel)
-                        id_matches = re.findall(r'hotel.{0,50}?(\d{3,5})', html_content, re.IGNORECASE)
-                        if not id_matches: 
-                            print(f"No property_id found for {h['name']}. Skipping.")
+                        html_content = await page.content()
+                        id_match = re.search(r'hotel.{0,50}?(\d{3,5})', html_content, re.IGNORECASE)
+                        if not id_match: 
                             continue
                             
-                        property_id = id_matches[0]
+                        property_id = id_match.group(1)
                         api_url = f"https://www.eghamat24.com/properties/{property_id}/v2/rooms-rates?from_date={from_date}&to_date={to_date}"
                         r = requests.get(api_url, timeout=10)
                         
@@ -423,11 +413,10 @@ async def fetch_and_send_hotels():
                                 valid_rates = [rate["daily_rate"] for rate in rates if rate.get("daily_rate") and not rate.get("closed")]
                                 if valid_rates:
                                     min_price_toman = int(min(valid_rates) / 10)
-                                    fa_name = hotel_dict.get(h["name"], h["name"])
-                                    city_hotels.append({"name": fa_name, "price": min_price_toman, "stars": stars})
-                                    print(f"Success: {h['name']} - {min_price_toman:,} تومان")
-                    except Exception as e:
-                        print(f"Error for {h['name']}: {e}")
+                                    
+                                    # اسم انگلیسی
+                                    city_hotels.append({"name": h["name"], "price": min_price_toman, "stars": stars})
+                    except: pass
                 
                 if not city_hotels: continue
                 
@@ -458,7 +447,7 @@ async def fetch_and_send_hotels():
         await browser.close()
     
     if new_msg_ids:
-        save_message_ids("last_hotel_msgs.txt", new_msg_ids)      
+        save_message_ids("last_hotel_msgs.txt", new_msg_ids)
 def send_news_only():
     news = fetch_news()
     if news:
