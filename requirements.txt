@@ -4,3 +4,4 @@ playwright
 Pillow
 arabic-reshaper
 python-bidi
+mrbilit-mcp
