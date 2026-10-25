@@ -338,11 +338,9 @@ async def fetch_random_flight_prices():
     
     save_message_ids("last_price_msgs.txt", new_msg_ids)
 
-# 🌟 تابع نهایی هتل‌ها (با دیکشنری محلی برای ترجمه)
 async def fetch_and_send_hotels():
     delete_previous_messages("last_hotel_msgs.txt")
     
-    # ۱. خواندن دیکشنری ترجمه از فایل
     hotel_dict = {}
     try:
         with open("hotels_fa.json", "r", encoding="utf-8") as f:
@@ -386,11 +384,17 @@ async def fetch_and_send_hotels():
                         hotel_urls.append({"name": name, "url": f"https://www.eghamat24.com{href}"})
                     except: pass
                 
-                if not hotel_urls: continue
+                print(f" -> Found {len(hotel_urls)} hotel links for {city['name']}")
+                
+                if not hotel_urls: 
+                    continue
                 
                 city_hotels = []
                 for h in hotel_urls[:6]: 
                     try:
+                        # 🌟 چاپ هتل در حال بررسی
+                        print(f"   Checking {h['name']}...", end=" ")
+                        
                         await page.goto(h["url"], timeout=60000, wait_until="domcontentloaded")
                         await page.wait_for_timeout(2500) 
                         
@@ -404,11 +408,15 @@ async def fetch_and_send_hotels():
                             elif star_word in ["چهار", "4"]: stars = 4
                             elif star_word in ["سه", "3"]: stars = 3
                             
-                        if stars not in [3, 4, 5]: continue
+                        if stars not in [3, 4, 5]: 
+                            print("No stars found. Skipping.")
+                            continue
                         
                         html_content = await page.content()
                         id_match = re.search(r'property_id[\'"]?\s*[:=]\s*[\'"]?(\d+)', html_content)
-                        if not id_match: continue
+                        if not id_match: 
+                            print("No property_id found. Skipping.")
+                            continue
                             
                         property_id = id_match.group(1)
                         api_url = f"https://www.eghamat24.com/properties/{property_id}/v2/rooms-rates?from_date={from_date}&to_date={to_date}"
@@ -421,15 +429,22 @@ async def fetch_and_send_hotels():
                                 valid_rates = [rate["daily_rate"] for rate in rates if rate.get("daily_rate") and not rate.get("closed")]
                                 if valid_rates:
                                     min_price_toman = int(min(valid_rates) / 10)
-                                    
-                                    # 🌟 ترجمه از دیکشنری
                                     fa_name = hotel_dict.get(h["name"], h["name"])
-                                    
-                                    # اگر توی دیکشنری نبود، اسم انگلیسی می‌مونه
                                     city_hotels.append({"name": fa_name, "price": min_price_toman, "stars": stars})
-                    except: pass
+                                    print(f"Success! Price: {min_price_toman:,}")
+                                else:
+                                    print("No valid rates in API. Skipping.")
+                            else:
+                                print("API data format invalid. Skipping.")
+                        else:
+                            print(f"API request failed ({r.status_code}). Skipping.")
+                    except Exception as e:
+                        print(f"Error: {e}")
                 
-                if not city_hotels: continue
+                print(f" -> Found {len(city_hotels)} valid hotels for {city['name']}")
+                
+                if not city_hotels: 
+                    continue
                 
                 grouped = {5: [], 4: [], 3: []}
                 for h in city_hotels:
@@ -458,8 +473,7 @@ async def fetch_and_send_hotels():
         await browser.close()
     
     if new_msg_ids:
-        save_message_ids("last_hotel_msgs.txt", new_msg_ids)
-        
+        save_message_ids("last_hotel_msgs.txt", new_msg_ids)        
 def send_news_only():
     news = fetch_news()
     if news:
