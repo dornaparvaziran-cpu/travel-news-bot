@@ -338,17 +338,9 @@ async def fetch_random_flight_prices():
     
     save_message_ids("last_price_msgs.txt", new_msg_ids)
 
-# 🌟 تابع نهایی هتل‌ها (فقط دیکشنری محلی)
 async def fetch_and_send_hotels():
     delete_previous_messages("last_hotel_msgs.txt")
     
-    hotel_dict = {}
-    try:
-        with open("hotels_fa.json", "r", encoding="utf-8") as f:
-            hotel_dict = json.load(f)
-    except Exception as e:
-        print(f"Warning: hotels_fa.json not found. {e}")
-
     selected_cities = random.sample(HOTEL_CITIES, 3)
     new_msg_ids = []
     
@@ -376,8 +368,7 @@ async def fetch_and_send_hotels():
                         if not href or not href.endswith(".html"): continue
                         
                         hotel_id_str = href.split("/")[-1].replace(".html", "")
-                        # 🌟 فیلتر کردن صفحات دسته‌بندی
-                        if "Hotels" in hotel_id_str or "Cheap" in hotel_id_str or "Traditional" in hotel_id_str or "Residence" in hotel_id_str: continue
+                        if "Hotels" in hotel_id_str: continue
                         
                         name = re.sub(r'(?<!^)(?=[A-Z])', ' ', hotel_id_str).replace("_", " ").strip()
                         if name in seen_names: continue
@@ -386,18 +377,17 @@ async def fetch_and_send_hotels():
                         hotel_urls.append({"name": name, "url": f"https://www.eghamat24.com{href}"})
                     except: pass
                 
+                print(f"Found {len(hotel_urls)} hotels for {city['name']}.") # 🌟 خط جدید
+                
                 if not hotel_urls: continue
                 
                 city_hotels = []
-                # فقط ۶ هتل اول رو بررسی میکنیم تا زمان کمتری بگیره
                 for h in hotel_urls[:6]: 
                     try:
                         await page.goto(h["url"], timeout=60000, wait_until="domcontentloaded")
                         await page.wait_for_timeout(2500) 
                         
                         body_text = await page.locator("body").inner_text()
-                        
-                        # استخراج ستاره
                         stars = 0
                         star_match = re.search(r'هتل\s*(پنج|5|چهار|4|سه|3)\s*ستاره', body_text)
                         if star_match:
@@ -406,9 +396,7 @@ async def fetch_and_send_hotels():
                             elif star_word in ["چهار", "4"]: stars = 4
                             elif star_word in ["سه", "3"]: stars = 3
                             
-                        # اگر ستاره پیدا نشد، حداقل قیمت رو از API بگیریم و ۳ ستاره در نظر بگیریم (موقت)
-                        if stars not in [3, 4, 5]: 
-                            stars = 3
+                        if stars not in [3, 4, 5]: continue
                         
                         html_content = await page.content()
                         id_match = re.search(r'property_id[\'"]?\s*[:=]\s*[\'"]?(\d+)', html_content)
@@ -426,14 +414,13 @@ async def fetch_and_send_hotels():
                                 if valid_rates:
                                     min_price_toman = int(min(valid_rates) / 10)
                                     
-                                    fa_name = hotel_dict.get(h["name"], h["name"])
-                                    city_hotels.append({"name": fa_name, "price": min_price_toman, "stars": stars})
-                    except Exception as e:
-                        print(f"Error processing {h['name']}: {e}")
+                                    # 🌟 بدون دیکشنری (فقط برای تست)
+                                    city_hotels.append({"name": h["name"], "price": min_price_toman, "stars": stars})
+                    except: pass
                 
-                if not city_hotels: 
-                    print(f"No valid hotels found for {city['name']}.")
-                    continue
+                print(f"Found {len(city_hotels)} valid hotels with prices for {city['name']}.") # 🌟 خط جدید
+                
+                if not city_hotels: continue
                 
                 grouped = {5: [], 4: [], 3: []}
                 for h in city_hotels:
@@ -463,7 +450,6 @@ async def fetch_and_send_hotels():
     
     if new_msg_ids:
         save_message_ids("last_hotel_msgs.txt", new_msg_ids)
-
 def send_news_only():
     news = fetch_news()
     if news:
