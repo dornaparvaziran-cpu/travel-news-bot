@@ -1,38 +1,34 @@
-import requests
+import asyncio
+from playwright.async_api import async_playwright
 import re
 
-def main():
-    print("Testing Alibaba...")
-    
-    # آدرس صفحه هتل‌های مشهد در علی‌بابا
-    url = "https://www.alibaba.ir/hotel/mashhad"
-    
-    headers = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
-    }
-    
-    try:
-        r = requests.get(url, headers=headers, timeout=20)
-        print(f"Status Code: {r.status_code}")
+async def main():
+    async with async_playwright() as p:
+        browser = await p.chromium.launch(headless=True)
+        page = await browser.new_page()
         
-        if r.ok:
-            print("Page loaded successfully!")
+        # تست روی اصفهان
+        url = "https://www.eghamat24.com/EsfahanHotels.html"
+        print(f"Opening {url}...")
+        await page.goto(url, timeout=60000, wait_until="domcontentloaded")
+        await page.wait_for_timeout(8000)
+        
+        # پیدا کردن لینک‌های هتل
+        links = await page.locator("a[href*='Hotel']").all()
+        
+        hotel_links = []
+        for link in links:
+            try:
+                href = await link.get_attribute("href")
+                if href and "/EsfahanHotels/" in href and href.endswith(".html"):
+                    hotel_links.append(href)
+            except: pass
             
-            # پیدا کردن قیمت‌ها با روش ساده
-            prices = re.findall(r'([\d,]+)\s*تومان', r.text)
-            print(f"Found {len(prices)} prices on the page.")
+        print(f"Found {len(hotel_links)} hotel links for Esfahan.")
+        for href in hotel_links[:5]:
+            print(f"- {href}")
             
-            if prices:
-                print("First 10 prices:")
-                for p in prices[:10]:
-                    print(f"- {p} تومان")
-            else:
-                print("No prices found in HTML (maybe the site uses JavaScript).")
-        else:
-            print(f"Error: {r.status_code}")
-            
-    except Exception as e:
-        print(f"Exception: {e}")
+        await browser.close()
 
 if __name__ == "__main__":
-    main()
+    asyncio.run(main())
