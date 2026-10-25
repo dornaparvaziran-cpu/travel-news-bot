@@ -248,22 +248,6 @@ def send_to_all(text, image_url=None):
     eita_ok = send_to_eita(text, None) 
     return tg_id, eita_ok
 
-def summarize_with_ai(title):
-    if not METIS_KEY: return title
-    url = "https://api.metisai.ir/openai/v1/chat/completions"
-    headers = {"Authorization": f"Bearer {METIS_KEY}", "Content-Type": "application/json"}
-    prompt = f"این تیتر خبر در حوزه گردشگری یا هواپیمایی است: '{title}'\nیک خلاصه بسیار کوتاه و جذاب (حداکثر ۲ خط) به زبان فارسی برای کانال تلگرام بنویس. لحن آن خبری و حرفه‌ای باشد. فقط متن خلاصه را برگردان."
-    data = {"model": "gpt-4o-mini", "messages": [{"role": "user", "content": prompt}]}
-    try:
-        r = requests.post(url, headers=headers, json=data, timeout=25)
-        if r.ok: 
-            summary = r.json()['choices'][0]['message']['content'].strip()
-            english_chars = sum(1 for c in summary if c.isascii() and c.isalpha())
-            if english_chars > len(summary) * 0.5: return None
-            return summary
-        return None
-    except: return None
-
 def fetch_news(max_per_feed=2):
     sent = load_sent_from_gist()
     collected = []
@@ -277,7 +261,25 @@ def fetch_news(max_per_feed=2):
                 link = entry.get("link", "")
                 if not title or not link or link in sent: continue
                 if not any(kw.lower() in title.lower() for kw in ALL_KEYWORDS): continue
-                collected.append((title, link, get_image_url(entry)))
+                
+                # 🌟 استخراج متن کامل خبر
+                full_text = ""
+                if 'content' in entry and len(entry.content) > 0:
+                    full_text = entry.content[0].value
+                elif 'summary' in entry:
+                    full_text = entry.summary
+                elif 'description' in entry:
+                    full_text = entry.description
+                
+                # پاک کردن تگ‌های HTML از متن
+                full_text = re.sub(r'<[^>]+>', '', full_text)
+                full_text = full_text.strip()
+                
+                # اگر متن خیلی طولانی بود، کوتاهش می‌کنیم (مثلاً ۵۰۰ کاراکتر اول)
+                if len(full_text) > 500:
+                    full_text = full_text[:500] + "..."
+                    
+                collected.append((title, link, get_image_url(entry), full_text))
                 count += 1
         except Exception as e: print(f"Feed error: {e}")
     return collected
@@ -328,11 +330,16 @@ def send_news_only():
     news = fetch_news()
     if news:
         news_to_send = news[:MAX_NEWS_TO_SEND] 
-        for title, link, image_url in news_to_send:
-            summary = summarize_with_ai(title)
-            if not summary: continue
+        for title, link, image_url, full_text in news_to_send:
             category = get_category(title)
-            text = f"🔹 <b>{summary}</b>\n\n🔗 <a href='{link}'>مشاهده خبر کامل</a>\n\n{category}"
+            
+            # 🌟 ساخت پیام: تیتر + متن کامل + لینک + هشتگ
+            text = f"🔹 <b>{title}</b>\n\n"
+            if full_text:
+                text += f"{full_text}\n\n"
+            text += f"🔗 <a href='{link}'>مشاهده خبر کامل در سایت</a>\n\n"
+            text += f"{category}"
+            
             tg_id, _ = send_to_all(text, image_url)
             if tg_id: save_sent_to_gist(link)
 
