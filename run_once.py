@@ -487,18 +487,15 @@ async def send_destination_of_day():
         text += "📱 09153092528\n\n"
         text += "✈️ <b>درنا تراول</b>"
         
-        # 🌟 پیدا کردن عکس واقعی با جستجوی گوگل
         image_url = None
         async with async_playwright() as p:
             browser = await p.chromium.launch(headless=True)
             page = await browser.new_page()
             try:
-                # جستجوی عکس در گوگل
                 search_query = urllib.parse.quote(f"{dest['name']} گردشگری")
                 await page.goto(f"https://www.google.com/search?q={search_query}&tbm=isch", timeout=30000)
                 await page.wait_for_timeout(3000)
                 
-                # پیدا کردن اولین عکس با سایز بزرگ (که معمولاً عکس اصلیه)
                 img_elements = await page.locator("img").all()
                 for img in img_elements:
                     src = await img.get_attribute("src")
@@ -506,7 +503,6 @@ async def send_destination_of_day():
                         image_url = src
                         break
                         
-                # اگر عکس پیدا نشد، از عکس پیش‌فرض استفاده کن
                 if not image_url:
                     image_url = f"https://picsum.photos/seed/{random.randint(1, 10000)}/800/600"
                     
@@ -531,18 +527,18 @@ async def send_destination_of_day():
             
     except Exception as e:
         print(f"Error sending destination: {e}")
-        
+
 def main():
     mode = sys.argv[1] if len(sys.argv) > 1 else "all"
     if mode == "news": send_news_only()
     elif mode == "prices": asyncio.run(fetch_random_flight_prices())
     elif mode == "extras": send_extras()
-    elif mode == "destination": send_destination_of_day()
+    elif mode == "destination": asyncio.run(send_destination_of_day())
     else:
         send_news_only()
         asyncio.run(fetch_random_flight_prices())
         send_extras()
-        send_destination_of_day()
+        asyncio.run(send_destination_of_day())
 
 if __name__ == "__main__":
     main()
