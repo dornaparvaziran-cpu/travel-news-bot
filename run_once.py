@@ -487,7 +487,10 @@ def send_destination_of_day():
         text += "📱 09153092528\n\n"
         text += "✈️ <b>درنا تراول</b>"
         
-        send_to_all(text, dest["image"])
+        # 🌟 استفاده از لینک عکس موجود در فایل destinations.json
+        image_url = dest.get("image")
+        
+        send_to_all(text, image_url)
         
         sent_destinations.add(dest["name"])
         if GIST_ID and GIST_TOKEN:
@@ -502,7 +505,7 @@ def send_destination_of_day():
             
     except Exception as e:
         print(f"Error sending destination: {e}")
-
+        
 def main():
     mode = sys.argv[1] if len(sys.argv) > 1 else "all"
     if mode == "news": send_news_only()
