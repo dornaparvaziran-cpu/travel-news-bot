@@ -7,7 +7,7 @@ import random
 import urllib.parse
 import re
 import json
-from datetime import datetime
+from datetime import datetime, timedelta
 from playwright.async_api import async_playwright
 
 TG_TOKEN = os.environ.get("BOT_TOKEN")
@@ -253,9 +253,7 @@ def fetch_news(max_per_feed=2):
     collected = []
     
     # 🌟 تاریخ امروز و دیروز (برای فیلتر کردن اخبار قدیمی)
-    from datetime import datetime, timedelta
     now = datetime.now()
-    # اگر می‌خوای اخبار ۲۴ ساعت گذشته رو بیاری، این خط رو تغییر بده
     limit_date = now - timedelta(hours=24) 
     
     for feed_url in FEEDS:
@@ -277,7 +275,6 @@ def fetch_news(max_per_feed=2):
                 elif hasattr(entry, 'updated_parsed') and entry.updated_parsed:
                     pub_date = datetime(*entry.updated_parsed[:6])
                 
-                # اگر تاریخ پیدا شد و از محدوده ما قدیمی‌تر بود، ردش کن
                 if pub_date and pub_date < limit_date:
                     print(f"Skipping old news: {title[:30]}... (Date: {pub_date})")
                     continue
@@ -291,11 +288,9 @@ def fetch_news(max_per_feed=2):
                 elif 'description' in entry:
                     full_text = entry.description
                 
-                # پاک کردن تگ‌های HTML از متن
                 full_text = re.sub(r'<[^>]+>', '', full_text)
                 full_text = full_text.strip()
                 
-                # اگر متن خیلی طولانی بود، کوتاهش می‌کنیم
                 if len(full_text) > 500:
                     full_text = full_text[:500] + "..."
                     
@@ -304,29 +299,65 @@ def fetch_news(max_per_feed=2):
         except Exception as e: 
             print(f"Feed error: {e}")
     return collected
-    
+
 async def get_prices_for_route(browser, route_name, route_url):
     page = await browser.new_page()
     try:
         await page.goto(route_url, timeout=60000, wait_until="domcontentloaded")
         await page.wait_for_timeout(8000)
-        all_elements = await page.locator("body *").all()
-        prices = []
-        for el in all_elements:
-            try:
-                text = await el.inner_text()
-                text = text.replace("ء", "").strip()
-                if "تومان" in text and len(text) < 30 and any(char.isdigit() for char in text):
-                    if text not in prices: prices.append(text)
-            except: pass
-        await page.close()
-        if not prices: return None
         
+        cards = await page.locator("div[class*='card'], div[class*='item'], div[class*='flight']").all()
+        
+        flights = []
+        for card in cards:
+            try:
+                text = await card.inner_text()
+                if "تومان" not in text or not re.search(r'\d{1,2}:\d{2}', text):
+                    continue
+                    
+                lines = [line.strip() for line in text.split('\n') if line.strip()]
+                airline = lines[0] if len(lines) > 0 else "نامشخص"
+                
+                times = re.findall(r'\d{1,2}:\d{2}', text)
+                departure_time = times[0] if len(times) > 0 else "?"
+                arrival_time = times[1] if len(times) > 1 else "?"
+                
+                price = "?"
+                for i, line in enumerate(lines):
+                    if line == "تومان" and i > 0:
+                        price = lines[i-1]
+                        break
+                    elif "تومان" in line:
+                        price_match = re.search(r'([\d,]+)', line)
+                        if price_match:
+                            price = price_match.group(1)
+                            break
+                            
+                if price != "?":
+                    flights.append({
+                        "airline": airline,
+                        "departure": departure_time,
+                        "arrival": arrival_time,
+                        "price": price
+                    })
+            except: pass
+            
+        await page.close()
+        
+        if not flights:
+            return None
+            
         result_text = f"✈️ <b>قیمت‌های لحظه‌ای پرواز {route_name}</b>\n\n"
-        for p in prices[:3]: result_text += f"🔹 {p}\n"
-        result_text += f"\n🌐 <a href='{route_url}'>مشاهده و خرید در سایت</a>"
+        
+        for f in flights[:3]:
+            result_text += f"🔹 <b>{f['airline']}</b> | {f['departure']} → {f['arrival']}\n"
+            result_text += f"    💰 {f['price']} تومان\n\n"
+            
+        result_text += f"🌐 <a href='{route_url}'>مشاهده و خرید در سایت</a>"
         return result_text
+        
     except Exception as e:
+        print(f"Playwright error for {route_name}: {e}")
         await page.close()
         return None
 
@@ -354,7 +385,6 @@ def send_news_only():
         for title, link, image_url, full_text in news_to_send:
             category = get_category(title)
             
-            # 🌟 ساخت پیام: تیتر + متن کامل + لینک + هشتگ
             text = f"🔹 <b>{title}</b>\n\n"
             if full_text:
                 text += f"{full_text}\n\n"
