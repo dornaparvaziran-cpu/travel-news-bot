@@ -1,17 +1,19 @@
 import requests
 import feedparser
 import os
-
-METIS_KEY = os.environ.get("METIS_KEY")
+import re
 
 def main():
-    print("Testing Metis Translation...")
+    print("Testing Google Translate (deep-translator)...")
     
-    if not METIS_KEY:
-        print("❌ METIS_KEY is missing!")
+    # ۱. بررسی نصب بودن پکیج
+    try:
+        from deep_translator import GoogleTranslator
+    except ImportError:
+        print("❌ deep-translator is not installed. Please add it to requirements.txt")
         return
         
-    # گرفتن یک خبر انگلیسی از Skift
+    # ۲. گرفتن یک خبر انگلیسی از Skift
     print("Fetching an English news item...")
     feed = feedparser.parse("https://skift.com/feed/")
     if not feed.entries:
@@ -27,32 +29,24 @@ def main():
     elif 'summary' in entry:
         full_text = entry.summary
     
-    # پاک کردن تگ‌های HTML
-    import re
     full_text = re.sub(r'<[^>]+>', '', full_text).strip()
     
-    print(f"Original Title: {title}")
+    print(f"\nOriginal Title: {title}")
     print(f"Original Text (first 100 chars): {full_text[:100]}...")
     
-    # تست ترجمه با متیس
-    print("\nSending to Metis for translation...")
-    prompt = f"Translate the following English text to Persian (Farsi). Return ONLY the translated text, without any extra explanation or English words:\n\n{full_text}"
-    headers = {"Authorization": f"Bearer {METIS_KEY}", "Content-Type": "application/json"}
-    data = {"model": "gpt-4o-mini", "messages": [{"role": "user", "content": prompt}]}
-    
+    # ۳. تست ترجمه
+    print("\nTranslating with Google...")
     try:
-        r = requests.post("https://api.metisai.ir/openai/v1/chat/completions", headers=headers, json=data, timeout=30)
-        print(f"Status Code: {r.status_code}")
+        translator = GoogleTranslator(source='en', target='fa')
         
-        if r.ok:
-            response_data = r.json()
-            translated = response_data['choices'][0]['message']['content'].strip()
-            print(f"\n✅ Translated Text:\n{translated}")
-        else:
-            print(f"❌ Error Response: {r.text}")
-            
+        translated_title = translator.translate(title)
+        translated_text = translator.translate(full_text) if full_text else ""
+        
+        print(f"\n✅ Translated Title:\n{translated_title}")
+        print(f"\n✅ Translated Text:\n{translated_text[:200]}...")
+        
     except Exception as e:
-        print(f"❌ Exception: {e}")
+        print(f"❌ Translation Error: {e}")
 
 if __name__ == "__main__":
     main()
