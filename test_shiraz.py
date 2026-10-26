@@ -3,8 +3,9 @@ import json
 from datetime import datetime, timedelta
 
 def main():
-    print("Testing FlyToday API - Digging deeper...")
+    print("Testing FlyToday API - Fetching Accommodations...")
     
+    # ۱. درخواست اول برای گرفتن قیمت‌ها
     url = "https://www.flytoday.ir/api/gateway/V3/hotel/Availability?pageNumber=1&pageSize=25&sortMode=Featured"
     
     headers = {
@@ -34,41 +35,40 @@ def main():
     
     try:
         r = requests.post(url, headers=headers, json=payload, timeout=30)
+        if not r.ok:
+            print(f"❌ Availability Error: {r.status_code} - {r.text}")
+            return
+            
+        data = r.json()
+        hotel_search_id = data.get("hotelSearchId")
+        print(f"✅ Got hotelSearchId: {hotel_search_id}")
         
-        if r.ok:
-            data = r.json()
-            
-            print("\n--- CHECKING additionalInfo ---")
-            if "additionalInfo" in data:
-                print(json.dumps(data["additionalInfo"], indent=2, ensure_ascii=False)[:1500])
-                
-            print("\n--- CHECKING geoLocations ---")
-            if "geoLocations" in data:
-                print(json.dumps(data["geoLocations"], indent=2, ensure_ascii=False)[:1500])
-                
-            print("\n--- CHECKING filter ---")
-            if "filter" in data:
-                print(json.dumps(data["filter"], indent=2, ensure_ascii=False)[:1500])
-                
-            # اگر اسم هتل پیدا نشد، با استفاده از hotelId یک درخواست دیگه می‌زنیم
-            itineraries = data.get("pricedItineraries", [])
-            if itineraries:
-                hotel_id = itineraries[0].get("hotelId")
-                print(f"\n--- Trying to get details for Hotel ID: {hotel_id} ---")
-                # این آدرس رو حدس می‌زنیم، شاید درست باشه
-                details_url = f"https://www.flytoday.ir/api/gateway/v3/hotel/{hotel_id}"
-                r_details = requests.get(details_url, headers=headers, timeout=10)
-                if r_details.ok:
-                    print("✅ Details URL worked!")
-                    print(json.dumps(r_details.json(), indent=2, ensure_ascii=False)[:1000])
+        # ۲. حالا سعی می‌کنیم با استفاده از این ID، اسم هتل‌ها رو بگیریم
+        # ما چند آدرس احتمالی رو تست می‌کنیم
+        possible_urls = [
+            f"https://www.flytoday.ir/api/gateway/V3/hotel/accommodations?hotelSearchId={hotel_search_id}",
+            f"https://www.flytoday.ir/api/gateway/v3/hotel/accommodations?hotelSearchId={hotel_search_id}",
+            f"https://www.flytoday.ir/api/gateway/accommodations?hotelSearchId={hotel_search_id}"
+        ]
+        
+        for test_url in possible_urls:
+            print(f"\nTrying URL: {test_url}")
+            try:
+                r_acc = requests.get(test_url, headers=headers, timeout=10)
+                if r_acc.ok:
+                    print("✅ SUCCESS! Status 200.")
+                    acc_data = r_acc.json()
+                    
+                    # چاپ ۱۰۰۰ کاراکتر اول برای دیدن ساختار
+                    print(json.dumps(acc_data, indent=2, ensure_ascii=False)[:1000])
+                    break 
                 else:
-                    print(f"❌ Details URL failed: {r_details.status_code}")
+                    print(f"❌ Failed: {r_acc.status_code}")
+            except Exception as e:
+                print(f"❌ Exception: {e}")
                 
-        else:
-            print(f"❌ Error: {r.text}")
-            
     except Exception as e:
-        print(f"❌ Exception: {e}")
+        print(f"❌ Main Exception: {e}")
 
 if __name__ == "__main__":
     main()
