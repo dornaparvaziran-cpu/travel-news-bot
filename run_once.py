@@ -395,38 +395,37 @@ async def fetch_random_flight_prices():
     save_message_ids("last_price_msgs.txt", new_msg_ids)
 
 def send_news_only():
+    from deep_translator import GoogleTranslator
+    
     news = fetch_news()
     if news:
         news_to_send = news[:MAX_NEWS_TO_SEND] 
         for title, link, image_url, full_text in news_to_send:
             
+            # 🌟 تشخیص زبان
             is_english = False
             if full_text:
                 english_chars = sum(1 for c in full_text if c.isascii() and c.isalpha())
                 if english_chars > len(full_text) * 0.5:
                     is_english = True
             
-            if is_english and METIS_KEY:
+            # اگر انگلیسی بود، با گوگل ترنسلیت ترجمه کن
+            if is_english:
+                print(f"Translating English news: {title[:30]}...")
                 try:
-                    prompt = f"این متن انگلیسی را به فارسی روان ترجمه کن. فقط متن ترجمه شده را برگردان، بدون هیچ توضیح اضافه:\n\n{full_text}"
-                    headers = {"Authorization": f"Bearer {METIS_KEY}", "Content-Type": "application/json"}
-                    data = {"model": "gpt-4o-mini", "messages": [{"role": "user", "content": prompt}]}
-                    r_ai = requests.post("https://api.metisai.ir/openai/v1/chat/completions", headers=headers, json=data, timeout=25)
+                    translator = GoogleTranslator(source='en', target='fa')
+                    translated_title = translator.translate(title)
+                    translated_text = translator.translate(full_text) if full_text else ""
                     
-                    if r_ai.ok:
-                        translated = r_ai.json()['choices'][0]['message']['content'].strip()
-                        fa_chars = sum(1 for c in translated if '\u0600' <= c <= '\u06FF')
-                        if fa_chars > len(translated) * 0.3:
-                            full_text = translated
-                            print(f"Translated English news: {title[:30]}...")
-                        else:
-                            print(f"Translation failed for: {title[:30]}...")
-                            continue
-                    else:
-                        print(f"Metis error: {r_ai.text}")
-                        continue
+                    if translated_title:
+                        title = translated_title
+                    if translated_text:
+                        full_text = translated_text
+                        
+                    print(f"✅ Translation successful!")
                 except Exception as e:
-                    print(f"Translation error: {e}")
+                    print(f"❌ Translation error: {e}")
+                    # اگر ترجمه خطا داد، خبر رو کلاً رد کن
                     continue
             
             category = get_category(title)
