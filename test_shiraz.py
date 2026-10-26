@@ -1,34 +1,41 @@
-import subprocess
-import sys
 import asyncio
-import json
-
-# 🌟 نصب پکیج مستربلیط به صورت موقت برای تست
-print("Installing mrbilit-mcp...")
-subprocess.check_call([sys.executable, "-m", "pip", "install", "mrbilit-mcp"])
-
-try:
-    from mrbilit_mcp import MrBilit
-except ImportError as e:
-    print(f"Import Error: {e}")
-    sys.exit(1)
+from playwright.async_api import async_playwright
+import re
 
 async def main():
-    print("Testing MrBilit MCP...")
-    
-    try:
-        # اتصال به سرویس
-        client = MrBilit()
+    async with async_playwright() as p:
+        browser = await p.chromium.launch(headless=True)
+        page = await browser.new_page()
         
-        print("Searching for hotels in Mashhad...")
-        # جستجوی هتل در مشهد (کد شهر ۱ برای مشهد)
-        result = await client.search_hotels(city_id=1, check_in="2026-10-26", check_out="2026-10-27")
+        url = "https://dornatravel.ir/flight/THR-MHD"
+        print(f"Opening {url}...")
+        await page.goto(url, timeout=60000, wait_until="domcontentloaded")
+        await page.wait_for_timeout(8000)
         
-        print("Result received!")
-        print(json.dumps(result, indent=2, ensure_ascii=False)[:2000])
+        print("\n--- Searching for flight info ---")
         
-    except Exception as e:
-        print(f"Error: {e}")
+        # ۱. پیدا کردن اسم شرکت‌ها (معمولاً به صورت متن هستن)
+        airlines = []
+        for name in ["ایران ایر", "ماهان", "آسمان", "زاگرس", "قشم ایر", "کیش ایر", "سپهران", "پارس", "کاسپین", "تابان"]:
+            if name in await page.content():
+                airlines.append(name)
+        print(f"Airlines found: {airlines}")
+        
+        # ۲. پیدا کردن ساعت پروازها (الگوی HH:MM)
+        body_text = await page.locator("body").inner_text()
+        times = re.findall(r'\d{1,2}:\d{2}', body_text)
+        print(f"Times found (first 5): {times[:5]}")
+        
+        # ۳. پیدا کردن ساختار کلی یک کارت پرواز
+        print("\n--- Looking for flight cards ---")
+        cards = await page.locator("div[class*='card'], div[class*='item'], div[class*='flight']").all()
+        print(f"Found {len(cards)} potential cards.")
+        
+        for card in cards[:3]:
+            text = await card.inner_text()
+            print(f"--- Card content ---\n{text[:200]}...\n")
+            
+        await browser.close()
 
 if __name__ == "__main__":
     asyncio.run(main())
