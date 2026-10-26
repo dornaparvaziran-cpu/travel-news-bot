@@ -20,7 +20,9 @@ GIST_TOKEN = os.environ.get("GIST_TOKEN")
 
 MAX_NEWS_TO_SEND = 9 
 
+# 🌟 لیست منابع خبری (فارسی و انگلیسی)
 FEEDS = [
+    # فارسی
     "https://www.tinn.ir/fa/feeds/?p=Y2F0ZWdvcmllcz03Ng,,",
     "https://www.tinn.ir/fa/feeds/?p=cG9zaXRpb25Gcm9udD00",
     "https://biatrip.com/tag/اخبار-خطوط-هوایی/feed",
@@ -29,7 +31,13 @@ FEEDS = [
     "https://www.mehrnews.com/rss?kw=شرکت+فرودگاهها+و+ناوبری+هوایی+ایران",
     "https://www.khabaronline.ir/rss?kw=CIP+فرودگاه",
     "https://www.irna.ir/rss",
+    
+    # انگلیسی (تخصصی و جذاب)
     "https://skift.com/feed/",
+    "https://www.theguardian.com/uk/travel/rss",
+    "http://rss.cnn.com/rss/cnn_travel.rss",
+    "https://www.atlasobscura.com/feeds/latest",
+    "https://www.aerotime.aero/feed"
 ]
 
 CATEGORIES = {
@@ -235,30 +243,25 @@ def send_news_only():
         news_to_send = news[:MAX_NEWS_TO_SEND] 
         for title, link, image_url, full_text in news_to_send:
             
-            # 🌟 تشخیص زبان
             is_english = False
             if full_text:
                 english_chars = sum(1 for c in full_text if c.isascii() and c.isalpha())
                 if english_chars > len(full_text) * 0.5:
                     is_english = True
             
-            # اگر انگلیسی بود، با موتور Bing ترجمه کن
             if is_english:
                 print(f"Translating English news: {title[:30]}...")
                 try:
                     translated_title = ts.translate_text(title, translator='bing', from_language='en', to_language='fa')
                     translated_text = ts.translate_text(full_text, translator='bing', from_language='en', to_language='fa') if full_text else ""
                     
-                    if translated_title:
-                        title = translated_title
-                    if translated_text:
-                        full_text = translated_text
+                    if translated_title: title = translated_title
+                    if translated_text: full_text = translated_text
                         
                     print(f"✅ Translation successful!")
-                    time.sleep(1) # یک مکث کوتاه برای جلوگیری از بلاک شدن
+                    time.sleep(1) 
                 except Exception as e:
                     print(f"❌ Translation error: {e}")
-                    # اگر ترجمه خطا داد، به سراغ گوگل می‌رویم
                     try:
                         translated_title = ts.translate_text(title, translator='google', from_language='en', to_language='fa')
                         translated_text = ts.translate_text(full_text, translator='google', from_language='en', to_language='fa') if full_text else ""
