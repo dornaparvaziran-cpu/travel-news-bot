@@ -1,54 +1,35 @@
-import subprocess
-import sys
+import requests
 import json
-import asyncio
 
-# نصب خودکار ابزارها
-print("Installing mcp and flytoday-mcp...")
-subprocess.check_call([sys.executable, "-m", "pip", "install", "mcp", "flytoday-mcp", "-q"])
-
-from mcp import ClientSession, StdioServerParameters
-from mcp.client.stdio import stdio_client
-
-async def main():
-    print("Starting FlyToday MCP server...")
+def main():
+    print("Testing TKTFLY (Charter724) API...")
     
-    server_params = StdioServerParameters(
-        command="flytoday-mcp",
-        args=[],
-    )
-
-    try:
-        async with stdio_client(server_params) as (read, write):
-            async with ClientSession(read, write) as session:
-                await session.initialize()
-                print("✅ MCP server initialized!")
-
-                # ۱. پیدا کردن کد شهر مشهد
-                print("\nStep 1: Finding Mashhad city ID...")
-                find_result = await session.call_tool(
-                    "ft_find_hotel_place",
-                    arguments={"query": "مشهد"}
-                )
-                print("Find result:", json.dumps(find_result.content, indent=2, ensure_ascii=False)[:1000])
-
-                # ۲. جستجوی هتل‌ها (فرض می‌کنیم city_id=10 درسته)
-                print("\nStep 2: Searching hotels in Mashhad...")
-                search_result = await session.call_tool(
-                    "ft_search_hotels",
-                    arguments={
-                        "city_id": 10,
-                        "check_in": "2026-10-27",
-                        "check_out": "2026-10-28"
-                    }
-                )
-                
-                print("✅ Hotel search successful!")
-                # این بار ۵۰۰۰ کاراکتر اول رو چاپ می‌کنیم تا اسم هتل‌ها رو ببینیم
-                print(json.dumps(search_result.content, indent=2, ensure_ascii=False)[:5000])
-
-    except Exception as e:
-        print(f"❌ Error: {e}")
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        "Accept": "application/json, text/plain, */*"
+    }
+    
+    # چند آدرس احتمالی برای دریافت اطلاعات هتل
+    urls_to_try = [
+        "https://ticket.tktfly.ir/api/hotel/search",
+        "https://ticket.tktfly.ir/api/hotels",
+        "https://ticket.tktfly.ir/hotel/api",
+        "https://ticket.tktfly.ir/api/v1/hotels"
+    ]
+    
+    for url in urls_to_try:
+        print(f"\nTrying: {url}")
+        try:
+            r = requests.get(url, headers=headers, timeout=10)
+            print(f"Status: {r.status_code}")
+            if r.ok:
+                print("✅ Success! Response:")
+                print(r.text[:500]) # چاپ ۵۰۰ کاراکتر اول
+                break
+            else:
+                print(f"Response: {r.text[:200]}")
+        except Exception as e:
+            print(f"❌ Exception: {e}")
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    main()
