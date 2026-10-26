@@ -487,8 +487,8 @@ def send_destination_of_day():
         text += "📱 09153092528\n\n"
         text += "✈️ <b>درنا تراول</b>"
         
-        # 🌟 استفاده از لینک عکس موجود در فایل destinations.json
-        image_url = dest.get("image")
+        # 🌟 استفاده از سرویس Picsum برای عکس تصادفی و تضمینی
+        image_url = "https://picsum.photos/800/600"
         
         send_to_all(text, image_url)
         
