@@ -314,7 +314,6 @@ async def get_prices_for_route(browser, route_name, route_url):
                     
                 lines = [line.strip() for line in text.split('\n') if line.strip()]
                 
-                # 🌟 پیدا کردن اسم ایرلاین دقیقاً از داخل همین کارت
                 airline = "نامشخص"
                 known_airlines = ["ایران ایر", "ماهان", "آسمان", "زاگرس", "قشم ایر", "کیش ایر", "سپهران", "پارس", "کاسپین", "تابان", "آتا", "کارون", "فلای کیش", "نسیم ایر", "معراج", "چابهار", "هما"]
                 
@@ -329,11 +328,9 @@ async def get_prices_for_route(browser, route_name, route_url):
                     else:
                         airline = lines[0]
                 
-                # 🌟 پیدا کردن ساعت دقیقاً از داخل همین کارت
                 times = re.findall(r'\d{1,2}:\d{2}', text)
                 departure_time = times[0] if len(times) > 0 else "?"
                 
-                # 🌟 پیدا کردن قیمت دقیقاً از داخل همین کارت
                 price = "?"
                 for i, line in enumerate(lines):
                     if line == "تومان" and i > 0:
@@ -358,7 +355,6 @@ async def get_prices_for_route(browser, route_name, route_url):
         if not flights:
             return None
             
-        # حذف پروازهای تکراری (بر اساس ترکیب اسم، ساعت و قیمت)
         unique_flights = []
         seen = set()
         for f in flights:
@@ -456,11 +452,33 @@ def send_extras():
 
 def send_destination_of_day():
     print("Sending destination of the day...")
+    
+    sent_destinations = set()
+    if GIST_ID and GIST_TOKEN:
+        try:
+            url = f"https://api.github.com/gists/{GIST_ID}"
+            headers = {"Authorization": f"token {GIST_TOKEN}", "Accept": "application/vnd.github.v3+json"}
+            r = requests.get(url, headers=headers, timeout=10)
+            if r.ok:
+                files = r.json().get("files", {})
+                content = files.get("sent_destinations.txt", {}).get("content", "").strip()
+                if content:
+                    sent_destinations = set(content.splitlines())
+        except Exception as e:
+            print(f"Gist load warning: {e}")
+
     try:
         with open("destinations.json", "r", encoding="utf-8") as f:
-            destinations = json.load(f)
+            all_destinations = json.load(f)
             
-        dest = random.choice(destinations)
+        available_destinations = [d for d in all_destinations if d["name"] not in sent_destinations]
+        
+        if not available_destinations:
+            print("All destinations sent! Resetting list...")
+            available_destinations = all_destinations
+            sent_destinations = set()
+            
+        dest = random.choice(available_destinations)
         
         text = f"🌍 <b>مقصد گردشگری امروز: {dest['name']}</b>\n\n"
         text += f"{dest['description']}\n\n"
@@ -471,6 +489,17 @@ def send_destination_of_day():
         
         send_to_all(text, dest["image"])
         
+        sent_destinations.add(dest["name"])
+        if GIST_ID and GIST_TOKEN:
+            new_content = "\n".join(sent_destinations)
+            url = f"https://api.github.com/gists/{GIST_ID}"
+            headers = {"Authorization": f"token {GIST_TOKEN}", "Accept": "application/vnd.github.v3+json"}
+            data = {"files": {"sent_destinations.txt": {"content": new_content}}}
+            try:
+                requests.patch(url, headers=headers, json=data, timeout=10)
+                print(f"Saved destination to Gist: {dest['name']}")
+            except Exception as e: print(f"Gist save warning: {e}")
+            
     except Exception as e:
         print(f"Error sending destination: {e}")
 
