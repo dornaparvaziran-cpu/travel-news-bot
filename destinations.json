@@ -1,67 +1,80 @@
 [
-    {
-        "name": "جزیره کیش",
-        "description": "بهشت خرید و تفریح در خلیج فارس. جایی که می‌تونی هم در ساحل آرامش بگیری و هم در بازارهای مدرنش خرید کنی.",
-        "image": "https://images.unsplash.com/photo-1590076214011-3c74f5c16c4a?q=80&w=1000&auto=format&fit=crop"
-    },
-    {
-        "name": "حرم مطهر امام رضا (ع)",
-        "description": "قلب تپنده مشهد و یکی از بزرگترین و زیباترین حرم‌های جهان اسلام. فضایی سرشار از آرامش و معنویت.",
-        "image": "https://images.unsplash.com/photo-1590083745088-3f6e4d6b0e9b?q=80&w=1000&auto=format&fit=crop"
-    },
-    {
-        "name": "میدان نقش جهان",
-        "description": "نگین درخشان اصفهان و یکی از میراث جهانی یونسکو. شکوه معماری صفویه رو در این میدان بی‌نظیر ببین.",
-        "image": "https://images.unsplash.com/photo-1588371894253-5c3e88f8e6d0?q=80&w=1000&auto=format&fit=crop"
-    },
-    {
-        "name": "تخت جمشید",
-        "description": "شکوه تاریخ ایران باستان در نزدیکی شیراز. قدم زدن در این مکان تاریخی، تو رو به هزاران سال پیش می‌بره.",
-        "image": "https://images.unsplash.com/photo-1590076214523-5f6c6c3d0d2b?q=80&w=1000&auto=format&fit=crop"
-    },
-    {
-        "name": "جاده چالوس",
-        "description": "یکی از زیباترین جاده‌های جهان. مسیری پرپیچ و خم در دل کوه‌های البرز که به دریای خزر می‌رسد.",
-        "image": "https://images.unsplash.com/photo-1590076214523-5f6c6c3d0d2b?q=80&w=1000&auto=format&fit=crop"
-    },
-    {
-        "name": "استانبول",
-        "description": "شهر دو قاره! جایی که تاریخ عثمانی با مدرنیته ترکیب شده. از مسجد ایاصوفیه تا خیابان استقلال.",
-        "image": "https://images.unsplash.com/photo-1524231757912-21f4fe3a7200?q=80&w=1000&auto=format&fit=crop"
-    },
-    {
-        "name": "کویر لوت",
-        "description": "یکی از گرم‌ترین نقاط زمین و یک مکان بی‌نظیر برای ستاره‌بینی و آرامش در سکوت کویر.",
-        "image": "https://images.unsplash.com/photo-1509316785289-025f5b846b35?q=80&w=1000&auto=format&fit=crop"
-    },
-    {
-        "name": "روستای ماسوله",
-        "description": "روستای پلکانی و تاریخی در دل جنگل‌های گیلان. معماری خاص و هوای خنک و دل‌انگیز.",
-        "image": "https://images.unsplash.com/photo-1590076214523-5f6c6c3d0d2b?q=80&w=1000&auto=format&fit=crop"
-    },
-    {
-        "name": "جزیره قشم",
-        "description": "بزرگترین جزیره خلیج فارس با جاذبه‌های طبیعی شگفت‌انگیز مثل جنگل حرا و تنگه چاهکوه.",
-        "image": "https://images.unsplash.com/photo-1590076214523-5f6c6c3d0d2b?q=80&w=1000&auto=format&fit=crop"
-    },
-    {
-        "name": "شهر باستانی یزد",
-        "description": "شهر بادگیرها و کوچه‌های خشتی. یزد یکی از قدیمی‌ترین شهرهای خشتی جهان و نگین کویر است.",
-        "image": "https://images.unsplash.com/photo-1590076214523-5f6c6c3d0d2b?q=80&w=1000&auto=format&fit=crop"
-    },
-    {
-        "name": "کوالالامپور",
-        "description": "پایتخت مدرن مالزی با برج‌های دوقلوی پتروناس، بازارهای رنگارنگ و غذاهای متنوع. سفری بدون نیاز به ویزا برای اقامت کوتاه.",
-        "image": "https://images.unsplash.com/photo-1596422846543-75c6fc197f07?q=80&w=1000&auto=format&fit=crop"
-    },
-    {
-        "name": "بانکوک",
-        "description": "شهر فرشتگان تایلند! ترکیبی از معابد باشکوه، بازارهای شبانه و خیابان‌های پرجنب‌وجوش.",
-        "image": "https://images.unsplash.com/photo-1508009603885-50cf7c579365?q=80&w=1000&auto=format&fit=crop"
-    },
-    {
-        "name": "شانگهای",
-        "description": "کلان‌شهر مدرن چین و نمادی از پیشرفت اقتصادی. از ساحل بوند تا آسمان‌خراش‌های منطقه پودونگ.",
-        "image": "https://images.unsplash.com/photo-1548919973-5cef591cdbc9?q=80&w=1000&auto=format&fit=crop"
-    }
-]
+    {"name": "حرم مطهر امام رضا (ع)", "description": "قلب تپنده مشهد و یکی از بزرگترین حرم‌های جهان اسلام. فضایی سرشار از آرامش و معنویت.", "image": "https://images.unsplash.com/photo-1590083745088-3f6e4d6b0e9b?q=80&w=1000&auto=format&fit=crop"},
+    {"name": "میدان نقش جهان", "description": "نگین درخشان اصفهان و میراث جهانی یونسکو. شکوه معماری صفویه را در این میدان بی‌نظیر ببین.", "image": "https://images.unsplash.com/photo-1588371894253-5c3e88f8e6d0?q=80&w=1000&auto=format&fit=crop"},
+    {"name": "تخت جمشید", "description": "شکوه تاریخ ایران باستان در نزدیکی شیراز. قدم زدن در این مکان تاریخی، تو را به هزاران سال پیش می‌برد.", "image": "https://images.unsplash.com/photo-1590076214523-5f6c6c3d0d2b?q=80&w=1000&auto=format&fit=crop"},
+    {"name": "بافت تاریخی یزد", "description": "شهر بادگیرها و کوچه‌های خشتی. یزد یکی از قدیمی‌ترین شهرهای خشتی جهان و نگین کویر است.", "image": "https://images.unsplash.com/photo-1590076214523-5f6c6c3d0d2b?q=80&w=1000&auto=format&fit=crop"},
+    {"name": "چغازنبیل", "description": "زیگورات باستانی در خوزستان، یکی از نخستین آثار ثبت‌شده ایران در فهرست میراث جهانی یونسکو.", "image": "https://images.unsplash.com/photo-1590076214523-5f6c6c3d0d2b?q=80&w=1000&auto=format&fit=crop"},
+    {"name": "ارگ بم", "description": "بزرگترین بنای خشتی جهان در کرمان. ارگ بم نمادی از معماری و مهندسی ایرانیان در دوران باستان است.", "image": "https://images.unsplash.com/photo-1590076214523-5f6c6c3d0d2b?q=80&w=1000&auto=format&fit=crop"},
+    {"name": "سازه‌های آبی شوشتر", "description": "شاهکار مهندسی آب در دوران ساسانی. سیستم آبیاری شوشتر یکی از عجایب مهندسی جهان باستان است.", "image": "https://images.unsplash.com/photo-1590076214523-5f6c6c3d0d2b?q=80&w=1000&auto=format&fit=crop"},
+    {"name": "کاخ گلستان", "description": "نگین تهران قدیم. کاخ گلستان با آینه‌کاری‌ها و معماری قاجاری، یکی از زیباترین کاخ‌های ایران است.", "image": "https://images.unsplash.com/photo-1590076214523-5f6c6c3d0d2b?q=80&w=1000&auto=format&fit=crop"},
+    {"name": "بازار تاریخی تبریز", "description": "یکی از بزرگترین بازارهای سرپوشیده تاریخی جهان و میراث جهانی یونسکو. قلب تجارت و فرهنگ تبریز.", "image": "https://images.unsplash.com/photo-1590076214523-5f6c6c3d0d2b?q=80&w=1000&auto=format&fit=crop"},
+    {"name": "باغ شازده ماهان", "description": "باغی زیبا در دل کویر کرمان، یکی از ۹ باغ ایرانی ثبت‌شده در یونسکو. منظره‌ای بی‌نظیر از آب و گل.", "image": "https://images.unsplash.com/photo-1590076214523-5f6c6c3d0d2b?q=80&w=1000&auto=format&fit=crop"},
+    {"name": "حافظیه و سعدیه", "description": "آرامگاه دو شاعر بزرگ ایران در شیراز. فضایی شاعرانه و آرام برای عاشقان ادبیات فارسی.", "image": "https://images.unsplash.com/photo-1590076214523-5f6c6c3d0d2b?q=80&w=1000&auto=format&fit=crop"},
+    {"name": "روستای ماسوله", "description": "روستای پلکانی و تاریخی در دل جنگل‌های گیلان. معماری خاص و هوای خنک و دل‌انگیز.", "image": "https://images.unsplash.com/photo-1590076214523-5f6c6c3d0d2b?q=80&w=1000&auto=format&fit=crop"},
+    {"name": "قلعه فلک‌الافلاک", "description": "دژی باشکوه در قلب خرم‌آباد لرستان. نمادی از تاریخ و معماری دوران ساسانی و صفوی.", "image": "https://images.unsplash.com/photo-1590076214523-5f6c6c3d0d2b?q=80&w=1000&auto=format&fit=crop"},
+    {"name": "شهر تاریخی شوش", "description": "یکی از قدیمی‌ترین شهرهای جهان و پایتخت زمستانی هخامنشیان. گنجینه‌ای از تاریخ ایران باستان.", "image": "https://images.unsplash.com/photo-1590076214523-5f6c6c3d0d2b?q=80&w=1000&auto=format&fit=crop"},
+    {"name": "اورامانات کردستان", "description": "منطقه‌ای کوهستانی با روستاهای پلکانی و طبیعتی بکر. اورامانات به «بهشت گمشده» ایران معروف است.", "image": "https://images.unsplash.com/photo-1590076214523-5f6c6c3d0d2b?q=80&w=1000&auto=format&fit=crop"},
+    {"name": "بیستون و طاق بستان", "description": "کتیبه‌های باستانی در کرمانشاه. بزرگترین کتیبه سنگی جهان و شاهکارهای دوران ساسانی.", "image": "https://images.unsplash.com/photo-1590076214523-5f6c6c3d0d2b?q=80&w=1000&auto=format&fit=crop"},
+    {"name": "باغ جهانی پاسارگاد", "description": "آرامگاه کوروش بزرگ و یکی از مهم‌ترین آثار تاریخی ایران. مکانی برای ارتباط با تاریخ کهن.", "image": "https://images.unsplash.com/photo-1590076214523-5f6c6c3d0d2b?q=80&w=1000&auto=format&fit=crop"},
+    {"name": "گنبد سلطانیه", "description": "یکی از بزرگترین گنبدهای آجری جهان در زنجان. شاهکار معماری ایلخانی و میراث جهانی یونسکو.", "image": "https://images.unsplash.com/photo-1590076214523-5f6c6c3d0d2b?q=80&w=1000&auto=format&fit=crop"},
+    {"name": "آرامگاه شیخ صفی‌الدین اردبیلی", "description": "مجموعه‌ای تاریخی و مذهبی در اردبیل. یکی از زیباترین آثار معماری اسلامی در ایران.", "image": "https://images.unsplash.com/photo-1590076214523-5f6c6c3d0d2b?q=80&w=1000&auto=format&fit=crop"},
+    {"name": "همدان و هگمتانه", "description": "شهر باستانی هگمتانه، پایتخت مادها. همدان شهری با تاریخ چند هزار ساله و جاذبه‌های فراوان.", "image": "https://images.unsplash.com/photo-1590076214523-5f6c6c3d0d2b?q=80&w=1000&auto=format&fit=crop"},
+    {"name": "پل‌های تاریخی زاینده‌رود", "description": "مجموعه‌ای از پل‌های زیبا و تاریخی در اصفهان. سی‌وسه‌پل و پل خواجو از معروف‌ترین آن‌ها هستند.", "image": "https://images.unsplash.com/photo-1590076214523-5f6c6c3d0d2b?q=80&w=1000&auto=format&fit=crop"},
+    {"name": "باغ ارم شیراز", "description": "باغی زیبا و تاریخی در شیراز با سروهای بلند و عمارتی باشکوه. میراث جهانی یونسکو.", "image": "https://images.unsplash.com/photo-1590076214523-5f6c6c3d0d2b?q=80&w=1000&auto=format&fit=crop"},
+    {"name": "پل طبیعت تهران", "description": "پل pedestrian مدرن و زیبا در تهران. مکانی عالی برای پیاده‌روی و تماشای منظره شهر.", "image": "https://images.unsplash.com/photo-1590076214523-5f6c6c3d0d2b?q=80&w=1000&auto=format&fit=crop"},
+    {"name": "باغ فین کاشان", "description": "باغی تاریخی و زیبا در کاشان، محل قتل امیرکبیر. یکی از باغ‌های ایرانی ثبت‌شده در یونسکو.", "image": "https://images.unsplash.com/photo-1590076214523-5f6c6c3d0d2b?q=80&w=1000&auto=format&fit=crop"},
+    {"name": "قلعه الموت", "description": "دژ افسانه‌ای حسن صباح در قزوین. قلعه‌ای بر فراز صخره‌ها با تاریخچه‌ای پر از راز و رمز.", "image": "https://images.unsplash.com/photo-1590076214523-5f6c6c3d0d2b?q=80&w=1000&auto=format&fit=crop"},
+    {"name": "قنات ایرانی", "description": "شاهکار مهندسی ایرانیان باستان برای آبرسانی در دل کویر. قنات‌ها نمادی از نبوغ و سازگاری با طبیعت.", "image": "https://images.unsplash.com/photo-1590076214523-5f6c6c3d0d2b?q=80&w=1000&auto=format&fit=crop"},
+    {"name": "غار علیصدر", "description": "یکی از بزرگترین غارهای آبی جهان در همدان. قایق‌سواری در دل غار، تجربه‌ای فراموش‌نشدنی است.", "image": "https://images.unsplash.com/photo-1590076214523-5f6c6c3d0d2b?q=80&w=1000&auto=format&fit=crop"},
+    {"name": "قلعه رودخان", "description": "دژی تاریخی در دل جنگل‌های گیلان. قلعه‌ای با معماری باشکوه و طبیعتی سرسبز و چشم‌نواز.", "image": "https://images.unsplash.com/photo-1590076214523-5f6c6c3d0d2b?q=80&w=1000&auto=format&fit=crop"},
+    {"name": "شهر لافت قشم", "description": "روستایی تاریخی با بادگیرهای زیبا و معماری خاص در جزیره قشم. نمادی از زندگی در اقلیم گرم.", "image": "https://images.unsplash.com/photo-1590076214523-5f6c6c3d0d2b?q=80&w=1000&auto=format&fit=crop"},
+    {"name": "پارک ملی گلستان", "description": "یکی از قدیمی‌ترین پارک‌های ملی جهان و میراث جهانی یونسکو. گنجینه‌ای از تنوع زیستی در شمال ایران.", "image": "https://images.unsplash.com/photo-1590076214523-5f6c6c3d0d2b?q=80&w=1000&auto=format&fit=crop"},
+    {"name": "دریاچه نئور", "description": "دریاچه‌ای زیبا و آرام در اردبیل. مکانی عالی برای طبیعت‌گردی و آرامش در دامن طبیعت.", "image": "https://images.unsplash.com/photo-1590076214523-5f6c6c3d0d2b?q=80&w=1000&auto=format&fit=crop"},
+    {"name": "کلوت‌های شهداد و کویر لوت", "description": "شگفتی طبیعی در کرمان. کلوت‌ها و کویر لوت، یکی از گرم‌ترین و زیباترین نقاط زمین.", "image": "https://images.unsplash.com/photo-1509316785289-025f5b846b35?q=80&w=1000&auto=format&fit=crop"},
+    {"name": "کاخ سعدآباد", "description": "مجموعه‌ای از کاخ‌های زیبا در شمال تهران. سعدآباد با موزه‌ها و باغ‌هایش، مقصدی عالی برای گردشگری.", "image": "https://images.unsplash.com/photo-1590076214523-5f6c6c3d0d2b?q=80&w=1000&auto=format&fit=crop"},
+    {"name": "موزه ملی ایران", "description": "گنجینه‌ای از تاریخ و هنر ایران. موزه ملی، روایتی از تمدن چند هزار ساله این سرزمین است.", "image": "https://images.unsplash.com/photo-1590076214523-5f6c6c3d0d2b?q=80&w=1000&auto=format&fit=crop"},
+    {"name": "ساحل بریس چابهار", "description": "ساحلی بکر و زیبا در جنوب سیستان و بلوچستان. آب‌های فیروزه‌ای و طبیعتی دست‌نخورده.", "image": "https://images.unsplash.com/photo-1590076214523-5f6c6c3d0d2b?q=80&w=1000&auto=format&fit=crop"},
+    {"name": "جنگل و ساحل گیسوم", "description": "جنگلی زیبا در گیلان که به ساحل دریا می‌رسد. تلفیقی بی‌نظیر از جنگل و دریا.", "image": "https://images.unsplash.com/photo-1590076214523-5f6c6c3d0d2b?q=80&w=1000&auto=format&fit=crop"},
+    {"name": "بازار وکیل شیراز", "description": "بازاری تاریخی و زیبا در شیراز. معماری دوره زندیه و فضایی پر از رنگ و بوی زندگی.", "image": "https://images.unsplash.com/photo-1590076214523-5f6c6c3d0d2b?q=80&w=1000&auto=format&fit=crop"},
+    {"name": "باغ دولت‌آباد یزد", "description": "باغی زیبا و تاریخی در یزد با بادگیر بلند. نمادی از معماری کویری و هنر باغ‌سازی ایرانی.", "image": "https://images.unsplash.com/photo-1590076214523-5f6c6c3d0d2b?q=80&w=1000&auto=format&fit=crop"},
+    {"name": "کلیسای سنت استپانوس", "description": "کلیسایی تاریخی و زیبا در جلفای آذربایجان. یکی از مهم‌ترین کلیساهای ارامنه ایران.", "image": "https://images.unsplash.com/photo-1590076214523-5f6c6c3d0d2b?q=80&w=1000&auto=format&fit=crop"},
+    {"name": "گردنه حیران", "description": "جاده‌ای زیبا و مه‌آلود در اردبیل. منظره‌ای بی‌نظیر از کوه و جنگل و ابر.", "image": "https://images.unsplash.com/photo-1590076214523-5f6c6c3d0d2b?q=80&w=1000&auto=format&fit=crop"},
+    {"name": "آبشار مارگون", "description": "آبشاری زیبا در فارس که از دل صخره‌ها بیرون می‌آید. یکی از چشم‌نوازترین آبشارهای ایران.", "image": "https://images.unsplash.com/photo-1590076214523-5f6c6c3d0d2b?q=80&w=1000&auto=format&fit=crop"},
+    {"name": "جنگل ابر", "description": "جنگلی در استان گلستان که در ابرها غوطه‌ور است. یکی از زیباترین جنگل‌های ایران.", "image": "https://images.unsplash.com/photo-1590076214523-5f6c6c3d0d2b?q=80&w=1000&auto=format&fit=crop"},
+    {"name": "ساحل چمخاله", "description": "ساحلی زیبا در لاهیجان گیلان. مکانی آرام برای تماشای دریای خزر و طبیعت سرسبز.", "image": "https://images.unsplash.com/photo-1590076214523-5f6c6c3d0d2b?q=80&w=1000&auto=format&fit=crop"},
+    {"name": "ژئوپارک طبس", "description": "شگفتی‌های زمین‌شناسی در طبس. مکانی بی‌نظیر برای علاقه‌مندان به طبیعت و زمین.", "image": "https://images.unsplash.com/photo-1590076214523-5f6c6c3d0d2b?q=80&w=1000&auto=format&fit=crop"},
+    {"name": "شهر سوخته", "description": "شهری باستانی در سیستان. یکی از مهم‌ترین محوطه‌های باستانی ایران و جهان.", "image": "https://images.unsplash.com/photo-1590076214523-5f6c6c3d0d2b?q=80&w=1000&auto=format&fit=crop"},
+    {"name": "آرامگاه فردوسی", "description": "آرامگاه شاعر بزرگ ایران در توس مشهد. مکانی برای ادای احترام به خالق شاهنامه.", "image": "https://images.unsplash.com/photo-1590076214523-5f6c6c3d0d2b?q=80&w=1000&auto=format&fit=crop"},
+    {"name": "برج میلاد", "description": "بلندترین برج ایران در تهران. منظره‌ای پانوراما از شهر و امکانات تفریحی و رستوران.", "image": "https://images.unsplash.com/photo-1590076214523-5f6c6c3d0d2b?q=80&w=1000&auto=format&fit=crop"},
+    {"name": "دریاچه گهر", "description": "دریاچه‌ای زیبا و کوهستانی در لرستان. یکی از زیباترین دریاچه‌های ایران در دل زاگرس.", "image": "https://images.unsplash.com/photo-1590076214523-5f6c6c3d0d2b?q=80&w=1000&auto=format&fit=crop"},
+    {"name": "جزیره کیش", "description": "بهشت خرید و تفریح در خلیج فارس. جایی که می‌تونی هم در ساحل آرامش بگیری و هم در بازارهای مدرنش خرید کنی.", "image": "https://images.unsplash.com/photo-1590076214072-3c74f5c16c4a?q=80&w=1000&auto=format&fit=crop"},
+    {"name": "روستای میمند", "description": "روستایی دست‌کند در دل صخره‌ها در کرمان. یکی از عجیب‌ترین و قدیمی‌ترین سکونتگاه‌های بشر.", "image": "https://images.unsplash.com/photo-1590076214523-5f6c6c3d0d2b?q=80&w=1000&auto=format&fit=crop"},
+    {"name": "ژئوپارک قشم", "description": "شگفتی‌های طبیعی جزیره قشم. دره ستارگان و جنگل حرا از دیدنی‌های این ژئوپارک جهانی است.", "image": "https://images.unsplash.com/photo-1590076214523-5f6c6c3d0d2b?q=80&w=1000&auto=format&fit=crop"},
+    {"name": "چشمه‌های باداب سورت", "description": "چشمه‌های پلکانی و رنگارنگ در مازندران. یکی از شگفت‌انگیزترین جاذبه‌های طبیعی ایران.", "image": "https://images.unsplash.com/photo-1590076214523-5f6c6c3d0d2b?q=80&w=1000&auto=format&fit=crop"},
+    {"name": "تالاب انزلی", "description": "تالابی بین‌المللی در گیلان با نیلوفرهای آبی زیبا. بهشتی برای طبیعت‌دوستان و پرنده‌نگران.", "image": "https://images.unsplash.com/photo-1590076214523-5f6c6c3d0d2b?q=80&w=1000&auto=format&fit=crop"},
+    {"name": "تخت سلیمان", "description": "مجموعه‌ای تاریخی و طبیعی در تکاب. آتشکده آذرگشنسب و دریاچه‌ای زیبا در دل کوه.", "image": "https://images.unsplash.com/photo-1590076214523-5f6c6c3d0d2b?q=80&w=1000&auto=format&fit=crop"},
+    {"name": "آبشار بیشه", "description": "آبشاری زیبا در لرستان. مکانی عالی برای پیک‌نیک و لذت بردن از طبیعت زاگرس.", "image": "https://images.unsplash.com/photo-1590076214523-5f6c6c3d0d2b?q=80&w=1000&auto=format&fit=crop"},
+    {"name": "کاخ نیاوران", "description": "کاخی زیبا در شمال تهران با معماری و باغ‌های چشم‌نواز. موزه‌ای از تاریخ معاصر ایران.", "image": "https://images.unsplash.com/photo-1590076214523-5f6c6c3d0d2b?q=80&w=1000&auto=format&fit=crop"},
+    {"name": "روستای کندوان", "description": "روستایی صخره‌ای در آذربایجان. خانه‌هایی که در دل سنگ‌های آتشفشانی تراشیده شده‌اند.", "image": "https://images.unsplash.com/photo-1590076214523-5f6c6c3d0d2b?q=80&w=1000&auto=format&fit=crop"},
+    {"name": "جاده اسالم به خلخال", "description": "یکی از زیباترین جاده‌های ایران. مسیری پرپیچ و خم در دل جنگل و کوه.", "image": "https://images.unsplash.com/photo-1590076214523-5f6c6c3d0d2b?q=80&w=1000&auto=format&fit=crop"},
+    {"name": "موزه مارکار", "description": "موزه‌ای تاریخی در یزد. یادگاری از زرتشتیان و تاریخچه‌ای غنی از فرهنگ و هنر.", "image": "https://images.unsplash.com/photo-1590076214523-5f6c6c3d0d2b?q=80&w=1000&auto=format&fit=crop"},
+    {"name": "آبشار ویسادار", "description": "آبشاری زیبا در گیلان. مکانی آرام و دل‌انگیز در دل طبیعت سرسبز.", "image": "https://images.unsplash.com/photo-1590076214523-5f6c6c3d0d2b?q=80&w=1000&auto=format&fit=crop"},
+    {"name": "برج قابوس", "description": "بلندترین برج تمام آجری جهان در گنبد کاووس. شاهکار معماری و مهندسی ایران باستان.", "image": "https://images.unsplash.com/photo-1590076214523-5f6c6c3d0d2b?q=80&w=1000&auto=format&fit=crop"},
+    {"name": "غار شاپور", "description": "غاری تاریخی در کازرون با مجسمه شاپور ساسانی. یکی از جاذبه‌های تاریخی و طبیعی فارس.", "image": "https://images.unsplash.com/photo-1590076214523-5f6c6c3d0d2b?q=80&w=1000&auto=format&fit=crop"},
+    {"name": "خیام‌خوانی بوشهر", "description": "فضایی فرهنگی در بوشهر. شب‌های خیام‌خوانی با موسیقی و شعر، تجربه‌ای دل‌انگیز.", "image": "https://images.unsplash.com/photo-1590076214523-5f6c6c3d0d2b?q=80&w=1000&auto=format&fit=crop"},
+    {"name": "برج آزادی", "description": "نماد تهران و ایران. برجی زیبا با معماری خاص که در قلب پایتخت می‌درخشد.", "image": "https://images.unsplash.com/photo-1590076214523-5f6c6c3d0d2b?q=80&w=1000&auto=format&fit=crop"},
+    {"name": "موزه روستایی گیلان", "description": "موزه‌ای در فضای باز که زندگی و فرهنگ روستایی گیلان را نشان می‌دهد.", "image": "https://images.unsplash.com/photo-1590076214523-5f6c6c3d0d2b?q=80&w=1000&auto=format&fit=crop"},
+    {"name": "کلیسای وانک", "description": "کلیسایی تاریخی و زیبا در اصفهان. یکی از مهم‌ترین کلیساهای ارامنه ایران با نقاشی‌های بی‌نظیر.", "image": "https://images.unsplash.com/photo-1590076214523-5f6c6c3d0d2b?q=80&w=1000&auto=format&fit=crop"},
+    {"name": "غار کتله‌خور", "description": "غاری شگفت‌انگیز در زنجان. یکی از زیباترین غارهای ایران با قندیل‌های آهکی.", "image": "https://images.unsplash.com/photo-1590076214523-5f6c6c3d0d2b?q=80&w=1000&auto=format&fit=crop"},
+    {"name": "پل ورسک", "description": "پلی تاریخی و زیبا در مازندران. یکی از شاهکارهای مهندسی راه‌آهن ایران.", "image": "https://images.unsplash.com/photo-1590076214523-5f6c6c3d0d2b?q=80&w=1000&auto=format&fit=crop"},
+    {"name": "کویر مرنجاب", "description": "کویری زیبا در کاشان. مکانی عالی برای ستاره‌بینی و تجربه آرامش در دل کویر.", "image": "https://images.unsplash.com/photo-1509316785289-025f5b846b35?q=80&w=1000&auto=format&fit=crop"},
+    {"name": "قلعه بابک", "description": "دژی تاریخی در کلیبر آذربایجان. یادگار بابک خرمدین و مقاومت در برابر خلفای عباسی.", "image": "https://images.unsplash.com/photo-1590076214523-5f6c6c3d0d2b?q=80&w=1000&auto=format&fit=crop"},
+    {"name": "باغ ایل‌گلی تبریز", "description": "باغی زیبا و بزرگ در تبریز. مکانی عالی برای قدم زدن و لذت بردن از طبیعت.", "image": "https://images.unsplash.com/photo-1590076214523-5f6c6c3d0d2b?q=80&w=1000&auto=format&fit=crop"},
+    {"name": "نقش رستم", "description": "محوطه‌ای تاریخی در فارس. آرامگاه‌های هخامنشی و نقش‌برجسته‌های ساسانی در دل کوه.", "image": "https://images.unsplash.com/photo-1590076214523-5f6c6c3d0d2b?q=80&w=1000&auto=format&fit=crop"},
+    {"name": "دریاچه گهر", "description": "دریاچه‌ای زیبا در لرستان. نگینی در دل زاگرس و مکانی عالی برای طبیعت‌گردی.", "image": "https://images.unsplash.com/photo-1590076214523-5f6c6c3d0d2b?q=80&w=1000&auto=format&fit=crop"},
+    {"name": "کویر مصر", "description": "کویری زیبا در خراسان جنوبی. مکانی برای آرامش و تماشای آسمان پرستاره.", "image": "https://images.unsplash.com/photo-1509316785289-025f5b846b35?q=80&w=1000&auto=format&fit=crop"},
+    {"name": "نخلستان‌های آبپخش", "description": "نخلستان‌های زیبا در بوشهر. منظره‌ای سرسبز و دل‌انگیز در دل جنوب ایران.", "image": "https://images.unsplash.com/photo-1590076214523-5f6c6c3d0d2b?q=80&w=1000&auto=format&fit=crop"},
+    {"name": "استانبول", "description": "شهر دو قاره! جایی که تاریخ عثمانی با مدرنیته ترکیب شده. از مسجد ایاصوفیه تا خیابان استقلال.", "image": "https://images.unsplash.com/photo-1524231757912-21f4fe3a7200?q=80&w=1000&auto=format&fit=crop"},
+    {"name": "آنتالیا", "description": "بهشت گردشگری ترکیه با آب‌وهوای مدیترانه‌ای، سواحل زیبا و بناهای تاریخی فراوان.", "image": "https://images.unsplash.com/photo-1590076214523-5f6c6c3d0d2b?q=80&w=1000&auto=format&fit=crop"},
+    {"name": "کوش آداسی", "description": "شهر ساحلی زیبا در ترکیه با سواحل شنی و آب‌های فیروزه‌ای. مکانی عالی برای تعطیلات تابستانی.", "image": "https://images.unsplash.com/photo-1590076214523-5f6c6c3d0d2b?q=80&w=1000&auto=format&fit=crop"},
+    {"name": "کاپادوکیه", "description": "منطقه‌ای شگفت‌انگیز در ترکیه با صخره‌های مخروطی و بالن‌های هوایی. تجربه‌ای فراموش‌نشدنی.", "image": "https://images.unsplash.com/photo-1590076214523-5f6c6c3d0d2b?q
