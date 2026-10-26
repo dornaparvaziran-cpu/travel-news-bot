@@ -314,7 +314,7 @@ async def get_prices_for_route(browser, route_name, route_url):
                     
                 lines = [line.strip() for line in text.split('\n') if line.strip()]
                 
-                # 🌟 پیدا کردن اسم ایرلاین (روش دقیق‌تر)
+                # 🌟 پیدا کردن اسم ایرلاین دقیقاً از داخل همین کارت
                 airline = "نامشخص"
                 known_airlines = ["ایران ایر", "ماهان", "آسمان", "زاگرس", "قشم ایر", "کیش ایر", "سپهران", "پارس", "کاسپین", "تابان", "آتا", "کارون", "فلای کیش", "نسیم ایر", "معراج", "چابهار", "هما"]
                 
@@ -329,9 +329,11 @@ async def get_prices_for_route(browser, route_name, route_url):
                     else:
                         airline = lines[0]
                 
+                # 🌟 پیدا کردن ساعت دقیقاً از داخل همین کارت
                 times = re.findall(r'\d{1,2}:\d{2}', text)
                 departure_time = times[0] if len(times) > 0 else "?"
                 
+                # 🌟 پیدا کردن قیمت دقیقاً از داخل همین کارت
                 price = "?"
                 for i, line in enumerate(lines):
                     if line == "تومان" and i > 0:
@@ -343,7 +345,7 @@ async def get_prices_for_route(browser, route_name, route_url):
                             price = price_match.group(1)
                             break
                             
-                if price != "?":
+                if price != "?" and price != "0":
                     flights.append({
                         "airline": airline,
                         "departure": departure_time,
@@ -356,9 +358,18 @@ async def get_prices_for_route(browser, route_name, route_url):
         if not flights:
             return None
             
+        # حذف پروازهای تکراری (بر اساس ترکیب اسم، ساعت و قیمت)
+        unique_flights = []
+        seen = set()
+        for f in flights:
+            key = f"{f['airline']}_{f['departure']}_{f['price']}"
+            if key not in seen:
+                seen.add(key)
+                unique_flights.append(f)
+        
         result_text = f"✈️ <b>قیمت‌های لحظه‌ای پرواز {route_name}</b>\n\n"
         
-        for f in flights[:3]:
+        for f in unique_flights[:3]:
             result_text += f"🔹 <b>{f['airline']}</b> | ساعت {f['departure']}\n"
             result_text += f"    💰 {f['price']} تومان\n\n"
             
