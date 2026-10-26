@@ -399,6 +399,39 @@ def send_news_only():
     if news:
         news_to_send = news[:MAX_NEWS_TO_SEND] 
         for title, link, image_url, full_text in news_to_send:
+            
+            # 🌟 چک کردن اینکه آیا متن خبر انگلیسیه
+            is_english = False
+            if full_text:
+                english_chars = sum(1 for c in full_text if c.isascii() and c.isalpha())
+                if english_chars > len(full_text) * 0.5:
+                    is_english = True
+            
+            # اگر خبر انگلیسی بود، با متیس ترجمه‌اش کن
+            if is_english and METIS_KEY:
+                try:
+                    prompt = f"این متن انگلیسی را به فارسی روان ترجمه کن. فقط متن ترجمه شده را برگردان، بدون هیچ توضیح اضافه:\n\n{full_text}"
+                    headers = {"Authorization": f"Bearer {METIS_KEY}", "Content-Type": "application/json"}
+                    data = {"model": "gpt-4o-mini", "messages": [{"role": "user", "content": prompt}]}
+                    r_ai = requests.post("https://api.metisai.ir/openai/v1/chat/completions", headers=headers, json=data, timeout=25)
+                    
+                    if r_ai.ok:
+                        translated = r_ai.json()['choices'][0]['message']['content'].strip()
+                        # مطمئن شو که ترجمه واقعاً فارسیه (نه انگلیسی)
+                        fa_chars = sum(1 for c in translated if '\u0600' <= c <= '\u06FF')
+                        if fa_chars > len(translated) * 0.3:
+                            full_text = translated
+                            print(f"Translated English news: {title[:30]}...")
+                        else:
+                            print(f"Translation failed for: {title[:30]}...")
+                            continue # اگر ترجمه نشد، خبر رو کلاً رد کن
+                    else:
+                        print(f"Metis error: {r_ai.text}")
+                        continue # اگر متیس خطا داد، رد کن
+                except Exception as e:
+                    print(f"Translation error: {e}")
+                    continue # اگر خطا داد، رد کن
+            
             category = get_category(title)
             
             text = f"🔹 <b>{title}</b>\n\n"
