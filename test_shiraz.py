@@ -3,7 +3,7 @@ import json
 from datetime import datetime, timedelta
 
 def main():
-    print("Testing FlyToday API - Extracting Hotel Names from Availability...")
+    print("Testing FlyToday API - Extracting Hotel Names (POST method)...")
     
     headers = {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
@@ -43,27 +43,35 @@ def main():
         hotel_search_id = data_avail.get("hotelSearchId")
         print(f"✅ Got hotelSearchId: {hotel_search_id}")
         
-        # ۲. درخواست به API Availability با پارامتر hotelSearchId
-        print("\nStep 2: Fetching with hotelSearchId...")
-        url_avail_2 = f"https://www.flytoday.ir/api/gateway/V3/hotel/Availability?hotelSearchId={hotel_search_id}"
+        # ۲. تست API با hotelSearchId به صورت POST
+        print("\nStep 2: Sending POST with hotelSearchId...")
+        url_test = f"https://www.flytoday.ir/api/gateway/V3/hotel/Availability"
         
-        # چون ممکنه این درخواست از نوع GET یا POST باشه، هر دو رو تست می‌کنیم
-        r_avail_2 = requests.get(url_avail_2, headers=headers, timeout=30)
+        # چند حالت مختلف برای فرستادن hotelSearchId
+        test_payloads = [
+            {"hotelSearchId": hotel_search_id},
+            {"hotelSearchId": hotel_search_id, "pageNumber": 1, "pageSize": 25},
+            {"searchId": hotel_search_id}
+        ]
         
-        if r_avail_2.ok:
-            print("✅ GET worked!")
-            data_2 = r_avail_2.json()
-            itineraries = data_2.get("pricedItineraries", [])
-            if itineraries:
-                print(f"\nFound {len(itineraries)} itineraries.")
-                # چاپ کل JSON اولین هتل برای دیدن اسم
-                print("\n--- Full JSON of First Itinerary ---")
-                print(json.dumps(itineraries[0], indent=2, ensure_ascii=False)[:3000])
-            else:
-                print("No itineraries found.")
-        else:
-            print(f"❌ GET failed: {r_avail_2.status_code}")
+        for i, payload in enumerate(test_payloads):
+            print(f"\n--- Test {i+1}: {payload} ---")
+            r_test = requests.post(url_test, headers=headers, json=payload, timeout=30)
             
+            if r_test.ok:
+                print("✅ Success!")
+                data_test = r_test.json()
+                itineraries = data_test.get("pricedItineraries", [])
+                if itineraries:
+                    print(f"Found {len(itineraries)} hotels.")
+                    # چاپ کل JSON اولین هتل برای دیدن اسم
+                    print("\n--- Full JSON of First Itinerary ---")
+                    print(json.dumps(itineraries[0], indent=2, ensure_ascii=False)[:3000])
+                else:
+                    print("No itineraries in response.")
+            else:
+                print(f"❌ Failed: {r_test.status_code} - {r_test.text[:200]}")
+                
     except Exception as e:
         print(f"❌ Exception: {e}")
 
