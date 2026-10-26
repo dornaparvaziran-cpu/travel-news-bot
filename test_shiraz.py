@@ -2,17 +2,17 @@ import subprocess
 import sys
 import json
 import asyncio
+
+# نصب خودکار ابزارها
+print("Installing mcp and flytoday-mcp...")
+subprocess.check_call([sys.executable, "-m", "pip", "install", "mcp", "flytoday-mcp", "-q"])
+
 from mcp import ClientSession, StdioServerParameters
 from mcp.client.stdio import stdio_client
-
-# نصب خودکار ابزار
-print("Installing flytoday-mcp...")
-subprocess.check_call([sys.executable, "-m", "pip", "install", "flytoday-mcp", "-q"])
 
 async def main():
     print("Starting FlyToday MCP server...")
     
-    # اجرای سرور MCP
     server_params = StdioServerParameters(
         command="flytoday-mcp",
         args=[],
@@ -30,22 +30,20 @@ async def main():
                     "ft_find_hotel_place",
                     arguments={"query": "مشهد"}
                 )
-                print("Find result:", json.dumps(find_result.content, indent=2, ensure_ascii=False)[:500])
+                print("Find result:", json.dumps(find_result.content, indent=2, ensure_ascii=False)[:1000])
 
-                # فرض می‌کنیم city_id مشهد رو از خروجی گرفتیم (مثلاً 10)
-                # ۲. جستجوی هتل‌ها با قیمت
+                # ۲. جستجوی هتل‌ها با قیمت (فرض می‌کنیم city_id=10 درسته)
                 print("\nStep 2: Searching hotels in Mashhad...")
                 search_result = await session.call_tool(
                     "ft_search_hotels",
                     arguments={
-                        "city_id": 10,  # اگر خروجی بالا چیز دیگری داد، این عدد رو عوض کن
+                        "city_id": 10,
                         "check_in": "2026-10-27",
                         "check_out": "2026-10-28"
                     }
                 )
                 
                 print("✅ Hotel search successful!")
-                # چاپ ۳۰۰۰ کاراکتر اول برای دیدن اسم هتل‌ها و قیمت‌ها
                 print(json.dumps(search_result.content, indent=2, ensure_ascii=False)[:3000])
 
     except Exception as e:
