@@ -487,19 +487,21 @@ def send_destination_of_day():
         text += "📱 09153092528\n\n"
         text += "✈️ <b>درنا تراول</b>"
         
-        # 🌟 گرفتن عکس واقعی از ویکی‌پدیا بر اساس اسم مقصد
+        # 🌟 استفاده از جستجوی مدیای ویکی‌پدیا (روش جدید)
         image_url = None
         try:
-            # جستجو در ویکی‌پدیای فارسی
-            wiki_search = requests.get(f"https://fa.wikipedia.org/w/api.php?action=query&titles={urllib.parse.quote(dest['name'])}&prop=pageimages&format=json&pithumbsize=800", timeout=10).json()
-            pages = wiki_search.get("query", {}).get("pages", {})
+            # جستجو در ویکی‌پدیا با استفاده از سیستم جستجوی مدیا
+            search_url = f"https://commons.wikimedia.org/w/api.php?action=query&generator=search&gsrsearch=filetype:bitmap%20{urllib.parse.quote(dest['name'])}&gsrlimit=1&prop=imageinfo&iiprop=url&iiurlwidth=800&format=json"
+            r_search = requests.get(search_url, timeout=10).json()
+            
+            pages = r_search.get("query", {}).get("pages", {})
             for page_id, page_data in pages.items():
-                if "thumbnail" in page_data:
-                    image_url = page_data["thumbnail"]["source"]
+                if "imageinfo" in page_data and len(page_data["imageinfo"]) > 0:
+                    image_url = page_data["imageinfo"][0]["thumburl"]
                     break
         except: pass
         
-        # اگر عکسی پیدا نشد، از عکس پیش‌فرض استفاده کن
+        # اگر عکس پیدا نشد، از عکس پیش‌فرض استفاده کن
         if not image_url:
             image_url = f"https://picsum.photos/seed/{random.randint(1, 10000)}/800/600"
         
