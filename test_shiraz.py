@@ -1,35 +1,58 @@
-import asyncio
-from playwright.async_api import async_playwright
-import re
+import requests
+import feedparser
+import os
 
-async def main():
-    async with async_playwright() as p:
-        browser = await p.chromium.launch(headless=True)
-        page = await browser.new_page()
+METIS_KEY = os.environ.get("METIS_KEY")
+
+def main():
+    print("Testing Metis Translation...")
+    
+    if not METIS_KEY:
+        print("❌ METIS_KEY is missing!")
+        return
         
-        url = "https://dornatravel.ir/flight/THR-MHD"
-        print(f"Opening {url}...")
-        await page.goto(url, timeout=60000, wait_until="domcontentloaded")
-        await page.wait_for_timeout(8000)
+    # گرفتن یک خبر انگلیسی از Skift
+    print("Fetching an English news item...")
+    feed = feedparser.parse("https://skift.com/feed/")
+    if not feed.entries:
+        print("❌ No news found.")
+        return
         
-        # پیدا کردن کارت‌های پرواز
-        cards = await page.locator("div[class*='card'], div[class*='item'], div[class*='flight']").all()
+    entry = feed.entries[0]
+    title = entry.get("title", "")
+    
+    full_text = ""
+    if 'content' in entry and len(entry.content) > 0:
+        full_text = entry.content[0].value
+    elif 'summary' in entry:
+        full_text = entry.summary
+    
+    # پاک کردن تگ‌های HTML
+    import re
+    full_text = re.sub(r'<[^>]+>', '', full_text).strip()
+    
+    print(f"Original Title: {title}")
+    print(f"Original Text (first 100 chars): {full_text[:100]}...")
+    
+    # تست ترجمه با متیس
+    print("\nSending to Metis for translation...")
+    prompt = f"Translate the following English text to Persian (Farsi). Return ONLY the translated text, without any extra explanation or English words:\n\n{full_text}"
+    headers = {"Authorization": f"Bearer {METIS_KEY}", "Content-Type": "application/json"}
+    data = {"model": "gpt-4o-mini", "messages": [{"role": "user", "content": prompt}]}
+    
+    try:
+        r = requests.post("https://api.metisai.ir/openai/v1/chat/completions", headers=headers, json=data, timeout=30)
+        print(f"Status Code: {r.status_code}")
         
-        print(f"Found {len(cards)} cards.")
-        
-        for i, card in enumerate(cards):
-            try:
-                text = await card.inner_text()
-                # چک میکنیم که آیا این کارت واقعاً یک پرواز هست (شامل قیمت و ساعت)
-                if "تومان" in text and re.search(r'\d{1,2}:\d{2}', text):
-                    print(f"\n--- FLIGHT CARD {i} ---")
-                    # چاپ دقیق خطوط برای دیدن ساختار
-                    lines = text.split('\n')
-                    for line in lines:
-                        print(line.strip())
-            except: pass
+        if r.ok:
+            response_data = r.json()
+            translated = response_data['choices'][0]['message']['content'].strip()
+            print(f"\n✅ Translated Text:\n{translated}")
+        else:
+            print(f"❌ Error Response: {r.text}")
             
-        await browser.close()
+    except Exception as e:
+        print(f"❌ Exception: {e}")
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    main()
