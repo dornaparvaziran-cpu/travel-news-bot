@@ -1,55 +1,64 @@
 import requests
-import feedparser
-import os
-import re
-import time
-import translators as ts
+import json
+from datetime import datetime, timedelta
 
 def main():
-    print("Testing Multi-Provider Translator (Translators lib)...")
+    print("Testing FlyToday API...")
     
-    # ۱. گرفتن یک خبر انگلیسی از Skift
-    print("Fetching an English news item...")
-    feed = feedparser.parse("https://skift.com/feed/")
-    if not feed.entries:
-        print("❌ No news found.")
-        return
+    # آدرس API
+    url = "https://www.flytoday.ir/api/gateway/V3/hotel/Availability?pageNumber=1&pageSize=25&sortMode=Featured"
+    
+    # هدرها (برای اینکه سایت فکر کنه ما یک مرورگر هستیم)
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        "Content-Type": "application/json",
+        "Accept": "application/json, text/plain, */*"
+    }
+    
+    # تاریخ‌ها (فردا و پس فردا)
+    tomorrow = (datetime.now() + timedelta(days=1)).strftime("%Y-%m-%d")
+    day_after = (datetime.now() + timedelta(days=2)).strftime("%Y-%m-%d")
+    
+    # داده‌هایی که فرستادی (Payload)
+    payload = {
+        "checkIn": tomorrow,
+        "checkOut": day_after,
+        "hotelId": None,
+        "cityId": 10, # کد شهر 10 معمولاً مشهد هست
+        "cityName": "",
+        "countryCode": "IR",
+        "dateLang": "fa",
+        "hotelName": "",
+        "isDomestic": True,
+        "isJalali": True,
+        "key": "",
+        "NationalityId": "IR",
+        "occupancies": [
+            {
+                "adultCount": 1,
+                "childCount": 0,
+                "childAges": []
+            }
+        ]
+    }
+    
+    print(f"Sending POST request for dates: {tomorrow} to {day_after}")
+    
+    try:
+        r = requests.post(url, headers=headers, json=payload, timeout=30)
+        print(f"Status Code: {r.status_code}")
         
-    entry = feed.entries[0]
-    title = entry.get("title", "")
-    
-    full_text = ""
-    if 'content' in entry and len(entry.content) > 0:
-        full_text = entry.content[0].value
-    elif 'summary' in entry:
-        full_text = entry.summary
-    
-    full_text = re.sub(r'<[^>]+>', '', full_text).strip()
-    
-    print(f"\nOriginal Title: {title}")
-    print(f"Original Text (first 100 chars): {full_text[:100]}...")
-    
-    # ۲. تست ترجمه با موتورهای مختلف
-    # ما به ترتیب Bing و سپس Google را امتحان می‌کنیم
-    engines_to_try = ['bing', 'google']
-    
-    for engine in engines_to_try:
-        print(f"\n--- Trying engine: {engine} ---")
-        try:
-            # ترجمه تیتر
-            translated_title = ts.translate_text(title, translator=engine, from_language='en', to_language='fa')
-            # ترجمه متن
-            translated_text = ts.translate_text(full_text, translator=engine, from_language='en', to_language='fa') if full_text else ""
+        if r.ok:
+            data = r.json()
+            print("\n✅ Response received successfully!")
+            # چاپ ۲۰۰۰ کاراکتر اول از پاسخ برای دیدن ساختار
+            print("--- First 2000 chars of response ---")
+            print(json.dumps(data, indent=2, ensure_ascii=False)[:2000])
+        else:
+            print(f"❌ Error: {r.text}")
             
-            print(f"✅ Translated Title ({engine}):\n{translated_title}")
-            print(f"\n✅ Translated Text ({engine}):\n{translated_text[:200]}...")
-            
-            # اگر موفق بود، از حلقه خارج شو
-            break
-            
-        except Exception as e:
-            print(f"❌ Engine {engine} failed: {e}")
-            time.sleep(2) # کمی صبر کن تا دوباره تلاش کنیم
+    except Exception as e:
+        print(f"❌ Exception: {e}")
 
 if __name__ == "__main__":
     main()
