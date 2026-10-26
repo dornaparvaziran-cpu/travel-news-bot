@@ -450,7 +450,7 @@ def send_extras():
     text = get_weather_and_currency()
     send_to_all(text)
 
-def send_destination_of_day():
+async def send_destination_of_day():
     print("Sending destination of the day...")
     
     sent_destinations = set()
@@ -487,8 +487,34 @@ def send_destination_of_day():
         text += "📱 09153092528\n\n"
         text += "✈️ <b>درنا تراول</b>"
         
-        # 🌟 استفاده از یک عکس پیش‌فرض فوق‌العاده زیبا و تضمینی
-        image_url = "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?q=80&w=1000&auto=format&fit=crop"
+        # 🌟 پیدا کردن عکس واقعی با جستجوی گوگل
+        image_url = None
+        async with async_playwright() as p:
+            browser = await p.chromium.launch(headless=True)
+            page = await browser.new_page()
+            try:
+                # جستجوی عکس در گوگل
+                search_query = urllib.parse.quote(f"{dest['name']} گردشگری")
+                await page.goto(f"https://www.google.com/search?q={search_query}&tbm=isch", timeout=30000)
+                await page.wait_for_timeout(3000)
+                
+                # پیدا کردن اولین عکس با سایز بزرگ (که معمولاً عکس اصلیه)
+                img_elements = await page.locator("img").all()
+                for img in img_elements:
+                    src = await img.get_attribute("src")
+                    if src and src.startswith("http") and "gstatic" not in src and "google" not in src:
+                        image_url = src
+                        break
+                        
+                # اگر عکس پیدا نشد، از عکس پیش‌فرض استفاده کن
+                if not image_url:
+                    image_url = f"https://picsum.photos/seed/{random.randint(1, 10000)}/800/600"
+                    
+            except Exception as e:
+                print(f"Google image search error: {e}")
+                image_url = f"https://picsum.photos/seed/{random.randint(1, 10000)}/800/600"
+            finally:
+                await browser.close()
         
         send_to_all(text, image_url)
         
