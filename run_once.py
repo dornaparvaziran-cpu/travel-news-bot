@@ -2,59 +2,22 @@ import os
 import sys
 import requests
 import feedparser
-import asyncio
 import random
 import urllib.parse
 import re
 import json
+import time
+import translators as ts
 from datetime import datetime, timedelta
-from playwright.async_api import async_playwright
 
 TG_TOKEN = os.environ.get("BOT_TOKEN")
 TG_CHANNEL = os.environ.get("CHANNEL_ID")
 EITA_TOKEN = os.environ.get("EITA_TOKEN")
 EITA_CHANNEL = os.environ.get("EITA_CHANNEL_ID")
-METIS_KEY = os.environ.get("METIS_KEY")
 
 GIST_ID = os.environ.get("GIST_ID")
 GIST_TOKEN = os.environ.get("GIST_TOKEN")
 
-ALL_ROUTES = [ 
-    {"name": "تهران به مشهد", "url": "https://dornatravel.ir/flight/THR-MHD"},
-    {"name": "مشهد به تهران", "url": "https://dornatravel.ir/flight/MHD-THR"},
-    {"name": "تهران به کیش", "url": "https://dornatravel.ir/flight/THR-KIH"},
-    {"name": "کیش به تهران", "url": "https://dornatravel.ir/flight/KIH-THR"},
-    {"name": "مشهد به کیش", "url": "https://dornatravel.ir/flight/MHD-KIH"},
-    {"name": "تهران به شیراز", "url": "https://dornatravel.ir/flight/THR-SYZ"},
-    {"name": "تهران به اصفهان", "url": "https://dornatravel.ir/flight/THR-IFN"},
-    {"name": "تهران به تبریز", "url": "https://dornatravel.ir/flight/THR-TBZ"},
-    {"name": "مشهد به اهواز", "url": "https://dornatravel.ir/flight/MHD-AWZ"},
-    {"name": "تهران به آبادان", "url": "https://dornatravel.ir/flight/THR-ABD"},
-    {"name": "مشهد به آبادان", "url": "https://dornatravel.ir/flight/MHD-ABD"},
-    {"name": "مشهد به تبریز", "url": "https://dornatravel.ir/flight/MHD-TBZ"},
-    {"name": "مشهد به بندر", "url": "https://dornatravel.ir/flight/MHD-BND"},
-    {"name": "مشهد به چابهار", "url": "https://dornatravel.ir/flight/MHD-ZBR"},
-    {"name": "مشهد به رشت", "url": "https://dornatravel.ir/flight/MHD-RAS"},
-    {"name": "تهران به زاهدان", "url": "https://dornatravel.ir/flight/THR-ZAH"},
-    {"name": "مشهد به زاهدان", "url": "https://dornatravel.ir/flight/MHD-ZAH"},
-    {"name": "تهران به بندر", "url": "https://dornatravel.ir/flight/THR-BND"},
-    {"name": "تهران به چابهار", "url": "https://dornatravel.ir/flight/THR-ZBR"},
-    {"name": "اهواز به رشت", "url": "https://dornatravel.ir/flight/AWZ-RAS"},
-    {"name": "تهران به اهواز", "url": "https://dornatravel.ir/flight/THR-AWZ"},
-    {"name": "شیراز به مشهد", "url": "https://dornatravel.ir/flight/SYZ-MHD"},
-    {"name": "اصفهان به مشهد", "url": "https://dornatravel.ir/flight/IFN-MHD"},
-    {"name": "تهران به استانبول", "url": "https://dornatravel.ir/flight/IKA-IST"},
-    {"name": "تهران به دبی", "url": "https://dornatravel.ir/flight/IKA-DXB"},
-    {"name": "مشهد به استانبول", "url": "https://dornatravel.ir/flight/MHD-IST"},
-    {"name": "شیراز به دبی", "url": "https://dornatravel.ir/flight/SYZ-DXB"},
-    {"name": "مشهد به نجف", "url": "https://dornatravel.ir/flight/MHD-NJF"},
-    {"name": "تهران به نجف", "url": "https://dornatravel.ir/flight/IKA-NJF"},
-    {"name": "نجف به مشهد", "url": "https://dornatravel.ir/flight/NJF-MHD"},
-    {"name": "نجف به تهران", "url": "https://dornatravel.ir/flight/NJF-IKA"},
-    {"name": "تهران به مسقط", "url": "https://dornatravel.ir/flight/IKA-MCT"},
-]
-
-NUMBER_OF_ROUTES = 5
 MAX_NEWS_TO_SEND = 9 
 
 FEEDS = [
@@ -145,34 +108,6 @@ def save_sent_to_gist(new_link):
         if not r.ok: print(f"Gist save error: {r.text}")
     except Exception as e: print(f"Gist save warning: {e}")
 
-# ---------- توابع پاک کردن پیام‌های قیمت ----------
-def delete_previous_messages(file_name):
-    if not GIST_ID or not GIST_TOKEN: return
-    try:
-        url = f"https://api.github.com/gists/{GIST_ID}"
-        headers = {"Authorization": f"token {GIST_TOKEN}"}
-        r = requests.get(url, headers=headers, timeout=10)
-        if r.ok:
-            files = r.json().get("files", {})
-            content = files.get(file_name, {}).get("content", "").strip()
-            if content:
-                msg_ids = content.splitlines()
-                for msg_id in msg_ids:
-                    requests.post(f"https://api.telegram.org/bot{TG_TOKEN}/deleteMessage", 
-                                  data={"chat_id": TG_CHANNEL, "message_id": msg_id}, timeout=10)
-                print(f"Deleted {len(msg_ids)} previous messages from {file_name}.")
-    except Exception as e: print(f"Delete messages error: {e}")
-
-def save_message_ids(file_name, msg_ids):
-    if not GIST_ID or not GIST_TOKEN: return
-    new_content = "\n".join(str(i) for i in msg_ids if i)
-    url = f"https://api.github.com/gists/{GIST_ID}"
-    headers = {"Authorization": f"token {GIST_TOKEN}"}
-    data = {"files": {file_name: {"content": new_content}}}
-    try:
-        requests.patch(url, headers=headers, json=data, timeout=10)
-    except Exception as e: print(f"Save msg IDs error: {e}")
-
 # ---------- توابع ارسال ----------
 def get_category(title):
     title_lower = title.lower()
@@ -221,10 +156,7 @@ def send_to_eita(text, image_url=None):
             return f"{match.group(2)}:\n{url}"
     text_md = re.sub(r"<a href='([^']+)'>([^<]+)</a>", clean_link, text_md)
     
-    if "قیمت‌های لحظه‌ای پرواز" in text_md:
-        text_md = text_md.replace("🔹", "✈️")
-        text_md = f"{text_md}\n\n➖➖➖➖➖➖➖➖"
-    elif "🌍" in text_md:
+    if "🌍" in text_md:
         text_md = f"{text_md}\n\n➖➖➖➖➖➖➖➖"
     elif "🌤" in text_md or "💱" in text_md or "💡" in text_md:
         text_md = f"{text_md}\n\n➖➖➖➖➖➖➖➖"
@@ -297,106 +229,7 @@ def fetch_news(max_per_feed=2):
             print(f"Feed error: {e}")
     return collected
 
-async def get_prices_for_route(browser, route_name, route_url):
-    page = await browser.new_page()
-    try:
-        await page.goto(route_url, timeout=60000, wait_until="domcontentloaded")
-        await page.wait_for_timeout(8000)
-        
-        cards = await page.locator("div[class*='card'], div[class*='item'], div[class*='flight']").all()
-        
-        flights = []
-        for card in cards:
-            try:
-                text = await card.inner_text()
-                if "تومان" not in text or not re.search(r'\d{1,2}:\d{2}', text):
-                    continue
-                    
-                lines = [line.strip() for line in text.split('\n') if line.strip()]
-                
-                airline = "نامشخص"
-                known_airlines = ["ایران ایر", "ماهان", "آسمان", "زاگرس", "قشم ایر", "کیش ایر", "سپهران", "پارس", "کاسپین", "تابان", "آتا", "کارون", "فلای کیش", "نسیم ایر", "معراج", "چابهار", "هما"]
-                
-                for line in lines:
-                    if any(airline_name in line for airline_name in known_airlines):
-                        airline = line
-                        break
-                        
-                if airline == "نامشخص" and len(lines) > 0:
-                    if "بلیط هواپیما" in lines[0] and len(lines) > 1:
-                        airline = lines[1]
-                    else:
-                        airline = lines[0]
-                
-                times = re.findall(r'\d{1,2}:\d{2}', text)
-                departure_time = times[0] if len(times) > 0 else "?"
-                
-                price = "?"
-                for i, line in enumerate(lines):
-                    if line == "تومان" and i > 0:
-                        price = lines[i-1]
-                        break
-                    elif "تومان" in line:
-                        price_match = re.search(r'([\d,]+)', line)
-                        if price_match:
-                            price = price_match.group(1)
-                            break
-                            
-                if price != "?" and price != "0":
-                    flights.append({
-                        "airline": airline,
-                        "departure": departure_time,
-                        "price": price
-                    })
-            except: pass
-            
-        await page.close()
-        
-        if not flights:
-            return None
-            
-        unique_flights = []
-        seen = set()
-        for f in flights:
-            key = f"{f['airline']}_{f['departure']}_{f['price']}"
-            if key not in seen:
-                seen.add(key)
-                unique_flights.append(f)
-        
-        result_text = f"✈️ <b>قیمت‌های لحظه‌ای پرواز {route_name}</b>\n\n"
-        
-        for f in unique_flights[:3]:
-            result_text += f"🔹 <b>{f['airline']}</b> | ساعت {f['departure']}\n"
-            result_text += f"    💰 {f['price']} تومان\n\n"
-            
-        result_text += f"🌐 <a href='{route_url}'>مشاهده و خرید در سایت</a>"
-        return result_text
-        
-    except Exception as e:
-        print(f"Playwright error for {route_name}: {e}")
-        await page.close()
-        return None
-
-async def fetch_random_flight_prices():
-    delete_previous_messages("last_price_msgs.txt")
-    
-    selected_routes = random.sample(ALL_ROUTES, NUMBER_OF_ROUTES)
-    new_msg_ids = []
-    
-    async with async_playwright() as p:
-        browser = await p.chromium.launch(headless=True)
-        for route in selected_routes:
-            price_text = await get_prices_for_route(browser, route["name"], route["url"])
-            if price_text: 
-                tg_id, _ = send_to_all(price_text)
-                if tg_id: new_msg_ids.append(tg_id)
-        await browser.close()
-    
-    save_message_ids("last_price_msgs.txt", new_msg_ids)
-
 def send_news_only():
-    from deep_translator import GoogleTranslator
-    
     news = fetch_news()
     if news:
         news_to_send = news[:MAX_NEWS_TO_SEND] 
@@ -409,13 +242,12 @@ def send_news_only():
                 if english_chars > len(full_text) * 0.5:
                     is_english = True
             
-            # اگر انگلیسی بود، با گوگل ترنسلیت ترجمه کن
+            # اگر انگلیسی بود، با موتور Bing ترجمه کن
             if is_english:
                 print(f"Translating English news: {title[:30]}...")
                 try:
-                    translator = GoogleTranslator(source='en', target='fa')
-                    translated_title = translator.translate(title)
-                    translated_text = translator.translate(full_text) if full_text else ""
+                    translated_title = ts.translate_text(title, translator='bing', from_language='en', to_language='fa')
+                    translated_text = ts.translate_text(full_text, translator='bing', from_language='en', to_language='fa') if full_text else ""
                     
                     if translated_title:
                         title = translated_title
@@ -423,10 +255,19 @@ def send_news_only():
                         full_text = translated_text
                         
                     print(f"✅ Translation successful!")
+                    time.sleep(1) # یک مکث کوتاه برای جلوگیری از بلاک شدن
                 except Exception as e:
                     print(f"❌ Translation error: {e}")
-                    # اگر ترجمه خطا داد، خبر رو کلاً رد کن
-                    continue
+                    # اگر ترجمه خطا داد، به سراغ گوگل می‌رویم
+                    try:
+                        translated_title = ts.translate_text(title, translator='google', from_language='en', to_language='fa')
+                        translated_text = ts.translate_text(full_text, translator='google', from_language='en', to_language='fa') if full_text else ""
+                        if translated_title: title = translated_title
+                        if translated_text: full_text = translated_text
+                        print(f"✅ Google Translation successful!")
+                    except:
+                        print(f"❌ Both Bing and Google failed. Skipping.")
+                        continue
             
             category = get_category(title)
             
@@ -509,7 +350,6 @@ def send_destination_of_day():
             
         dest = random.choice(available_destinations)
         
-        # 🌟 ساخت لینک ویکی‌پدیا بر اساس اسم مقصد
         wiki_link = f"https://fa.wikipedia.org/wiki/{urllib.parse.quote(dest['name'].replace(' ', '_'))}"
         
         text = f"🌍 <b>مقصد گردشگری امروز: {dest['name']}</b>\n\n"
@@ -520,7 +360,6 @@ def send_destination_of_day():
         text += "📱 09153092528\n\n"
         text += "✈️ <b>درنا تراول</b>"
         
-        # ارسال فقط متن (بدون عکس)
         send_to_all(text)
         
         sent_destinations.add(dest["name"])
@@ -540,12 +379,10 @@ def send_destination_of_day():
 def main():
     mode = sys.argv[1] if len(sys.argv) > 1 else "all"
     if mode == "news": send_news_only()
-    elif mode == "prices": asyncio.run(fetch_random_flight_prices())
     elif mode == "extras": send_extras()
     elif mode == "destination": send_destination_of_day()
     else:
         send_news_only()
-        asyncio.run(fetch_random_flight_prices())
         send_extras()
         send_destination_of_day()
 
