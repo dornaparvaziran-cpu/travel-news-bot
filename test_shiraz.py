@@ -12,28 +12,22 @@ async def main():
         await page.goto(url, timeout=60000, wait_until="domcontentloaded")
         await page.wait_for_timeout(8000)
         
-        print("\n--- Searching for flight info ---")
-        
-        # ۱. پیدا کردن اسم شرکت‌ها (معمولاً به صورت متن هستن)
-        airlines = []
-        for name in ["ایران ایر", "ماهان", "آسمان", "زاگرس", "قشم ایر", "کیش ایر", "سپهران", "پارس", "کاسپین", "تابان"]:
-            if name in await page.content():
-                airlines.append(name)
-        print(f"Airlines found: {airlines}")
-        
-        # ۲. پیدا کردن ساعت پروازها (الگوی HH:MM)
-        body_text = await page.locator("body").inner_text()
-        times = re.findall(r'\d{1,2}:\d{2}', body_text)
-        print(f"Times found (first 5): {times[:5]}")
-        
-        # ۳. پیدا کردن ساختار کلی یک کارت پرواز
-        print("\n--- Looking for flight cards ---")
+        # پیدا کردن کارت‌های پرواز
         cards = await page.locator("div[class*='card'], div[class*='item'], div[class*='flight']").all()
-        print(f"Found {len(cards)} potential cards.")
         
-        for card in cards[:3]:
-            text = await card.inner_text()
-            print(f"--- Card content ---\n{text[:200]}...\n")
+        print(f"Found {len(cards)} cards.")
+        
+        for i, card in enumerate(cards):
+            try:
+                text = await card.inner_text()
+                # چک میکنیم که آیا این کارت واقعاً یک پرواز هست (شامل قیمت و ساعت)
+                if "تومان" in text and re.search(r'\d{1,2}:\d{2}', text):
+                    print(f"\n--- FLIGHT CARD {i} ---")
+                    # چاپ دقیق خطوط برای دیدن ساختار
+                    lines = text.split('\n')
+                    for line in lines:
+                        print(line.strip())
+            except: pass
             
         await browser.close()
 
