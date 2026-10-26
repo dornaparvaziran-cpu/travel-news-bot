@@ -1,4 +1,3 @@
 requests
 feedparser
-playwright
-mrbilit-mcp
+deep-translator
