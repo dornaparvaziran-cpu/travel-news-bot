@@ -3,7 +3,7 @@ import json
 from datetime import datetime, timedelta
 
 def main():
-    print("Testing FlyToday API - Extracting Hotel Details...")
+    print("Testing FlyToday API - Full JSON Dump...")
     
     url = "https://www.flytoday.ir/api/gateway/V3/hotel/Availability?pageNumber=1&pageSize=25&sortMode=Featured"
     
@@ -45,27 +45,10 @@ def main():
                 
             first_hotel = itineraries[0]
             
-            print("\n--- Searching for Hotel Name and Details ---")
-            # چاپ تمام کلیدها و مقادیر رشته‌ای (برای پیدا کردن اسم هتل)
-            for key, value in first_hotel.items():
-                if isinstance(value, str):
-                    print(f"{key}: {value}")
-                elif isinstance(value, dict):
-                    print(f"{key} (dict keys): {list(value.keys())}")
-                    
-            print("\n--- Checking nested structures ---")
-            # گاهی اسم هتل داخل آبجکت 'hotel' یا 'property' هست
-            if 'hotel' in first_hotel:
-                print("hotel object:", json.dumps(first_hotel['hotel'], ensure_ascii=False)[:500])
-                
-            # جستجوی کلمه name در کل متن JSON
-            import re
-            json_str = json.dumps(first_hotel, ensure_ascii=False)
-            names = re.findall(r'"name":\s*"([^"]+)"', json_str)
-            print("\nAll 'name' values found in first hotel:")
-            for n in set(names):
-                print(f"- {n}")
-
+            # 🌟 چاپ کل JSON اولین هتل
+            print("\n--- FULL JSON OF FIRST HOTEL ---")
+            print(json.dumps(first_hotel, indent=2, ensure_ascii=False))
+            
         else:
             print(f"❌ Error: {r.text}")
             
