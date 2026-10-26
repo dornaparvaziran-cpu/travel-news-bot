@@ -252,7 +252,6 @@ def fetch_news(max_per_feed=2):
     sent = load_sent_from_gist()
     collected = []
     
-    # 🌟 تاریخ امروز و دیروز (برای فیلتر کردن اخبار قدیمی)
     now = datetime.now()
     limit_date = now - timedelta(hours=24) 
     
@@ -268,7 +267,6 @@ def fetch_news(max_per_feed=2):
                 if not title or not link or link in sent: continue
                 if not any(kw.lower() in title.lower() for kw in ALL_KEYWORDS): continue
                 
-                # 🌟 بررسی تاریخ انتشار خبر
                 pub_date = None
                 if hasattr(entry, 'published_parsed') and entry.published_parsed:
                     pub_date = datetime(*entry.published_parsed[:6])
@@ -279,7 +277,6 @@ def fetch_news(max_per_feed=2):
                     print(f"Skipping old news: {title[:30]}... (Date: {pub_date})")
                     continue
                 
-                # 🌟 استخراج متن کامل خبر
                 full_text = ""
                 if 'content' in entry and len(entry.content) > 0:
                     full_text = entry.content[0].value
@@ -316,11 +313,24 @@ async def get_prices_for_route(browser, route_name, route_url):
                     continue
                     
                 lines = [line.strip() for line in text.split('\n') if line.strip()]
-                airline = lines[0] if len(lines) > 0 else "نامشخص"
+                
+                # 🌟 پیدا کردن اسم ایرلاین (روش دقیق‌تر)
+                airline = "نامشخص"
+                known_airlines = ["ایران ایر", "ماهان", "آسمان", "زاگرس", "قشم ایر", "کیش ایر", "سپهران", "پارس", "کاسپین", "تابان", "آتا", "کارون", "فلای کیش", "نسیم ایر", "معراج", "چابهار", "هما"]
+                
+                for line in lines:
+                    if any(airline_name in line for airline_name in known_airlines):
+                        airline = line
+                        break
+                        
+                if airline == "نامشخص" and len(lines) > 0:
+                    if "بلیط هواپیما" in lines[0] and len(lines) > 1:
+                        airline = lines[1]
+                    else:
+                        airline = lines[0]
                 
                 times = re.findall(r'\d{1,2}:\d{2}', text)
                 departure_time = times[0] if len(times) > 0 else "?"
-                arrival_time = times[1] if len(times) > 1 else "?"
                 
                 price = "?"
                 for i, line in enumerate(lines):
@@ -337,7 +347,6 @@ async def get_prices_for_route(browser, route_name, route_url):
                     flights.append({
                         "airline": airline,
                         "departure": departure_time,
-                        "arrival": arrival_time,
                         "price": price
                     })
             except: pass
@@ -350,7 +359,7 @@ async def get_prices_for_route(browser, route_name, route_url):
         result_text = f"✈️ <b>قیمت‌های لحظه‌ای پرواز {route_name}</b>\n\n"
         
         for f in flights[:3]:
-            result_text += f"🔹 <b>{f['airline']}</b> | {f['departure']} → {f['arrival']}\n"
+            result_text += f"🔹 <b>{f['airline']}</b> | ساعت {f['departure']}\n"
             result_text += f"    💰 {f['price']} تومان\n\n"
             
         result_text += f"🌐 <a href='{route_url}'>مشاهده و خرید در سایت</a>"
