@@ -450,7 +450,7 @@ def send_extras():
     text = get_weather_and_currency()
     send_to_all(text)
 
-async def send_destination_of_day():
+def send_destination_of_day():
     print("Sending destination of the day...")
     
     sent_destinations = set()
@@ -487,30 +487,26 @@ async def send_destination_of_day():
         text += "📱 09153092528\n\n"
         text += "✈️ <b>درنا تراول</b>"
         
+        # 🌟 استفاده از API رسمی Unsplash برای پیدا کردن عکس دقیق
+        UNSPLASH_KEY = os.environ.get("UNSPLASH_KEY")
         image_url = None
-        async with async_playwright() as p:
-            browser = await p.chromium.launch(headless=True)
-            page = await browser.new_page()
+        
+        if UNSPLASH_KEY:
             try:
-                search_query = urllib.parse.quote(f"{dest['name']} گردشگری")
-                await page.goto(f"https://www.google.com/search?q={search_query}&tbm=isch", timeout=30000)
-                await page.wait_for_timeout(3000)
-                
-                img_elements = await page.locator("img").all()
-                for img in img_elements:
-                    src = await img.get_attribute("src")
-                    if src and src.startswith("http") and "gstatic" not in src and "google" not in src:
-                        image_url = src
-                        break
-                        
-                if not image_url:
-                    image_url = f"https://picsum.photos/seed/{random.randint(1, 10000)}/800/600"
-                    
+                # جستجوی عکس بر اساس اسم مقصد (به انگلیسی برای دقت بالاتر)
+                # اما چون اسم‌ها فارسی هستن، فعلاً از خود اسم فارسی استفاده می‌کنیم
+                search_url = f"https://api.unsplash.com/search/photos?query={urllib.parse.quote(dest['name'])}&client_id={UNSPLASH_KEY}&per_page=1"
+                r_img = requests.get(search_url, timeout=10)
+                if r_img.ok:
+                    data_img = r_img.json()
+                    if data_img.get("results") and len(data_img["results"]) > 0:
+                        image_url = data_img["results"][0]["urls"]["regular"]
             except Exception as e:
-                print(f"Google image search error: {e}")
-                image_url = f"https://picsum.photos/seed/{random.randint(1, 10000)}/800/600"
-            finally:
-                await browser.close()
+                print(f"Unsplash API error: {e}")
+        
+        # اگر عکسی پیدا نشد، یک عکس زیبای پیش‌فرض
+        if not image_url:
+            image_url = "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?q=80&w=1000&auto=format&fit=crop"
         
         send_to_all(text, image_url)
         
