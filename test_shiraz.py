@@ -3,7 +3,7 @@ import json
 from datetime import datetime, timedelta
 
 def main():
-    print("Testing FlyToday API - Full JSON Dump...")
+    print("Testing FlyToday API - Root Keys...")
     
     url = "https://www.flytoday.ir/api/gateway/V3/hotel/Availability?pageNumber=1&pageSize=25&sortMode=Featured"
     
@@ -37,18 +37,21 @@ def main():
         
         if r.ok:
             data = r.json()
-            itineraries = data.get("pricedItineraries", [])
             
-            if not itineraries:
-                print("No hotels found.")
-                return
+            print("\n--- ROOT KEYS ---")
+            for key in data.keys():
+                print(f"- {key}")
                 
-            first_hotel = itineraries[0]
-            
-            # 🌟 چاپ کل JSON اولین هتل
-            print("\n--- FULL JSON OF FIRST HOTEL ---")
-            print(json.dumps(first_hotel, indent=2, ensure_ascii=False))
-            
+            # چک کردن اینکه آیا لیست هتل‌ها با اسمشون توی روت هست یا نه
+            if "hotels" in data:
+                print("\n--- HOTELS LIST (first 2) ---")
+                print(json.dumps(data["hotels"][:2], indent=2, ensure_ascii=False))
+            elif "properties" in data:
+                print("\n--- PROPERTIES LIST (first 2) ---")
+                print(json.dumps(data["properties"][:2], indent=2, ensure_ascii=False))
+            else:
+                print("\n(No 'hotels' or 'properties' list in root)")
+                
         else:
             print(f"❌ Error: {r.text}")
             
