@@ -487,8 +487,21 @@ def send_destination_of_day():
         text += "📱 09153092528\n\n"
         text += "✈️ <b>درنا تراول</b>"
         
-        # 🌟 استفاده از سرویس Picsum برای عکس تصادفی و تضمینی
-        image_url = "https://picsum.photos/800/600"
+        # 🌟 گرفتن عکس واقعی از ویکی‌پدیا بر اساس اسم مقصد
+        image_url = None
+        try:
+            # جستجو در ویکی‌پدیای فارسی
+            wiki_search = requests.get(f"https://fa.wikipedia.org/w/api.php?action=query&titles={urllib.parse.quote(dest['name'])}&prop=pageimages&format=json&pithumbsize=800", timeout=10).json()
+            pages = wiki_search.get("query", {}).get("pages", {})
+            for page_id, page_data in pages.items():
+                if "thumbnail" in page_data:
+                    image_url = page_data["thumbnail"]["source"]
+                    break
+        except: pass
+        
+        # اگر عکسی پیدا نشد، از عکس پیش‌فرض استفاده کن
+        if not image_url:
+            image_url = f"https://picsum.photos/seed/{random.randint(1, 10000)}/800/600"
         
         send_to_all(text, image_url)
         
