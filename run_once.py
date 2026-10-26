@@ -510,17 +510,19 @@ def send_destination_of_day():
             
         dest = random.choice(available_destinations)
         
+        # 🌟 ساخت لینک ویکی‌پدیا بر اساس اسم مقصد
+        wiki_link = f"https://fa.wikipedia.org/wiki/{urllib.parse.quote(dest['name'].replace(' ', '_'))}"
+        
         text = f"🌍 <b>مقصد گردشگری امروز: {dest['name']}</b>\n\n"
         text += f"{dest['description']}\n\n"
+        text += f"🔗 <a href='{wiki_link}'>مشاهده عکس‌ها و اطلاعات بیشتر در ویکی‌پدیا</a>\n\n"
         text += "📞 <b>برای رزرو تور و مشاوره سفر با ما در تماس باشید:</b>\n"
         text += "☎️ 05132292292\n"
         text += "📱 09153092528\n\n"
         text += "✈️ <b>درنا تراول</b>"
         
-        prompt = urllib.parse.quote(f"beautiful realistic photo of {dest['name']}, travel destination, high quality")
-        image_url = f"https://image.pollinations.ai/prompt/{prompt}?width=1000&height=600&nologo=true"
-        
-        send_to_all(text, image_url)
+        # ارسال فقط متن (بدون عکس)
+        send_to_all(text)
         
         sent_destinations.add(dest["name"])
         if GIST_ID and GIST_TOKEN:
