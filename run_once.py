@@ -400,14 +400,12 @@ def send_news_only():
         news_to_send = news[:MAX_NEWS_TO_SEND] 
         for title, link, image_url, full_text in news_to_send:
             
-            # 🌟 چک کردن اینکه آیا متن خبر انگلیسیه
             is_english = False
             if full_text:
                 english_chars = sum(1 for c in full_text if c.isascii() and c.isalpha())
                 if english_chars > len(full_text) * 0.5:
                     is_english = True
             
-            # اگر خبر انگلیسی بود، با متیس ترجمه‌اش کن
             if is_english and METIS_KEY:
                 try:
                     prompt = f"این متن انگلیسی را به فارسی روان ترجمه کن. فقط متن ترجمه شده را برگردان، بدون هیچ توضیح اضافه:\n\n{full_text}"
@@ -417,20 +415,19 @@ def send_news_only():
                     
                     if r_ai.ok:
                         translated = r_ai.json()['choices'][0]['message']['content'].strip()
-                        # مطمئن شو که ترجمه واقعاً فارسیه (نه انگلیسی)
                         fa_chars = sum(1 for c in translated if '\u0600' <= c <= '\u06FF')
                         if fa_chars > len(translated) * 0.3:
                             full_text = translated
                             print(f"Translated English news: {title[:30]}...")
                         else:
                             print(f"Translation failed for: {title[:30]}...")
-                            continue # اگر ترجمه نشد، خبر رو کلاً رد کن
+                            continue
                     else:
                         print(f"Metis error: {r_ai.text}")
-                        continue # اگر متیس خطا داد، رد کن
+                        continue
                 except Exception as e:
                     print(f"Translation error: {e}")
-                    continue # اگر خطا داد، رد کن
+                    continue
             
             category = get_category(title)
             
@@ -520,26 +517,8 @@ def send_destination_of_day():
         text += "📱 09153092528\n\n"
         text += "✈️ <b>درنا تراول</b>"
         
-        # 🌟 استفاده از API رسمی Unsplash برای پیدا کردن عکس دقیق
-        UNSPLASH_KEY = os.environ.get("UNSPLASH_KEY")
-        image_url = None
-        
-        if UNSPLASH_KEY:
-            try:
-                # جستجوی عکس بر اساس اسم مقصد (به انگلیسی برای دقت بالاتر)
-                # اما چون اسم‌ها فارسی هستن، فعلاً از خود اسم فارسی استفاده می‌کنیم
-                search_url = f"https://api.unsplash.com/search/photos?query={urllib.parse.quote(dest['name'])}&client_id={UNSPLASH_KEY}&per_page=1"
-                r_img = requests.get(search_url, timeout=10)
-                if r_img.ok:
-                    data_img = r_img.json()
-                    if data_img.get("results") and len(data_img["results"]) > 0:
-                        image_url = data_img["results"][0]["urls"]["regular"]
-            except Exception as e:
-                print(f"Unsplash API error: {e}")
-        
-        # اگر عکسی پیدا نشد، یک عکس زیبای پیش‌فرض
-        if not image_url:
-            image_url = "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?q=80&w=1000&auto=format&fit=crop"
+        prompt = urllib.parse.quote(f"beautiful realistic photo of {dest['name']}, travel destination, high quality")
+        image_url = f"https://image.pollinations.ai/prompt/{prompt}?width=1000&height=600&nologo=true"
         
         send_to_all(text, image_url)
         
@@ -562,12 +541,12 @@ def main():
     if mode == "news": send_news_only()
     elif mode == "prices": asyncio.run(fetch_random_flight_prices())
     elif mode == "extras": send_extras()
-    elif mode == "destination": asyncio.run(send_destination_of_day())
+    elif mode == "destination": send_destination_of_day()
     else:
         send_news_only()
         asyncio.run(fetch_random_flight_prices())
         send_extras()
-        asyncio.run(send_destination_of_day())
+        send_destination_of_day()
 
 if __name__ == "__main__":
     main()
