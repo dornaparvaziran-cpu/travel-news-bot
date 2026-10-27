@@ -1,0 +1,32 @@
+[
+    {
+        "name": "قیمه نثار",
+        "city": "قم",
+        "description": "غذای اصیل و مجلسی قم که ترکیبی از برنج، گوشت چرخ‌کرده، خلال پرتقال، خلال پسته و بادام است. طعمی شیرین و لذیذ دارد.",
+        "image": "https://image.pollinations.ai/prompt/Traditional%20Persian%20Gheymeh%20Nesar%20rice%20dish%20with%20pistachios%20and%20orange%20peels%20food%20photography?width=1000&height=600&nologo=true"
+    },
+    {
+        "name": "بریانی اصفهان",
+        "city": "اصفهان",
+        "description": "یکی از معروف‌ترین غذاهای اصفهان که با گوشت گوسفند، نان خشک، دارچین و زعفران تهیه می‌شود و معمولاً با آبگوشت سرو می‌گردد.",
+        "image": "https://image.pollinations.ai/prompt/Traditional%20Persian%20Beryani%20Isfahan%20mutton%20dish%20food%20photography?width=1000&height=600&nologo=true"
+    },
+    {
+        "name": "کباب شیشلیک",
+        "city": "مشهد",
+        "description": "کباب سنتی مشهد که با گوشت گوسفند یا شتر مزه‌دار شده و روی زغال کباب می‌شود. بسیار خوشمزه و پرطرفدار است.",
+        "image": "https://image.pollinations.ai/prompt/Traditional%20Persian%20Shishlik%20kebab%20lamb%20meat%20on%20skewers%20food%20photography?width=1000&height=600&nologo=true"
+    },
+    {
+        "name": "قیمه بادمجان",
+        "city": "شیراز",
+        "description": "خورش خوشمزه شیرازی که با بادمجان سرخ‌شده، لپه و گوشت تهیه می‌شود. طعمی متفاوت و عالی دارد.",
+        "image": "https://image.pollinations.ai/prompt/Traditional%20Persian%20Gheymeh%20Bademjan%20eggplant%20stew%20food%20photography?width=1000&height=600&nologo=true"
+    },
+    {
+        "name": "چلوکباب کوبیده",
+        "city": "تهران",
+        "description": "پایتخت‌نشین‌ها هم عاشق کباب کوبیده هستند. این غذا نماد مهمان‌نوازی ایرانی است و با برنج زعفرانی سرو می‌شود.",
+        "image": "https://image.pollinations.ai/prompt/Traditional%20Persian%20Koobideh%20kebab%20with%20saffron%20rice%20food%20photography?width=1000&height=600&nologo=true"
+    }
+]
