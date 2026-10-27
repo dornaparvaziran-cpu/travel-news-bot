@@ -9,6 +9,7 @@ import json
 import time
 import translators as ts
 from datetime import datetime, timedelta
+from playwright.async_api import async_playwright
 
 TG_TOKEN = os.environ.get("BOT_TOKEN")
 TG_CHANNEL = os.environ.get("CHANNEL_ID")
@@ -20,9 +21,7 @@ GIST_TOKEN = os.environ.get("GIST_TOKEN")
 
 MAX_NEWS_TO_SEND = 9 
 
-# 🌟 لیست منابع خبری (فارسی و انگلیسی)
 FEEDS = [
-    # فارسی
     "https://www.tinn.ir/fa/feeds/?p=Y2F0ZWdvcmllcz03Ng,,",
     "https://www.tinn.ir/fa/feeds/?p=cG9zaXRpb25Gcm9udD00",
     "https://biatrip.com/tag/اخبار-خطوط-هوایی/feed",
@@ -31,8 +30,6 @@ FEEDS = [
     "https://www.mehrnews.com/rss?kw=شرکت+فرودگاهها+و+ناوبری+هوایی+ایران",
     "https://www.khabaronline.ir/rss?kw=CIP+فرودگاه",
     "https://www.irna.ir/rss",
-    
-    # انگلیسی (تخصصی و جذاب)
     "https://skift.com/feed/",
     "https://www.theguardian.com/uk/travel/rss",
     "http://rss.cnn.com/rss/cnn_travel.rss",
@@ -88,7 +85,7 @@ TRAVEL_TIPS = [
 ]
 
 # ---------- توابع Gist ----------
-def load_sent_from_gist():
+def load_sent_from_gist(file_name):
     if not GIST_ID or not GIST_TOKEN: return set()
     try:
         url = f"https://api.github.com/gists/{GIST_ID}"
@@ -96,21 +93,19 @@ def load_sent_from_gist():
         r = requests.get(url, headers=headers, timeout=10)
         if r.ok:
             files = r.json().get("files", {})
-            content = files.get("sent_links.txt", {}).get("content", "").strip()
+            content = files.get(file_name, {}).get("content", "").strip()
             if not content: return set()
             return set(content.splitlines())
     except Exception as e:
         print(f"Gist load warning: {e}")
     return set()
 
-def save_sent_to_gist(new_link):
+def save_sent_to_gist(file_name, links):
     if not GIST_ID or not GIST_TOKEN: return
-    sent = load_sent_from_gist()
-    sent.add(new_link)
-    new_content = "\n".join(sent)
+    new_content = "\n".join(links)
     url = f"https://api.github.com/gists/{GIST_ID}"
     headers = {"Authorization": f"token {GIST_TOKEN}", "Accept": "application/vnd.github.v3+json"}
-    data = {"files": {"sent_links.txt": {"content": new_content}}}
+    data = {"files": {file_name: {"content": new_content}}}
     try:
         r = requests.patch(url, headers=headers, json=data, timeout=10)
         if not r.ok: print(f"Gist save error: {r.text}")
@@ -164,7 +159,7 @@ def send_to_eita(text, image_url=None):
             return f"{match.group(2)}:\n{url}"
     text_md = re.sub(r"<a href='([^']+)'>([^<]+)</a>", clean_link, text_md)
     
-    if "🌍" in text_md:
+    if "🌍" in text_md or "🍽️" in text_md:
         text_md = f"{text_md}\n\n➖➖➖➖➖➖➖➖"
     elif "🌤" in text_md or "💱" in text_md or "💡" in text_md:
         text_md = f"{text_md}\n\n➖➖➖➖➖➖➖➖"
@@ -189,7 +184,7 @@ def send_to_all(text, image_url=None):
     return tg_id, eita_ok
 
 def fetch_news(max_per_feed=2):
-    sent = load_sent_from_gist()
+    sent = load_sent_from_gist("sent_links.txt")
     collected = []
     
     now = datetime.now()
@@ -241,6 +236,8 @@ def send_news_only():
     news = fetch_news()
     if news:
         news_to_send = news[:MAX_NEWS_TO_SEND] 
+        sent = load_sent_from_gist("sent_links.txt")
+        
         for title, link, image_url, full_text in news_to_send:
             
             is_english = False
@@ -281,7 +278,9 @@ def send_news_only():
             text += f"{category}"
             
             tg_id, _ = send_to_all(text, image_url)
-            if tg_id: save_sent_to_gist(link)
+            if tg_id: 
+                sent.add(link)
+                save_sent_to_gist("sent_links.txt", sent)
 
 def get_weather_and_currency():
     msg = "🌤 <b>گزارش روزانه سفر</b>\n\n"
@@ -325,20 +324,7 @@ def send_extras():
 
 def send_destination_of_day():
     print("Sending destination of the day...")
-    
-    sent_destinations = set()
-    if GIST_ID and GIST_TOKEN:
-        try:
-            url = f"https://api.github.com/gists/{GIST_ID}"
-            headers = {"Authorization": f"token {GIST_TOKEN}", "Accept": "application/vnd.github.v3+json"}
-            r = requests.get(url, headers=headers, timeout=10)
-            if r.ok:
-                files = r.json().get("files", {})
-                content = files.get("sent_destinations.txt", {}).get("content", "").strip()
-                if content:
-                    sent_destinations = set(content.splitlines())
-        except Exception as e:
-            print(f"Gist load warning: {e}")
+    sent_destinations = load_sent_from_gist("sent_destinations.txt")
 
     try:
         with open("destinations.json", "r", encoding="utf-8") as f:
@@ -363,31 +349,60 @@ def send_destination_of_day():
         text += "📱 09153092528\n\n"
         text += "✈️ <b>درنا تراول</b>"
         
-        send_to_all(text)
-        
-        sent_destinations.add(dest["name"])
-        if GIST_ID and GIST_TOKEN:
-            new_content = "\n".join(sent_destinations)
-            url = f"https://api.github.com/gists/{GIST_ID}"
-            headers = {"Authorization": f"token {GIST_TOKEN}", "Accept": "application/vnd.github.v3+json"}
-            data = {"files": {"sent_destinations.txt": {"content": new_content}}}
-            try:
-                requests.patch(url, headers=headers, json=data, timeout=10)
-                print(f"Saved destination to Gist: {dest['name']}")
-            except Exception as e: print(f"Gist save warning: {e}")
-            
+        tg_id, _ = send_to_all(text)
+        if tg_id:
+            sent_destinations.add(dest["name"])
+            save_sent_to_gist("sent_destinations.txt", sent_destinations)
+            print(f"Saved destination to Gist: {dest['name']}")
     except Exception as e:
         print(f"Error sending destination: {e}")
+
+def send_local_food():
+    print("Sending local food of the day...")
+    sent_foods = load_sent_from_gist("sent_foods.txt")
+
+    try:
+        with open("foods.json", "r", encoding="utf-8") as f:
+            all_foods = json.load(f)
+            
+        available_foods = [f for f in all_foods if f["name"] not in sent_foods]
+        
+        if not available_foods:
+            print("✅ All 100 foods have been sent! Resetting list for a new cycle...")
+            available_foods = all_foods
+            sent_foods = set()
+            
+        food = random.choice(available_foods)
+        
+        text = f"🍽️ <b>غذای محلی امروز: {food['name']} ({food['city']})</b>\n\n"
+        text += f"{food['description']}\n\n"
+        text += "📞 <b>برای رزرو تور و مشاوره سفر با ما در تماس باشید:</b>\n"
+        text += "☎️ 05132292292\n"
+        text += "📱 09153092528\n\n"
+        text += "✈️ <b>درنا تراول</b>"
+        
+        tg_id, _ = send_to_all(text, food["image"])
+        if tg_id:
+            sent_foods.add(food["name"])
+            save_sent_to_gist("sent_foods.txt", sent_foods)
+            print(f"✅ Saved food to Gist. Total sent: {len(sent_foods)}/100")
+        else:
+            print(f"❌ Failed to send food: {food['name']}")
+            
+    except Exception as e:
+        print(f"Error sending food: {e}")
 
 def main():
     mode = sys.argv[1] if len(sys.argv) > 1 else "all"
     if mode == "news": send_news_only()
     elif mode == "extras": send_extras()
     elif mode == "destination": send_destination_of_day()
+    elif mode == "food": send_local_food()
     else:
         send_news_only()
         send_extras()
         send_destination_of_day()
+        send_local_food()
 
 if __name__ == "__main__":
     main()
