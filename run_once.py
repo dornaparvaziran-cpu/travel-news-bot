@@ -406,27 +406,34 @@ async def get_prices_for_route(browser, route_name, route_url):
 
                 lines = [line.strip() for line in text.split("\n") if line.strip()]
 
-                # پیدا کردن اسم ایرلاین (دقیق‌تر)
+                # ===== پیدا کردن اسم ایرلاین =====
                 airline = "نامشخص"
                 known_airlines = [
                     "ایران ایر", "ماهان", "آسمان", "زاگرس", "قشم ایر", "کیش ایر",
                     "سپهران", "پارس", "کاسپین", "تابان", "آتا", "کارون",
                     "فلای کیش", "نسیم ایر", "معراج", "چابهار", "هما", "مهر",
                     "فلای پرشیا", "پویا ایر", "یاس ایر", "ساها",
-                    "اردکان ایر", "فارس ایر", "آساجت", "جی اسکای", "جی‌اسکای"
+                    "اردکان ایر", "فارس ایر", "آساجت", "جی اسکای", "جی‌اسکای",
+                    "کیش ایر", "فلای پرشیا", "ایران‌ایر", "ماهان‌ایر"
                 ]
                 
+                # ۱. اول از لیست ایرلاین‌های معروف جستجو کن
                 for line in lines:
                     if any(name in line for name in known_airlines):
                         airline = line
                         break
                 
-                # اگر با لیست معروف پیدا نشد، از ۳ خط اول کارت استفاده کن
+                # ۲. اگر پیدا نشد، از ۳ خط اول کارت استفاده کن (با فیلترهای سختگیرانه)
                 if airline == "نامشخص":
                     for line in lines[:3]:
-                        # خط باید کوتاه باشه، شامل کلمات منو نباشه و شامل عدد نباشه
-                        if (len(line) > 2 and len(line) < 30 and
-                            not any(c.isdigit() for c in line) and  # ✅ خط نباید عدد داشته باشه
+                        # خط باید شرایط زیر رو داشته باشه:
+                        # - کوتاه باشه (بین ۲ تا ۲۵ کاراکتر)
+                        # - شامل عدد نباشه (قیمت و ساعت عدد دارن)
+                        # - شامل کلمات منهی نباشه
+                        # - دقیقاً «درنا» توش نباشه (اسم شرکت شماست، نه ایرلاین)
+                        if (2 < len(line) < 25 and
+                            not any(c.isdigit() for c in line) and
+                            "درنا" not in line and
                             not any(word in line for word in [
                                 "پشتیبانی", "ساعته", "بلیط", "اکونومی", "سیستمی", 
                                 "بیزنس", "Economy", "Business", "ظرفیت", "نفر", 
@@ -434,15 +441,17 @@ async def get_prices_for_route(browser, route_name, route_url):
                                 "مرتب", "سازی", "تهران", "مشهد", "کیش", 
                                 "شیراز", "اصفهان", "تبریز", "استانبول", 
                                 "نجف", "دبی", "مسقط", "اهواز", "آبادان", 
-                                "زاهدان", "رشت", "بندر", "چابهار", "درنا",
-                                "اکونومی", "Boeing", "Airbus", "737", "320"
+                                "زاهدان", "رشت", "بندر", "چابهار",
+                                "Boeing", "Airbus", "EMB", "737", "320", "145"
                             ])):
                             airline = line
                             break
 
+                # ===== پیدا کردن ساعت پرواز =====
                 times = re.findall(r"\d{1,2}:\d{2}", text)
                 departure_time = times[0] if len(times) > 0 else "?"
 
+                # ===== پیدا کردن قیمت =====
                 price = "?"
                 for i, line in enumerate(lines):
                     if line == "تومان" and i > 0:
@@ -454,7 +463,8 @@ async def get_prices_for_route(browser, route_name, route_url):
                             price = price_match.group(1)
                             break
 
-                if price != "?" and price != "0":
+                # فقط اگر هر سه مورد (اسم، ساعت، قیمت) پیدا شدن، اضافه کن
+                if airline != "نامشخص" and price != "?" and price != "0" and departure_time != "?":
                     flights.append(
                         {"airline": airline, "departure": departure_time, "price": price}
                     )
@@ -466,6 +476,7 @@ async def get_prices_for_route(browser, route_name, route_url):
         if not flights:
             return None
 
+        # ===== حذف تکراری‌ها (بر اساس ترکیب اسم، ساعت و قیمت) =====
         unique_flights = []
         seen = set()
         for f in flights:
@@ -474,8 +485,17 @@ async def get_prices_for_route(browser, route_name, route_url):
                 seen.add(key)
                 unique_flights.append(f)
 
+        # اگر باز هم تکراری موند (مثلاً دو پرواز از یک ایرلاین با ساعت و قیمت یکسان)، فقط یکی رو نگه دار
+        final_flights = []
+        seen_airline_time = set()
+        for f in unique_flights:
+            key = f"{f['airline']}_{f['departure']}"
+            if key not in seen_airline_time:
+                seen_airline_time.add(key)
+                final_flights.append(f)
+
         result_text = f"✈️ <b>قیمت‌های لحظه‌ای پرواز {route_name}</b>\n\n"
-        for f in unique_flights[:3]:
+        for f in final_flights[:3]:
             result_text += f"🔹 <b>{f['airline']}</b> | ساعت {f['departure']}\n"
             result_text += f"    💰 {f['price']} تومان\n\n"
         result_text += f"🌐 <a href='{route_url}'>مشاهده و خرید در سایت</a>"
@@ -485,7 +505,6 @@ async def get_prices_for_route(browser, route_name, route_url):
         print(f"Playwright error for {route_name}: {e}")
         await page.close()
         return None
-
 
 async def fetch_random_flight_prices():
     delete_previous_messages("last_price_msgs.txt")
