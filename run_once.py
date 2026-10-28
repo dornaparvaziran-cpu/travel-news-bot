@@ -406,21 +406,36 @@ async def get_prices_for_route(browser, route_name, route_url):
 
                 lines = [line.strip() for line in text.split("\n") if line.strip()]
 
+                # پیدا کردن اسم ایرلاین (دقیق‌تر)
                 airline = "نامشخص"
                 known_airlines = [
                     "ایران ایر", "ماهان", "آسمان", "زاگرس", "قشم ایر", "کیش ایر",
                     "سپهران", "پارس", "کاسپین", "تابان", "آتا", "کارون",
-                    "فلای کیش", "نسیم ایر", "معراج", "چابهار", "هما",
+                    "فلای کیش", "نسیم ایر", "معراج", "چابهار", "هما", "مهر",
+                    "فلای پرشیا", "پویا ایر", "یاس ایر", "ساها",
+                    "اردکان ایر", "فارس ایر"
                 ]
+                
                 for line in lines:
                     if any(name in line for name in known_airlines):
                         airline = line
                         break
-                if airline == "نامشخص" and len(lines) > 0:
-                    if "بلیط هواپیما" in lines[0] and len(lines) > 1:
-                        airline = lines[1]
-                    else:
-                        airline = lines[0]
+                
+                # اگر با لیست معروف پیدا نشد، دنبال خطی بگرد که کوتاه و شبیه اسم ایرلاینه
+                if airline == "نامشخص":
+                    for line in lines[:5]:  # فقط ۵ خط اول رو چک کن
+                        if (len(line) > 2 and len(line) < 30 and
+                            not any(word in line for word in [
+                                "پشتیبانی", "ساعته", "بلیط", "اکونومی", "سیستمی", 
+                                "بیزنس", "Economy", "Business", "ظرفیت", "نفر", 
+                                "تومان", "ریال", "نرخ", "مشاهده", "خرید", 
+                                "مرتب", "سازی", "تهران", "مشهد", "کیش", 
+                                "شیراز", "اصفهان", "تبریز", "استانبول", 
+                                "نجف", "دبی", "مسقط", "اهواز", "آبادان", 
+                                "زاهدان", "رشت", "بندر", "چابهار"
+                            ])):
+                            airline = line
+                            break
 
                 times = re.findall(r"\d{1,2}:\d{2}", text)
                 departure_time = times[0] if len(times) > 0 else "?"
