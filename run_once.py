@@ -16,6 +16,7 @@ TG_TOKEN = os.environ.get("BOT_TOKEN")
 TG_CHANNEL = os.environ.get("CHANNEL_ID")
 EITA_TOKEN = os.environ.get("EITA_TOKEN")
 EITA_CHANNEL = os.environ.get("EITA_CHANNEL_ID")
+YOUTUBE_API_KEY = os.environ.get("YOUTUBE_API_KEY")
 
 GIST_ID = os.environ.get("GIST_ID")
 GIST_TOKEN = os.environ.get("GIST_TOKEN")
@@ -47,17 +48,19 @@ ALL_ROUTES = [
 ]
 
 FEEDS = [
-    # --- تخصصی هوانوردی و حمل‌ونقل ---
-    "https://www.tinn.ir/fa/feeds/?p=Y2F0ZWdvcmllcz03Ng,,",  # تین نیوز
-    "https://biatrip.com/tag/اخبار-خطوط-هوایی/feed",          # بیا تریپ
-    
-    # --- خبرگزاری‌های عمومی (بخش گردشگری) ---
-    "https://www.mehrnews.com/rss?kw=گردشگری",     # مهر - گردشگری
-    "https://www.khabaronline.ir/rss?kw=گردشگری",  # خبرآنلاین - گردشگری
-    "https://www.irna.ir/rss",                     # ایرنا (کل)
-    
-    # --- اخبار منطقه‌ای (جزایر و مناطق آزاد) ---
-    "https://sobhekish.ir/category/fa/gardeshgari/feed/",  # صبح کیش
+    "https://www.tinn.ir/fa/feeds/?p=Y2F0ZWdvcmllcz03Ng,,",
+    "https://www.tinn.ir/fa/feeds/?p=cG9zaXRpb25Gcm9udD00",
+    "https://biatrip.com/tag/اخبار-خطوط-هوایی/feed",
+    "https://biatrip.com/tag/سازمان-هواپیمایی-فدرال/feed",
+    "https://www.mehrnews.com/rss",
+    "https://www.mehrnews.com/rss?kw=شرکت+فرودگاهها+و+ناوبری+هوایی+ایران",
+    "https://www.khabaronline.ir/rss?kw=CIP+فرودگاه",
+    "https://www.irna.ir/rss",
+    "https://skift.com/feed/",
+    "https://www.theguardian.com/uk/travel/rss",
+    "http://rss.cnn.com/rss/cnn_travel.rss",
+    "https://www.atlasobscura.com/feeds/latest",
+    "https://www.aerotime.aero/feed",
 ]
 
 CATEGORIES = {
@@ -243,7 +246,7 @@ def send_to_eita(text, image_url=None):
     if "قیمت‌های لحظه‌ای پرواز" in text_md:
         text_md = text_md.replace("🔹", "✈️")
         text_md = f"{text_md}\n\n➖➖➖➖➖➖➖➖"
-    elif "🌍" in text_md or "🍽️" in text_md:
+    elif "🌍" in text_md or "🍽️" in text_md or "🎬" in text_md:
         text_md = f"{text_md}\n\n➖➖➖➖➖➖➖➖"
     elif "🌤" in text_md or "💱" in text_md or "💡" in text_md:
         text_md = f"{text_md}\n\n➖➖➖➖➖➖➖➖"
@@ -605,68 +608,4 @@ def send_destination_of_day():
         tg_id, _ = send_to_all(text)
         if tg_id:
             sent_destinations.add(dest["name"])
-            save_sent_to_gist("sent_destinations.txt", sent_destinations)
-            print(f"Saved destination to Gist: {dest['name']}")
-    except Exception as e:
-        print(f"Error sending destination: {e}")
-
-
-# ---------- Food ----------
-def send_local_food():
-    print("Sending local food of the day...")
-    sent_foods = load_sent_from_gist("sent_foods.txt")
-
-    try:
-        with open("foods.json", "r", encoding="utf-8") as f:
-            all_foods = json.load(f)
-
-        available_foods = [f for f in all_foods if f["name"] not in sent_foods]
-
-        if not available_foods:
-            print("✅ All foods have been sent! Resetting list for a new cycle...")
-            available_foods = all_foods
-            sent_foods = set()
-
-        food = random.choice(available_foods)
-
-        text = f"🍽️ <b>غذای محلی امروز: {food['name']} ({food['city']})</b>\n\n"
-        text += f"{food['description']}\n\n"
-        text += "📞 <b>برای رزرو تور و مشاوره سفر با ما در تماس باشید:</b>\n"
-        text += "☎️ 05132292292\n"
-        text += "📱 09153092528\n\n"
-        text += "✈️ <b>درنا تراول</b>"
-
-        tg_id, _ = send_to_all(text, food["image"])
-        if tg_id:
-            sent_foods.add(food["name"])
-            save_sent_to_gist("sent_foods.txt", sent_foods)
-            print(f"✅ Saved food to Gist. Total sent: {len(sent_foods)}")
-        else:
-            print(f"❌ Failed to send food: {food['name']}")
-    except Exception as e:
-        print(f"Error sending food: {e}")
-
-
-# ---------- Main ----------
-def main():
-    mode = sys.argv[1] if len(sys.argv) > 1 else "all"
-    if mode == "news":
-        send_news_only()
-    elif mode == "prices":
-        asyncio.run(fetch_random_flight_prices())
-    elif mode == "extras":
-        send_extras()
-    elif mode == "destination":
-        send_destination_of_day()
-    elif mode == "food":
-        send_local_food()
-    else:
-        send_news_only()
-        asyncio.run(fetch_random_flight_prices())
-        send_extras()
-        send_destination_of_day()
-        send_local_food()
-
-
-if __name__ == "__main__":
-    main()
+            save_sent_to_gist("sent_destinations.txt", sent_destinations
