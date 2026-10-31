@@ -8,12 +8,18 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
+          
       - name: Install deps
-        run: pip install -r requirements.txt
+        run: |
+          pip install -r requirements.txt
+          playwright install chromium
+          playwright install-deps chromium
+          
       - name: Run Test Script
         env:
           METIS_KEY: ${{ secrets.METIS_KEY }}
-        run: python test_shiraz.py
+        run: python test_hotel_price.py
