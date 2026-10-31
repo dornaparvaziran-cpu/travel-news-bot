@@ -47,19 +47,17 @@ ALL_ROUTES = [
 ]
 
 FEEDS = [
-    "https://www.tinn.ir/fa/feeds/?p=Y2F0ZWdvcmllcz03Ng,,",
-    "https://www.tinn.ir/fa/feeds/?p=cG9zaXRpb25Gcm9udD00",
-    "https://biatrip.com/tag/اخبار-خطوط-هوایی/feed",
-    "https://biatrip.com/tag/سازمان-هواپیمایی-فدرال/feed",
-    "https://www.mehrnews.com/rss",
-    "https://www.mehrnews.com/rss?kw=شرکت+فرودگاهها+و+ناوبری+هوایی+ایران",
-    "https://www.khabaronline.ir/rss?kw=CIP+فرودگاه",
-    "https://www.irna.ir/rss",
-    "https://skift.com/feed/",
-    "https://www.theguardian.com/uk/travel/rss",
-    "http://rss.cnn.com/rss/cnn_travel.rss",
-    "https://www.atlasobscura.com/feeds/latest",
-    "https://www.aerotime.aero/feed",
+    # --- تخصصی هوانوردی و حمل‌ونقل ---
+    "https://www.tinn.ir/fa/feeds/?p=Y2F0ZWdvcmllcz03Ng,,",  # تین نیوز
+    "https://biatrip.com/tag/اخبار-خطوط-هوایی/feed",          # بیا تریپ
+    
+    # --- خبرگزاری‌های عمومی (بخش گردشگری) ---
+    "https://www.mehrnews.com/rss?kw=گردشگری",     # مهر - گردشگری
+    "https://www.khabaronline.ir/rss?kw=گردشگری",  # خبرآنلاین - گردشگری
+    "https://www.irna.ir/rss",                     # ایرنا (کل)
+    
+    # --- اخبار منطقه‌ای (جزایر و مناطق آزاد) ---
+    "https://sobhekish.ir/category/fa/gardeshgari/feed/",  # صبح کیش
 ]
 
 CATEGORIES = {
