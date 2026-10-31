@@ -1,4 +1,4 @@
-name: Test Hotel Scraper
+name: Test IranHotel Scraper
 
 on:
   workflow_dispatch:
@@ -20,6 +20,4 @@ jobs:
           playwright install-deps chromium
           
       - name: Run Test Script
-        env:
-          METIS_KEY: ${{ secrets.METIS_KEY }}
-        run: python test_hotel_price.py
+        run: python test_iranhotel.py
