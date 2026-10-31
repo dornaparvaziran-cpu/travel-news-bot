@@ -560,7 +560,6 @@ def send_youtube_video():
         return
 
     sent_videos = load_sent_from_gist("sent_youtube.txt")
-
     query = random.choice(YOUTUBE_QUERIES)
 
     try:
@@ -581,37 +580,67 @@ def send_youtube_video():
 
         items = r.json().get("items", [])
         candidates = []
+        
+        # کلماتی که نباید در عنوان و توضیحات ویدیو باشند (برای جلوگیری از محتوای نامرتبط)
+        blacklist = ["politics", "war", "news", "media", "propaganda", "military", "israel", "palestine", "usa", "america"]
+        # کلماتی که بهتر است در عنوان یا توضیحات باشند (مربوط به گردشگری)
+        whitelist = ["travel", "iran", "tour", "tourism", "guide", "vlog", "visit", "nature", "city"]
+
         for item in items:
             vid = item.get("id", {}).get("videoId")
-            if vid and vid not in sent_videos:
-                candidates.append(item)
+            if not vid or vid in sent_videos:
+                continue
+                
+            title_raw = item["snippet"]["title"].lower()
+            desc_raw = item["snippet"].get("description", "").lower()
+            
+            # چک کردن کلمات ممنوعه
+            if any(bad_word in title_raw or bad_word in desc_raw for bad_word in blacklist):
+                print(f"Skipping blacklisted video: {title_raw[:30]}...")
+                continue
+                
+            # چک کردن کلمات مجاز (حداقل یکی باید باشد)
+            if not any(good_word in title_raw or good_word in desc_raw for good_word in whitelist):
+                print(f"Skipping unrelated video: {title_raw[:30]}...")
+                continue
+
+            candidates.append(item)
 
         if not candidates:
-            print("No new videos found. Resetting list...")
+            print("No suitable videos found. Resetting list...")
             sent_videos = set()
+            # اگر با ریست هم چیزی پیدا نشد، خارج می‌شویم
             candidates = [it for it in items if it.get("id", {}).get("videoId")]
-
-        if not candidates:
-            print("YouTube returned no results.")
-            return
+            if not candidates:
+                print("YouTube returned no results.")
+                return
 
         video = random.choice(candidates)
         vid = video["id"]["videoId"]
         raw_title = video["snippet"]["title"]
-        # حذف هشتگ‌ها از عنوان
+
+        # ۱. حذف هشتگ‌ها از عنوان
         title = re.sub(r"#\S+", "", raw_title).strip()
-        # اگر بعد از حذف هشتگ‌ها عنوان خالی شد، از عنوان اصلی استفاده کن
         if not title:
             title = raw_title
-        description = video["snippet"].get("description", "").strip()
-        if len(description) > 250:
-            description = description[:250] + "..."
+
+        # ۲. ترجمه عنوان اگر انگلیسی باشد
+        english_chars = sum(1 for c in title if c.isascii() and c.isalpha())
+        if english_chars > len(title) * 0.5:
+            print("Translating YouTube title to Persian...")
+            try:
+                title = ts.translate_text(title, translator="bing", from_language="en", to_language="fa")
+            except Exception as e:
+                print(f"Translation error: {e}")
+                try:
+                    title = ts.translate_text(title, translator="google", from_language="en", to_language="fa")
+                except:
+                    pass # اگر ترجمه نشد، همان انگلیسی می‌ماند
 
         video_url = f"https://www.youtube.com/watch?v={vid}"
 
+        # ۳. ساخت متن نهایی (بدون description)
         text = f"🎬 <b>{title}</b>\n\n"
-        if description:
-            text += f"{description}\n\n"
         text += f"🔗 تماشا در یوتیوب:\n{video_url}\n\n"
         text += "✈️ <b>درنا تراول</b>"
 
@@ -622,7 +651,6 @@ def send_youtube_video():
 
     except Exception as e:
         print(f"YouTube error: {e}")
-
 
 # ---------- Main ----------
 if __name__ == "__main__":
