@@ -488,7 +488,7 @@ async def get_prices_for_route(browser, route_name, route_url):
                         price = lines[i - 1]
                         break
                     elif "تومان" in line:
-                        price_match =re.search(r"([\d,]+)", line)
+                        price_match = re.search(r"([\d,]+)", line)
                         if price_match:
                             price = price_match.group(1)
                             break
