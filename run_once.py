@@ -110,6 +110,40 @@ TRAVEL_TIPS = [
     "سعی کن برنامه سفرت رو کمی انعطاف‌پذیر بذاری؛ گاهی بهترین خاطرات از یک مسیر برنامه‌ریزی نشده به دست میاد!",
 ]
 
+# ---------- Foods ----------
+FOODS = [
+    {"name": "قیمه نثار قزوین", "description": "غذای اصیل قزوینی با برنج، گوشت چرخ‌کرده، خلال پرتقال و پسته؛ طعمی شیرین و خوش‌عطر که مخصوص مهمانی‌هاست."},
+    {"name": "باقالی‌پلو با ماهیچه", "description": "یکی از محبوب‌ترین غذاهای ایرانی؛ برنج معطر با باقالی و شوید در کنار ماهیچه‌ی پخته‌شده و رب گوجه."},
+    {"name": "کباب کوبیده", "description": "کباب چرخ‌کرده‌ی گوشت گوسفند و گوساله با پیاز و ادویه، سرو شده با برنج ایرانی و کره."},
+    {"name": "آش رشته", "description": "آش سنتی ایرانی با رشته، حبوبات، سبزی معطر و کشک؛ غذایی گرم و دلچسب برای روزهای سرد."},
+    {"name": "میرزا قاسمی", "description": "غذای شمالی خوشمزه با بادمجان کبابی، سیر، گوجه و تخم‌مرغ؛ همراه با نان تازه."},
+    {"name": "فسنجان", "description": "خورش فسنجان با گردوی آسیاب‌شده، رب انار و مرغ؛ ترکیبی از طعم ملس و عطر گردو."},
+    {"name": "قورمه سبزی", "description": "خورش جاافتاده‌ی ایرانی با سبزی معطر، لپه، گوشت و لیمو عمانی؛ عطر و طعمی که هر ایرانی را یاد خانه می‌اندازد."},
+    {"name": "زرشک‌پلو با مرغ", "description": "برنج ایرانی با زرشک، زعفران و مرغ سرخ‌شده؛ یکی از محبوب‌ترین غذاهای مجلسی."},
+    {"name": "دیزی سنگی", "description": "آبگوشت سنتی در دیزی سنگی همراه با گوشت، نخود، لوبیا و سیب‌زمینی؛ با نان سنگک و سبزی خوردن."},
+    {"name": "کله‌پاچه", "description": "غذای سنتی صبحانه‌ای با پای گوسفند، نخود و ادویه؛ پرانرژی و محبوب در روزهای سرد."},
+    {"name": "حلیم", "description": "غذای سنتی با گندم و گوشت که آرام‌آرام پخته می‌شود؛ با دارچین و شکر سرو می‌شود."},
+    {"name": "کتلت", "description": "کتلت گوشت و سیب‌زمینی سرخ‌شده؛ غذایی ساده و خوشمزه که با نان و سبزی سرو می‌شود."},
+    {"name": "شامی کباب", "description": "شامی کباب با گوشت چرخ‌کرده و سیب‌زمینی رنده‌شده؛ سرخ‌شده و ترد."},
+    {"name": "کوکو سبزی", "description": "کوکوی سبزی با تخم‌مرغ و سبزی معطر؛ غذایی سبک و خوش‌عطر برای وعده‌های ساده."},
+    {"name": "آش دوغ", "description": "آش سنتی آذربایجان با دوغ، سبزی، برنج و نخود؛ خنک و دلچسب."},
+    {"name": "پیتزا مارگاریتا", "description": "پیتزای ایتالیایی با خمیر نازک، سس گوجه، موزارلا و ریحان تازه؛ ساده اما بی‌نظیر."},
+    {"name": "پاستا کاربونارا", "description": "پاستای ایتالیایی با تخم‌مرغ، پنیر پارمزان، بیکن و فلفل سیاه؛ creamy و خوشمزه."},
+    {"name": "سوشی", "description": "غذای ژاپنی با برنج سرکه‌ای، ماهی خام یا پخته و جلبک نوری؛ تازه و سبک."},
+    {"name": "رامن", "description": "سوپ نودل ژاپنی با آب گوشت، تخم‌مرغ آب‌پز، گوشت و سبزیجات؛ گرم و مقوی."},
+    {"name": "شاورما", "description": "غذای خاورمیانه‌ای با گوشت مزه‌دار، نان، سبزی و سس؛ محبوب و سریع."},
+    {"name": "کباب ترکی (دونر)", "description": "گوشت ورقه‌ای کباب‌شده در نان یا برنج با سبزی و سس؛ یکی از محبوب‌ترین فست‌فودهای ترکیه."},
+    {"name": "پد تای", "description": "نودل تایلندی سرخ‌شده با میگو، تخم‌مرغ، بادام‌زمینی و لیمو؛ ترکیبی از طعم شیرین، ترش و شور."},
+    {"name": "تاکو", "description": "غذای مکزیکی با نان ذرت، گوشت، سبزی، پنیر و سس تند؛ خوشمزه و پرطرفدار."},
+    {"name": "پائیا", "description": "غذای اسپانیایی با برنج، زعفران، غذاهای دریایی و مرغ؛ عطری خاص و رنگ طلایی."},
+    {"name": "کروسان", "description": "نان فرانسوی لایه‌لایه و کره‌ای؛ صبحانه‌ای عالی با قهوه."},
+    {"name": "پنکیک", "description": "پنکیک نرم و پفکی با شربت افرا و کره؛ صبحانه‌ای محبوب در سراسر جهان."},
+    {"name": "بریانی", "description": "غذای هندی با برنج، گوشت، ادویه‌های معطر و زعفران؛ پرعطر و خوش‌طعم."},
+    {"name": "فالودا", "description": "دسر هندی خنک با شیر، بستنی، نودل و شربت گل رز؛ مخصوص روزهای گرم."},
+    {"name": "باقلوا", "description": "شیرینی سنتی خاورمیانه با خمیر نازک، پسته یا گردو و شربت؛ شیرین و ترد."},
+    {"name": "حلوا", "description": "دسر سنتی ایرانی با آرد، کره، شکر و زعفران؛ ساده و خوش‌عطر."},
+]
+
 # ---------- Gist ----------
 def load_sent_from_gist(file_name):
     if not GIST_ID or not GIST_TOKEN:
@@ -417,31 +451,26 @@ async def get_prices_for_route(browser, route_name, route_url):
                     "اردکان ایر", "فارس ایر", "آساجت", "جی اسکای", "جی‌اسکای",
                     "کیش ایر", "فلای پرشیا", "ایران‌ایر", "ماهان‌ایر"
                 ]
-                
+
                 # ۱. اول از لیست ایرلاین‌های معروف جستجو کن
                 for line in lines:
                     if any(name in line for name in known_airlines):
                         airline = line
                         break
-                
+
                 # ۲. اگر پیدا نشد، از ۳ خط اول کارت استفاده کن (با فیلترهای سختگیرانه)
                 if airline == "نامشخص":
                     for line in lines[:3]:
-                        # خط باید شرایط زیر رو داشته باشه:
-                        # - کوتاه باشه (بین ۲ تا ۲۵ کاراکتر)
-                        # - شامل عدد نباشه (قیمت و ساعت عدد دارن)
-                        # - شامل کلمات منهی نباشه
-                        # - دقیقاً «درنا» توش نباشه (اسم شرکت شماست، نه ایرلاین)
                         if (2 < len(line) < 25 and
                             not any(c.isdigit() for c in line) and
                             "درنا" not in line and
                             not any(word in line for word in [
-                                "پشتیبانی", "ساعته", "بلیط", "اکونومی", "سیستمی", 
-                                "بیزنس", "Economy", "Business", "ظرفیت", "نفر", 
-                                "تومان", "ریال", "نرخ", "مشاهده", "خرید", 
-                                "مرتب", "سازی", "تهران", "مشهد", "کیش", 
-                                "شیراز", "اصفهان", "تبریز", "استانبول", 
-                                "نجف", "دبی", "مسقط", "اهواز", "آبادان", 
+                                "پشتیبانی", "ساعته", "بلیط", "اکونومی", "سیستمی",
+                                "بیزنس", "Economy", "Business", "ظرفیت", "نفر",
+                                "تومان", "ریال", "نرخ", "مشاهده", "خرید",
+                                "مرتب", "سازی", "تهران", "مشهد", "کیش",
+                                "شیراز", "اصفهان", "تبریز", "استانبول",
+                                "نجف", "دبی", "مسقط", "اهواز", "آبادان",
                                 "زاهدان", "رشت", "بندر", "چابهار",
                                 "Boeing", "Airbus", "EMB", "737", "320", "145"
                             ])):
@@ -459,12 +488,11 @@ async def get_prices_for_route(browser, route_name, route_url):
                         price = lines[i - 1]
                         break
                     elif "تومان" in line:
-                        price_match = re.search(r"([\d,]+)", line)
+                        price_match =re.search(r"([\d,]+)", line)
                         if price_match:
                             price = price_match.group(1)
                             break
 
-                # فقط اگر هر سه مورد (اسم، ساعت، قیمت) پیدا شدن، اضافه کن
                 if airline != "نامشخص" and price != "?" and price != "0" and departure_time != "?":
                     flights.append(
                         {"airline": airline, "departure": departure_time, "price": price}
@@ -477,7 +505,6 @@ async def get_prices_for_route(browser, route_name, route_url):
         if not flights:
             return None
 
-        # ===== حذف تکراری‌ها (بر اساس ترکیب اسم، ساعت و قیمت) =====
         unique_flights = []
         seen = set()
         for f in flights:
@@ -486,7 +513,6 @@ async def get_prices_for_route(browser, route_name, route_url):
                 seen.add(key)
                 unique_flights.append(f)
 
-        # اگر باز هم تکراری موند (مثلاً دو پرواز از یک ایرلاین با ساعت و قیمت یکسان)، فقط یکی رو نگه دار
         final_flights = []
         seen_airline_time = set()
         for f in unique_flights:
@@ -506,6 +532,7 @@ async def get_prices_for_route(browser, route_name, route_url):
         print(f"Playwright error for {route_name}: {e}")
         await page.close()
         return None
+
 
 async def fetch_random_flight_prices():
     delete_previous_messages("last_price_msgs.txt")
@@ -608,4 +635,126 @@ def send_destination_of_day():
         tg_id, _ = send_to_all(text)
         if tg_id:
             sent_destinations.add(dest["name"])
-            save_sent_to_gist("sent_destinations.txt", sent_destinations
+            save_sent_to_gist("sent_destinations.txt", sent_destinations)
+
+    except FileNotFoundError:
+        print("destinations.json not found! Skipping destination job.")
+    except Exception as e:
+        print(f"Destination error: {e}")
+
+
+# ---------- Food ----------
+def send_food_of_day():
+    print("Sending food of the day...")
+    sent_foods = load_sent_from_gist("sent_foods.txt")
+
+    available_foods = [f for f in FOODS if f["name"] not in sent_foods]
+    if not available_foods:
+        print("All foods sent! Resetting list...")
+        available_foods = FOODS
+        sent_foods = set()
+
+    food = random.choice(available_foods)
+
+    text = f"🍽️ <b>غذای پیشنهادی امروز: {food['name']}</b>\n\n"
+    text += f"{food['description']}\n\n"
+    text += "✈️ <b>درنا تراول</b> — همراه سفرهای شما"
+
+    tg_id, _ = send_to_all(text)
+    if tg_id:
+        sent_foods.add(food["name"])
+        save_sent_to_gist("sent_foods.txt", sent_foods)
+
+
+# ---------- YouTube ----------
+def send_youtube_video():
+    print("Fetching YouTube video...")
+    if not YOUTUBE_API_KEY:
+        print("YOUTUBE_API_KEY not set! Skipping.")
+        return
+
+    sent_videos = load_sent_from_gist("sent_youtube.txt")
+
+    queries = [
+        "سفر گردشگری ایران",
+        "travel vlog iran",
+        "مستند گردشگری",
+        "top travel destinations",
+        "جاهای دیدنی ایران",
+    ]
+    query = random.choice(queries)
+
+    try:
+        url = "https://www.googleapis.com/youtube/v3/search"
+        params = {
+            "part": "snippet",
+            "q": query,
+            "type": "video",
+            "maxResults": 25,
+            "order": "relevance",
+            "videoEmbeddable": "true",
+            "key": YOUTUBE_API_KEY,
+        }
+        r = requests.get(url, params=params, timeout=15)
+        if not r.ok:
+            print(f"YouTube API error: {r.text}")
+            return
+
+        items = r.json().get("items", [])
+        candidates = []
+        for item in items:
+            vid = item.get("id", {}).get("videoId")
+            if vid and vid not in sent_videos:
+                candidates.append(item)
+
+        if not candidates:
+            print("No new videos found. Resetting list...")
+            sent_videos = set()
+            candidates = [it for it in items if it.get("id", {}).get("videoId")]
+
+        if not candidates:
+            print("YouTube returned no results.")
+            return
+
+        video = random.choice(candidates)
+        vid = video["id"]["videoId"]
+        title = video["snippet"]["title"]
+        description = video["snippet"].get("description", "").strip()
+        if len(description) > 250:
+            description = description[:250] + "..."
+
+        video_url = f"https://www.youtube.com/watch?v={vid}"
+
+        text = f"🎬 <b>{title}</b>\n\n"
+        if description:
+            text += f"{description}\n\n"
+        text += f"🔗 <a href='{video_url}'>تماشا در یوتیوب</a>\n\n"
+        text += "✈️ <b>درنا تراول</b>"
+
+        tg_id, _ = send_to_all(text)
+        if tg_id:
+            sent_videos.add(vid)
+            save_sent_to_gist("sent_youtube.txt", sent_videos)
+
+    except Exception as e:
+        print(f"YouTube error: {e}")
+
+
+# ---------- Main ----------
+if __name__ == "__main__":
+    job = sys.argv[1] if len(sys.argv) > 1 else "news"
+    print(f"Running job: {job}")
+    if job == "news":
+        send_news_only()
+    elif job == "prices":
+        asyncio.run(fetch_random_flight_prices())
+    elif job == "extras":
+        send_extras()
+    elif job == "destination":
+        send_destination_of_day()
+    elif job == "food":
+        send_food_of_day()
+    elif job == "youtube":
+        send_youtube_video()
+    else:
+        print(f"Unknown job: {job}")
