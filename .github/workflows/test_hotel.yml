@@ -20,4 +20,4 @@ jobs:
           playwright install-deps chromium
           
       - name: Run Test Script
-        run: python test_iranhotel.py
+        run: python  test_shiraz.py
