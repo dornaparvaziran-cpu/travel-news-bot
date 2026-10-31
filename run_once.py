@@ -168,8 +168,11 @@ def send_to_eita(text, image_url=None):
     if "قیمت‌های لحظه‌ای پرواز" in text_md:
         text_md = text_md.replace("🔹", "✈️")
         text_md = f"{text_md}\n\n➖➖➖➖➖➖➖➖"
-    elif "🌍" in text_md or "🍽️" in text_md or "🎬" in text_md:
+    elif "🌍" in text_md or "🍽️" in text_md:
         text_md = f"{text_md}\n\n➖➖➖➖➖➖➖➖"
+    elif "🎬" in text_md:
+        # پیام یوتیوب: بدون خط جداکننده
+        pass
     elif "🌤" in text_md or "💱" in text_md or "💡" in text_md:
         text_md = f"{text_md}\n\n➖➖➖➖➖➖➖➖"
     else:
@@ -594,7 +597,12 @@ def send_youtube_video():
 
         video = random.choice(candidates)
         vid = video["id"]["videoId"]
-        title = video["snippet"]["title"]
+        raw_title = video["snippet"]["title"]
+        # حذف هشتگ‌ها از عنوان
+        title = re.sub(r"#\S+", "", raw_title).strip()
+        # اگر بعد از حذف هشتگ‌ها عنوان خالی شد، از عنوان اصلی استفاده کن
+        if not title:
+            title = raw_title
         description = video["snippet"].get("description", "").strip()
         if len(description) > 250:
             description = description[:250] + "..."
@@ -604,7 +612,7 @@ def send_youtube_video():
         text = f"🎬 <b>{title}</b>\n\n"
         if description:
             text += f"{description}\n\n"
-        text += f"🔗 <a href='{video_url}'>تماشا در یوتیوب</a>\n\n"
+        text += f"🔗 تماشا در یوتیوب:\n{video_url}\n\n"
         text += "✈️ <b>درنا تراول</b>"
 
         tg_id, _ = send_to_all(text)
