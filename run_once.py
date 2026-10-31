@@ -168,7 +168,7 @@ def send_to_eita(text, image_url=None):
     if "قیمت‌های لحظه‌ای پرواز" in text_md:
         text_md = text_md.replace("🔹", "✈️")
         text_md = f"{text_md}\n\n➖➖➖➖➖➖➖➖"
-    elif "🌍" in text_md or "🍽️" in text_md:
+    elif "🌍" in text_md or "🍽️" in text_md or "🏨" in text_md:
         text_md = f"{text_md}\n\n➖➖➖➖➖➖➖➖"
     elif "🎬" in text_md:
         # پیام یوتیوب: بدون خط جداکننده
@@ -581,9 +581,8 @@ def send_youtube_video():
         items = r.json().get("items", [])
         candidates = []
         
-        # کلماتی که نباید در عنوان و توضیحات ویدیو باشند (برای جلوگیری از محتوای نامرتبط)
+        # فیلتر کلمات ممنوعه و مجاز
         blacklist = ["politics", "war", "news", "media", "propaganda", "military", "israel", "palestine", "usa", "america"]
-        # کلماتی که بهتر است در عنوان یا توضیحات باشند (مربوط به گردشگری)
         whitelist = ["travel", "iran", "tour", "tourism", "guide", "vlog", "visit", "nature", "city"]
 
         for item in items:
@@ -594,12 +593,10 @@ def send_youtube_video():
             title_raw = item["snippet"]["title"].lower()
             desc_raw = item["snippet"].get("description", "").lower()
             
-            # چک کردن کلمات ممنوعه
             if any(bad_word in title_raw or bad_word in desc_raw for bad_word in blacklist):
                 print(f"Skipping blacklisted video: {title_raw[:30]}...")
                 continue
                 
-            # چک کردن کلمات مجاز (حداقل یکی باید باشد)
             if not any(good_word in title_raw or good_word in desc_raw for good_word in whitelist):
                 print(f"Skipping unrelated video: {title_raw[:30]}...")
                 continue
@@ -609,7 +606,6 @@ def send_youtube_video():
         if not candidates:
             print("No suitable videos found. Resetting list...")
             sent_videos = set()
-            # اگر با ریست هم چیزی پیدا نشد، خارج می‌شویم
             candidates = [it for it in items if it.get("id", {}).get("videoId")]
             if not candidates:
                 print("YouTube returned no results.")
@@ -619,12 +615,12 @@ def send_youtube_video():
         vid = video["id"]["videoId"]
         raw_title = video["snippet"]["title"]
 
-        # ۱. حذف هشتگ‌ها از عنوان
+        # حذف هشتگ‌ها
         title = re.sub(r"#\S+", "", raw_title).strip()
         if not title:
             title = raw_title
 
-        # ۲. ترجمه عنوان اگر انگلیسی باشد
+        # ترجمه عنوان
         english_chars = sum(1 for c in title if c.isascii() and c.isalpha())
         if english_chars > len(title) * 0.5:
             print("Translating YouTube title to Persian...")
@@ -635,11 +631,10 @@ def send_youtube_video():
                 try:
                     title = ts.translate_text(title, translator="google", from_language="en", to_language="fa")
                 except:
-                    pass # اگر ترجمه نشد، همان انگلیسی می‌ماند
+                    pass
 
         video_url = f"https://www.youtube.com/watch?v={vid}"
 
-        # ۳. ساخت متن نهایی (بدون description)
         text = f"🎬 <b>{title}</b>\n\n"
         text += f"🔗 تماشا در یوتیوب:\n{video_url}\n\n"
         text += "✈️ <b>درنا تراول</b>"
@@ -651,6 +646,77 @@ def send_youtube_video():
 
     except Exception as e:
         print(f"YouTube error: {e}")
+
+
+# ---------- Hotels ----------
+async def get_hotels_data(browser):
+    url = "https://www.iranhotelonline.com/mashhad-hotels/"
+    page = await browser.new_page()
+    try:
+        await page.goto(url, timeout=60000, wait_until="domcontentloaded")
+        await page.wait_for_timeout(15000) 
+        
+        text = await page.inner_text('body')
+        lines = [line.strip() for line in text.split('\n') if line.strip()]
+        
+        hotels = []
+        current_hotel = None
+        
+        for line in lines:
+            if line.startswith("هتل ") and len(line) < 50:
+                current_hotel = line
+            elif re.match(r'^\d{1,3}(,\d{3})+$', line) and current_hotel:
+                price_val = int(line.replace(",", ""))
+                if price_val > 1000000:
+                    hotels.append({"name": current_hotel, "price": price_val})
+                    current_hotel = None
+                    
+        unique_hotels = {}
+        for h in hotels:
+            if h["name"] not in unique_hotels:
+                unique_hotels[h["name"]] = h
+            else:
+                if h["price"] < unique_hotels[h["name"]]["price"]:
+                    unique_hotels[h["name"]]["price"] = h["price"]
+                    
+        final_hotels = list(unique_hotels.values())
+        
+        if not final_hotels:
+            return None
+            
+        # انتخاب ۵ هتل به صورت تصادفی
+        random_hotels = random.sample(final_hotels, min(5, len(final_hotels)))
+        
+        result_text = "🏨 <b>پیشنهاد ویژه اقامت در مشهد</b>\n\n"
+        for h in random_hotels:
+            result_text += f"🔹 {h['name']}: {h['price']:,} تومان\n"
+            
+        result_text += "\n📞 <b>برای رزرو تلفنی با ما در تماس باشید:</b>\n"
+        result_text += "☎️ 05132292292\n"
+        result_text += "📱 09153092528\n\n"
+        result_text += "✈️ <b>درنا تراول</b>"
+        
+        return result_text
+
+    except Exception as e:
+        print(f"Hotel Playwright error: {e}")
+        return None
+    finally:
+        await page.close()
+
+
+async def send_hotel_prices():
+    print("Fetching hotel prices...")
+    async with async_playwright() as p:
+        browser = await p.chromium.launch(headless=True)
+        hotel_text = await get_hotels_data(browser)
+        if hotel_text:
+            send_to_all(hotel_text)
+            print("Hotel prices sent successfully.")
+        else:
+            print("No hotels found or error occurred.")
+        await browser.close()
+
 
 # ---------- Main ----------
 if __name__ == "__main__":
@@ -668,5 +734,7 @@ if __name__ == "__main__":
         send_food_of_day()
     elif job == "youtube":
         send_youtube_video()
+    elif job == "hotels":
+        asyncio.run(send_hotel_prices())
     else:
         print(f"Unknown job: {job}")
