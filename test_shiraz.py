@@ -1,29 +1,40 @@
-import random
-import json
+import asyncio
+from playwright.async_api import async_playwright
+import re
 
-def main():
-    print("Testing Local Food of the Day...")
+async def main():
+    # لینک تستی هتل گلدن پالاس (همان لینکی که فرستادید)
+    url = "https://www.iranhotelonline.com/mashhad-hotels/%D9%87%D8%AA%D9%84-%DA%AF%D9%84%D8%AF%D9%86-%D9%BE%D8%A7%D9%84%D8%A7%D8%B3/?date=1405%2F08%2F09&endDate=1405%2F08%2F10&refer=searchresult"
     
-    try:
-        with open("foods.json", "r", encoding="utf-8") as f:
-            all_foods = json.load(f)
+    async with async_playwright() as p:
+        browser = await p.chromium.launch(headless=True)
+        page = await browser.new_page()
+        
+        print("در حال باز کردن صفحه ایران‌هتل...")
+        try:
+            await page.goto(url, timeout=60000, wait_until="domcontentloaded")
+            # صبر می‌کنیم تا جاوااسکریپت‌های سایت لود شوند
+            await page.wait_for_timeout(15000) 
+        except Exception as e:
+            print(f"خطا در باز کردن صفحه: {e}")
+            await browser.close()
+            return
             
-        food = random.choice(all_foods)
+        content = await page.content()
+        print(f"صفحه لود شد. طول محتوا: {len(content)} کاراکتر")
         
-        text = f"🍽️ <b>غذای محلی امروز: {food['name']} ({food['city']})</b>\n\n"
-        text += f"{food['description']}\n\n"
-        text += "📞 <b>برای رزرو تور و مشاوره سفر با ما در تماس باشید:</b>\n"
-        text += "☎️ 05132292292\n"
-        text += "📱 09153092528\n\n"
-        text += "✈️ <b>درنا تراول</b>"
+        # جستجوی کلمه "تومان" در متن
+        prices = re.findall(r'([\d,]+)\s*تومان', content)
         
-        print("\n--- پیش‌نمایش پیام ---")
-        print(text)
-        print("-----------------------")
-        print(f"\nلینک عکس تولید شده: \n{food['image']}")
-        
-    except Exception as e:
-        print(f"❌ Error: {e}")
+        if prices:
+            print(f"✅ تعداد {len(prices)} قیمت پیدا شد. ۵ مورد اول: {prices[:5]}")
+        else:
+            print("❌ هیچ قیمتی پیدا نشد. احتمالا سایت بلاک کرده یا ساختار عوض شده.")
+            # چاپ بخشی از متن برای دیباگ
+            text = await page.inner_text('body')
+            print("متن صفحه (۵۰۰ کاراکتر اول):\n", text[:500])
+            
+        await browser.close()
 
 if __name__ == "__main__":
-    main()
+    asyncio.run(main())
