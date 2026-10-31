@@ -8,7 +8,7 @@ on:
   workflow_dispatch:
     inputs:
       job_type:
-        description: 'نوع جاب (news, prices, extras, destination, food, youtube)'
+        description: 'نوع جاب (news, prices, extras, destination, food, youtube, hotels)'
         required: true
         default: 'news'
 
@@ -114,7 +114,6 @@ jobs:
           EITA_CHANNEL_ID: ${{ secrets.EITA_CHANNEL_ID }}
         run: python run_once.py food
 
-  # 🌟 جاب ویدیوهای یوتیوب
   run-youtube:
     if: github.event.inputs.job_type == 'youtube'
     runs-on: ubuntu-latest
@@ -138,3 +137,26 @@ jobs:
           EITA_CHANNEL_ID: ${{ secrets.EITA_CHANNEL_ID }}
           YOUTUBE_API_KEY: ${{ secrets.YOUTUBE_API_KEY }}
         run: python run_once.py youtube
+
+  run-hotels:
+    if: github.event.inputs.job_type == 'hotels'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install deps
+        run: |
+          pip install -r requirements.txt
+          playwright install chromium
+          playwright install-deps chromium
+      - name: Run Hotels
+        env:
+          GIST_ID: ${{ secrets.GIST_ID }}
+          GIST_TOKEN: ${{ secrets.GIST_TOKEN }}
+          BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
+          CHANNEL_ID: ${{ secrets.CHANNEL_ID }}
+          EITA_TOKEN: ${{ secrets.EITA_TOKEN }}
+          EITA_CHANNEL_ID: ${{ secrets.EITA_CHANNEL_ID }}
+        run: python run_once.py hotels
