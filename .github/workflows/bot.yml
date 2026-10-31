@@ -114,7 +114,7 @@ jobs:
           EITA_CHANNEL_ID: ${{ secrets.EITA_CHANNEL_ID }}
         run: python run_once.py food
 
-  # 🌟 جاب جدید: ویدیوهای یوتیوب
+  # 🌟 جاب ویدیوهای یوتیوب
   run-youtube:
     if: github.event.inputs.job_type == 'youtube'
     runs-on: ubuntu-latest
@@ -124,7 +124,10 @@ jobs:
         with:
           python-version: '3.11'
       - name: Install deps
-        run: pip install -r requirements.txt
+        run: |
+          pip install -r requirements.txt
+          playwright install chromium
+          playwright install-deps chromium
       - name: Run YouTube
         env:
           GIST_ID: ${{ secrets.GIST_ID }}
