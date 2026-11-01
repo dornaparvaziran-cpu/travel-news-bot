@@ -11,6 +11,7 @@ import time
 import translators as ts
 from datetime import datetime, timedelta
 from playwright.async_api import async_playwright
+
 from content import FOODS, TRAVEL_TIPS, YOUTUBE_QUERIES, ALL_ROUTES, FEEDS, HOTEL_CITIES, VISA_TIPS
 
 TG_TOKEN = os.environ.get("BOT_TOKEN")
@@ -167,7 +168,7 @@ def send_to_eita(text, image_url=None):
     if "قیمت‌های لحظه‌ای پرواز" in text_md:
         text_md = text_md.replace("🔹", "✈️")
         text_md = f"{text_md}\n\n➖➖➖➖➖➖➖➖"
-    elif "🌍" in text_md or "🍽️" in text_md or "🏨" in text_md:
+    elif "🌍" in text_md or "🍽️" in text_md or "🏨" in text_md or "🖼" in text_md:
         text_md = f"{text_md}\n\n➖➖➖➖➖➖➖➖"
     elif "🎬" in text_md:
         # پیام یوتیوب: بدون خط جداکننده
@@ -311,6 +312,7 @@ def send_news_only():
                 save_sent_to_gist("sent_links.txt", sent)
 
 
+# ---------- Prices (Playwright) ----------
 async def get_prices_for_route(browser, route_name, route_url):
     page = await browser.new_page()
     try:
@@ -330,7 +332,6 @@ async def get_prices_for_route(browser, route_name, route_url):
 
                 lines = [line.strip() for line in text.split("\n") if line.strip()]
 
-                # ===== پیدا کردن اسم ایرلاین =====
                 airline = "نامشخص"
                 known_airlines = [
                     "ایران ایر", "ماهان", "آسمان", "زاگرس", "قشم ایر", "کیش ایر",
@@ -341,16 +342,13 @@ async def get_prices_for_route(browser, route_name, route_url):
                     "ایران‌ایر", "ماهان‌ایر", "درنا", "مهر ایرانیان"
                 ]
 
-                # ۱. اول از لیست ایرلاین‌های معروف جستجو کن
                 for line in lines:
                     if any(name in line for name in known_airlines):
-                        # 🌟 اگر خط شامل "درنا" یا "مهر ایرانیان" بود، نادیده بگیر
                         if "درنا" in line or "مهر ایرانیان" in line:
                             continue
                         airline = line
                         break
 
-                # ۲. اگر پیدا نشد، از ۳ خط اول کارت استفاده کن (با فیلترهای سختگیرانه)
                 if airline == "نامشخص":
                     for line in lines[:3]:
                         if (2 < len(line) < 25 and
@@ -369,11 +367,9 @@ async def get_prices_for_route(browser, route_name, route_url):
                             airline = line
                             break
 
-                # ===== پیدا کردن ساعت پرواز =====
                 times = re.findall(r"\d{1,2}:\d{2}", text)
                 departure_time = times[0] if len(times) > 0 else "?"
 
-                # ===== پیدا کردن قیمت =====
                 price = "?"
                 for i, line in enumerate(lines):
                     if line == "تومان" and i > 0:
@@ -397,9 +393,6 @@ async def get_prices_for_route(browser, route_name, route_url):
         if not flights:
             return None
 
-        # ===== حذف تکراری‌ها =====
-        # این بار فقط بر اساس اسم ایرلاین و ساعت، نه قیمت!
-        # چون ممکن است یک پرواز با قیمت‌های مختلف نمایش داده شود
         final_flights = []
         seen_airline_time = set()
         for f in flights:
@@ -409,7 +402,6 @@ async def get_prices_for_route(browser, route_name, route_url):
                 final_flights.append(f)
 
         result_text = f"✈️ <b>قیمت‌های لحظه‌ای پرواز {route_name}</b>\n\n"
-        # نمایش حداکثر ۴ پرواز منحصربه‌فرد
         for f in final_flights[:4]:
             result_text += f"🔹 <b>{f['airline']}</b> | ساعت {f['departure']}\n"
             result_text += f"    💰 {f['price']} تومان\n\n"
@@ -420,6 +412,7 @@ async def get_prices_for_route(browser, route_name, route_url):
         print(f"Playwright error for {route_name}: {e}")
         await page.close()
         return None
+
 
 async def fetch_random_flight_prices():
     delete_previous_messages("last_price_msgs.txt")
@@ -582,7 +575,6 @@ def send_youtube_video():
         items = r.json().get("items", [])
         candidates = []
         
-        # فیلتر کلمات ممنوعه و مجاز
         blacklist = ["politics", "war", "news", "media", "propaganda", "military", "israel", "palestine", "usa", "america"]
         whitelist = ["travel", "iran", "tour", "tourism", "guide", "vlog", "visit", "nature", "city"]
 
@@ -616,12 +608,10 @@ def send_youtube_video():
         vid = video["id"]["videoId"]
         raw_title = video["snippet"]["title"]
 
-        # حذف هشتگ‌ها
         title = re.sub(r"#\S+", "", raw_title).strip()
         if not title:
             title = raw_title
 
-        # ترجمه عنوان
         english_chars = sum(1 for c in title if c.isascii() and c.isalpha())
         if english_chars > len(title) * 0.5:
             print("Translating YouTube title to Persian...")
@@ -650,9 +640,7 @@ def send_youtube_video():
 
 
 # ---------- Hotels ----------
-# ---------- Hotels ----------
 async def get_hotels_data(browser):
-    # انتخاب یک شهر تصادفی از لیست
     city = random.choice(HOTEL_CITIES)
     city_name = city["name"]
     url = city["url"]
@@ -671,16 +659,15 @@ async def get_hotels_data(browser):
         current_hotel = None
         
         for line in lines:
-                        # فیلتر کردن عنوان‌های عمومی که اسم هتل نیستند
             bad_hotel_names = ["هتل های", "هتل ها", "براساس", "لیست", "بهترین", "ارزان‌ترین", "نزدیک"]
+            
             if (line.startswith("هتل ") and 
                 not any(bad in line for bad in bad_hotel_names) and 
                 len(line) < 50):
-                
                 current_hotel = line
+                
             elif re.match(r'^\d{1,3}(,\d{3})+$', line) and current_hotel:
-                 price_val = int(line.replace(",", ""))
-                # قیمت باید بین ۱ میلیون تا ۱۵ میلیون باشد تا عنوان‌های عجیب رد شوند
+                price_val = int(line.replace(",", ""))
                 if 1000000 < price_val < 15000000:
                     hotels.append({"name": current_hotel, "price": price_val})
                     current_hotel = None
@@ -699,7 +686,6 @@ async def get_hotels_data(browser):
             print(f"No hotels found for {city_name}.")
             return None
             
-        # انتخاب ۵ هتل به صورت تصادفی
         random_hotels = random.sample(final_hotels, min(5, len(final_hotels)))
         
         result_text = f"🏨 <b>پیشنهاد ویژه اقامت در {city_name}</b>\n\n"
@@ -731,12 +717,22 @@ async def send_hotel_prices():
         else:
             print("No hotels found or error occurred.")
         await browser.close()
+
+
 # ---------- Visa Tips ----------
 def send_visa_tips():
-    print("Sending visa tips...")
+    print("Sending visa tip...")
     
-    # گرفتن یک نکته تصادفی
-    tip = random.choice(VISA_TIPS)
+    sent_visa = load_sent_from_gist("sent_visa.txt")
+    
+    available_tips = [tip for tip in VISA_TIPS if tip not in sent_visa]
+    
+    if not available_tips:
+        print("All visa tips sent! Resetting list...")
+        available_tips = VISA_TIPS
+        sent_visa = set()
+        
+    tip = random.choice(available_tips)
     
     text = f"💡 <b>نکته ویزا و قوانین سفر</b>\n\n"
     text += f"{tip}\n\n"
@@ -747,7 +743,10 @@ def send_visa_tips():
     
     tg_id, _ = send_to_all(text)
     if tg_id:
+        sent_visa.add(tip)
+        save_sent_to_gist("sent_visa.txt", sent_visa)
         print("Visa tip sent successfully.")
+
 
 # ---------- Main ----------
 if __name__ == "__main__":
@@ -767,7 +766,7 @@ if __name__ == "__main__":
         send_youtube_video()
     elif job == "hotels":
         asyncio.run(send_hotel_prices())
-        elif job == "visa":
+    elif job == "visa":
         send_visa_tips()
     else:
         print(f"Unknown job: {job}")
