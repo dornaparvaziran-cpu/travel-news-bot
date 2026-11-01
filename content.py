@@ -116,3 +116,13 @@ FEEDS = [
     "https://www.khabaronline.ir/rss?kw=CIP+فرودگاه",
     "https://www.irna.ir/rss",
 ]
+
+HOTEL_CITIES = [
+    {"name": "مشهد", "url": "https://www.iranhotelonline.com/mashhad-hotels/"},
+    {"name": "شیراز", "url": "https://www.iranhotelonline.com/shiraz-hotels/"},
+    {"name": "تهران", "url": "https://www.iranhotelonline.com/tehran-hotels/"},
+    {"name": "کیش", "url": "https://www.iranhotelonline.com/kish-hotels/"},
+    {"name": "اصفهان", "url": "https://www.iranhotelonline.com/isfahan-hotels/"},
+    {"name": "تبریز", "url": "https://www.iranhotelonline.com/tabriz-hotels/"},
+    {"name": "شمال (مازندران)", "url": "https://www.iranhotelonline.com/mazandaran-hotels/"},
+]
