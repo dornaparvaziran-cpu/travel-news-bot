@@ -680,8 +680,9 @@ async def get_hotels_data(browser):
                 
                 current_hotel = line
             elif re.match(r'^\d{1,3}(,\d{3})+$', line) and current_hotel:
-                price_val = int(line.replace(",", ""))
-                if price_val > 1000000:
+                 price_val = int(line.replace(",", ""))
+                # قیمت باید بین ۱ میلیون تا ۱۵ میلیون باشد تا عنوان‌های عجیب رد شوند
+                if 1000000 < price_val < 15000000:
                     hotels.append({"name": current_hotel, "price": price_val})
                     current_hotel = None
                     
