@@ -672,7 +672,12 @@ async def get_hotels_data(browser):
         current_hotel = None
         
         for line in lines:
-            if line.startswith("هتل ") and "های" not in line and len(line) < 50:
+                        # فیلتر کردن عنوان‌های عمومی که اسم هتل نیستند
+            bad_hotel_names = ["هتل های", "هتل ها", "براساس", "لیست", "بهترین", "ارزان‌ترین", "نزدیک"]
+            if (line.startswith("هتل ") and 
+                not any(bad in line for bad in bad_hotel_names) and 
+                len(line) < 50):
+                
                 current_hotel = line
             elif re.match(r'^\d{1,3}(,\d{3})+$', line) and current_hotel:
                 price_val = int(line.replace(",", ""))
