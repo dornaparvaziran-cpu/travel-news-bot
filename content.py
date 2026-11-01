@@ -115,9 +115,4 @@ FEEDS = [
     "https://www.mehrnews.com/rss?kw=شرکت+فرودگاهها+و+ناوبری+هوایی+ایران",
     "https://www.khabaronline.ir/rss?kw=CIP+فرودگاه",
     "https://www.irna.ir/rss",
-    "https://skift.com/feed/",
-    "https://www.theguardian.com/uk/travel/rss",
-    "http://rss.cnn.com/rss/cnn_travel.rss",
-    "https://www.atlasobscura.com/feeds/latest",
-    "https://www.aerotime.aero/feed",
 ]
