@@ -767,5 +767,7 @@ if __name__ == "__main__":
         send_youtube_video()
     elif job == "hotels":
         asyncio.run(send_hotel_prices())
+        elif job == "visa":
+        send_visa_tips()
     else:
         print(f"Unknown job: {job}")
