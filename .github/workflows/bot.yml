@@ -7,7 +7,7 @@ concurrency:
 on:
   workflow_dispatch:
     inputs:
-        job_type:
+      job_type:
         description: 'نوع جاب (news, prices, extras, destination, food, youtube, hotels, visa)'
         required: true
         default: 'news'
