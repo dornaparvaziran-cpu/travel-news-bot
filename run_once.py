@@ -732,7 +732,23 @@ async def send_hotel_prices():
         else:
             print("No hotels found or error occurred.")
         await browser.close()
-
+# ---------- Visa Tips ----------
+def send_visa_tips():
+    print("Sending visa tips...")
+    
+    # گرفتن یک نکته تصادفی
+    tip = random.choice(VISA_TIPS)
+    
+    text = f"💡 <b>نکته ویزا و قوانین سفر</b>\n\n"
+    text += f"{tip}\n\n"
+    text += "📞 <b>برای مشاوره و دریافت ویزا با ما در تماس باشید:</b>\n"
+    text += "☎️ 05132292292\n"
+    text += "📱 09153092528\n\n"
+    text += "✈️ <b>درنا تراول</b>"
+    
+    tg_id, _ = send_to_all(text)
+    if tg_id:
+        print("Visa tip sent successfully.")
 
 # ---------- Main ----------
 if __name__ == "__main__":
