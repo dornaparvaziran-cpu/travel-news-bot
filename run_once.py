@@ -12,7 +12,7 @@ import translators as ts
 from datetime import datetime, timedelta
 from playwright.async_api import async_playwright
 
-from content import FOODS, TRAVEL_TIPS, YOUTUBE_QUERIES, ALL_ROUTES, FEEDS
+from content import FOODS, TRAVEL_TIPS, YOUTUBE_QUERIES, ALL_ROUTES, FEEDS, HOTEL_CITIES
 
 TG_TOKEN = os.environ.get("BOT_TOKEN")
 TG_CHANNEL = os.environ.get("CHANNEL_ID")
@@ -651,9 +651,16 @@ def send_youtube_video():
 
 
 # ---------- Hotels ----------
+# ---------- Hotels ----------
 async def get_hotels_data(browser):
-    url = "https://www.iranhotelonline.com/mashhad-hotels/"
+    # انتخاب یک شهر تصادفی از لیست
+    city = random.choice(HOTEL_CITIES)
+    city_name = city["name"]
+    url = city["url"]
+    
+    print(f"Fetching hotels for: {city_name}")
     page = await browser.new_page()
+    
     try:
         await page.goto(url, timeout=60000, wait_until="domcontentloaded")
         await page.wait_for_timeout(15000) 
@@ -684,12 +691,13 @@ async def get_hotels_data(browser):
         final_hotels = list(unique_hotels.values())
         
         if not final_hotels:
+            print(f"No hotels found for {city_name}.")
             return None
             
         # انتخاب ۵ هتل به صورت تصادفی
         random_hotels = random.sample(final_hotels, min(5, len(final_hotels)))
         
-        result_text = "🏨 <b>پیشنهاد ویژه اقامت در مشهد</b>\n\n"
+        result_text = f"🏨 <b>پیشنهاد ویژه اقامت در {city_name}</b>\n\n"
         for h in random_hotels:
             result_text += f"🔹 {h['name']}: {h['price']:,} تومان\n"
             
@@ -701,7 +709,7 @@ async def get_hotels_data(browser):
         return result_text
 
     except Exception as e:
-        print(f"Hotel Playwright error: {e}")
+        print(f"Hotel Playwright error for {city_name}: {e}")
         return None
     finally:
         await page.close()
