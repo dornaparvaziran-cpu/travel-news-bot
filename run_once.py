@@ -638,10 +638,22 @@ def send_youtube_video():
     except Exception as e:
         print(f"YouTube error: {e}")
 
-
 # ---------- Hotels ----------
 async def get_hotels_data(browser):
-    city = random.choice(HOTEL_CITIES)
+    # خواندن شهرهایی که قبلاً ارسال شده‌اند
+    sent_cities = load_sent_from_gist("sent_hotel_cities.txt")
+    
+    # پیدا کردن شهرهایی که هنوز ارسال نشده‌اند
+    available_cities = [c for c in HOTEL_CITIES if c["name"] not in sent_cities]
+    
+    # اگر همه شهرها فرستاده شده بودند، لیست را ریست کن
+    if not available_cities:
+        print("All cities sent! Resetting list...")
+        available_cities = HOTEL_CITIES
+        sent_cities = set()
+        
+    # انتخاب یک شهر تصادفی از بین شهرهای باقی‌مانده
+    city = random.choice(available_cities)
     city_name = city["name"]
     url = city["url"]
     
@@ -686,6 +698,7 @@ async def get_hotels_data(browser):
             print(f"No hotels found for {city_name}.")
             return None
             
+        # انتخاب ۵ هتل به صورت تصادفی
         random_hotels = random.sample(final_hotels, min(5, len(final_hotels)))
         
         result_text = f"🏨 <b>پیشنهاد ویژه اقامت در {city_name}</b>\n\n"
@@ -697,6 +710,10 @@ async def get_hotels_data(browser):
         result_text += "📱 09153092528\n\n"
         result_text += "✈️ <b>درنا تراول</b>"
         
+        # ذخیره نام شهر در Gist برای اجرای بعدی
+        sent_cities.add(city_name)
+        save_sent_to_gist("sent_hotel_cities.txt", sent_cities)
+        
         return result_text
 
     except Exception as e:
@@ -704,7 +721,6 @@ async def get_hotels_data(browser):
         return None
     finally:
         await page.close()
-
 
 async def send_hotel_prices():
     print("Fetching hotel prices...")
