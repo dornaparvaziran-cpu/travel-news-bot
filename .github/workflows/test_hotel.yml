@@ -1,4 +1,4 @@
-name: Test IranHotel Scraper
+name: Test Hotel Scraper
 
 on:
   workflow_dispatch:
@@ -20,4 +20,4 @@ jobs:
           playwright install-deps chromium
           
       - name: Run Test Script
-        run: python  test_shiraz.py
+        run: python test_tours.py
