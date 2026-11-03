@@ -45,10 +45,9 @@ async def main():
                 hotel = "نامشخص"
                 destination = "نامشخص"
                 
+                # پیدا کردن اسم هتل (کمتر از ۸ کلمه)
                 for line in lines:
-                    # قانون جدید: اسم هتل نباید بیشتر از ۸ کلمه باشد (لیست شهرها کلمه زیادی دارد)
                     word_count = len(line.split())
-                    
                     if (len(line) > 5 and 
                         word_count < 8 and 
                         "تومان" not in line and 
@@ -62,12 +61,13 @@ async def main():
                         hotel = line
                         break
                         
+                # پیدا کردن مقصد (فقط خطی که کلمه "شب" دارد)
                 for line in lines:
-                    if "شب" in line or "ایروان" in line or "استانبول" in line or "کیش" in line or "مشهد" in line or "آنتالیا" in line:
+                    if "شب" in line:
                         destination = line
                         break
                 
-                if hotel != "نامشخص":
+                if hotel != "نامشخص" and destination != "نامشخص":
                     tours.append({
                         "hotel": hotel,
                         "destination": destination,
