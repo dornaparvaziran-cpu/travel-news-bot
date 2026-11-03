@@ -701,6 +701,7 @@ async def get_hotels_data(browser):
         # انتخاب ۵ هتل به صورت تصادفی
         random_hotels = random.sample(final_hotels, min(5, len(final_hotels)))
         
+        # ساخت متن
         result_text = f"🏨 <b>پیشنهاد ویژه اقامت در {city_name}</b>\n\n"
         for h in random_hotels:
             result_text += f"🔹 {h['name']}: {h['price']:,} تومان\n"
@@ -710,12 +711,13 @@ async def get_hotels_data(browser):
         result_text += "📱 09153092528\n\n"
         result_text += "✈️ <b>درنا تراول</b>"
         
-        # ذخیره نام شهر در Gist برای اجرای بعدی
+        # ذخیره نام شهر در Gist
         sent_cities.add(city_name)
         save_sent_to_gist("sent_hotel_cities.txt", sent_cities)
         
-        return result_text
-
+        # 🌟 برگرداندن متن و لینک عکس
+        return {"text": result_text, "image": city.get("image")}
+        
     except Exception as e:
         print(f"Hotel Playwright error for {city_name}: {e}")
         return None
@@ -726,10 +728,12 @@ async def send_hotel_prices():
     print("Fetching hotel prices...")
     async with async_playwright() as p:
         browser = await p.chromium.launch(headless=True)
-        hotel_text = await get_hotels_data(browser)
-        if hotel_text:
-            send_to_all(hotel_text)
-            print("Hotel prices sent successfully.")
+        result = await get_hotels_data(browser)
+        
+        if result:
+            # ارسال متن همراه با عکس
+            send_to_all(result["text"], result["image"])
+            print("Hotel prices sent successfully with image.")
         else:
             print("No hotels found or error occurred.")
         await browser.close()
