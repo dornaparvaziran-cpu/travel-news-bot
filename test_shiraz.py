@@ -4,45 +4,62 @@ import random
 import re
 
 async def main():
-    url = "https://safarmarket.com/tours"
-    
-    # لیست مقاصد محبوب برای جستجو
-    destinations = ["آنتالیا", "استانبول", "کیش", "مشهد", "شیراز", "ایروان", "کوالالامپور", "پاتایا"]
+    url = "https://safarmarket.com/tours/lastminute"
     
     async with async_playwright() as p:
         browser = await p.chromium.launch(headless=True)
         page = await browser.new_page()
-        print("در حال باز کردن صفحه جستجوی تور...")
-        
-        final_tours = []
+        print("در حال باز کردن صفحه سفرمارکت...")
         
         try:
-            # انتخاب ۵ مقصد تصادفی
-            selected_destinations = random.sample(destinations, 5)
+            await page.goto(url, timeout=60000, wait_until="domcontentloaded")
+            await page.wait_for_timeout(5000)
             
-            for dest in selected_destinations:
-                print(f"\nدر حال جستجوی تور برای مقصد: {dest}...")
-                await page.goto(url, timeout=60000, wait_until="domcontentloaded")
-                await page.wait_for_timeout(3000)
-                
-                # پیدا کردن فیلد مقصد و تایپ کردن نام شهر
-                # در سفرمارکت فیلد مقصد معمولاً یک input است
-                dest_input = page.locator("input[placeholder*='مقصد'], input[placeholder*='شهر']").first
-                
-                if await dest_input.count() > 0:
-                    await dest_input.click()
-                    await dest_input.fill(dest)
-                    await page.wait_for_timeout(2000) # صبر برای لود پیشنهادات
+            # پیدا کردن لینک‌های تب‌های مقصد (با استفاده از کلاس frequentCitiesItem)
+            # این همان تگ‌هایی هستند که در عکس شما دیده می‌شدند
+            links = await page.locator("a.frequentCitiesItem, div.frequentCitiesItem a, .frequentCitiesItem").all()
+            
+            destinations = []
+            seen_names = set()
+            
+            for link in links:
+                try:
+                    # دریافت آدرس لینک
+                    href = await link.get_attribute("href")
+                    title = await link.get_attribute("data-title") or await link.inner_text()
+                    title = title.strip() if title else ""
                     
-                    # زدن اینتر یا کلیک روی اولین پیشنهاد
-                    await page.keyboard.press("Enter")
-                    await page.wait_for_timeout(2000)
-                    
-                    # کلیک روی دکمه جستجو
-                    search_btn = page.locator("button:has-text('جستجوی تور'), a:has-text('جستجوی تور')").first
-                    if await search_btn.count() > 0:
-                        await search_btn.click()
-                        await page.wait_for_timeout(10000) # صبر برای لود نتایج
+                    # اگر آدرس یا نام وجود داشت، به لیست اضافه کن
+                    if href and title and title not in seen_names and "تور" not in title:
+                        seen_names.add(title)
+                        destinations.append({"name": title, "href": href})
+                except:
+                    pass
+            
+            print(f"تعداد مقاصد پیدا شده: {len(destinations)}")
+            for d in destinations:
+                print(f" - {d['name']} (آدرس: {d['href']})")
+            
+            if not destinations:
+                print("مقصدی پیدا نشد. لطفا بررسی کنید.")
+                await browser.close()
+                return
+                
+            # انتخاب ۵ مقصد تصادفی
+            random_destinations = random.sample(destinations, min(5, len(destinations)))
+            
+            final_tours = []
+            
+            for dest in random_destinations:
+                dest_name = dest["name"]
+                dest_href = dest["href"]
+                print(f"\nدر حال بررسی تورهای {dest_name}...")
+                
+                try:
+                    # رفتن مستقیم به آدرس آن مقصد
+                    full_url = f"https://safarmarket.com{dest_href}" if dest_href.startswith("/") else dest_href
+                    await page.goto(full_url, timeout=60000, wait_until="domcontentloaded")
+                    await page.wait_for_timeout(8000) # صبر برای لود تورها
                     
                     cards = await page.locator("div:has-text('جزئیات تور')").all()
                     
@@ -87,18 +104,21 @@ async def main():
                                 })
                         except:
                             pass
-                        
+                            
                     if city_tours:
                         cheapest = min(city_tours, key=lambda x: x["price_num"])
                         final_tours.append(cheapest)
-                        print(f"  ✅ ارزان‌ترین در {dest}: {cheapest['hotel']} - {cheapest['price_str']}")
+                        print(f"  ✅ ارزان‌ترین در {dest_name}: {cheapest['hotel']} - {cheapest['price_str']}")
                     else:
-                        print(f"  ❌ توری در {dest} پیدا نشد.")
-                else:
-                    print(f"  ❌ فیلد مقصد پیدا نشد.")
+                        print(f"  ❌ توری در {dest_name} پیدا نشد.")
+                        
+                except Exception as e:
+                    print(f"  خطا در بررسی {dest_name}: {e}")
                     
         except Exception as e:
             print(f"خطای کلی: {e}")
+            await browser.close()
+            return
             
         print(f"\n✅ در مجموع {len(final_tours)} تور از مقاصد مختلف استخراج شد.")
         
