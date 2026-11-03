@@ -3,6 +3,9 @@ from playwright.async_api import async_playwright
 import random
 import re
 
+# 🌟 لینک عکس ثابت تورها را اینجا قرار دهید
+TOUR_IMAGE_URL = "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?q=80&w=1000&auto=format&fit=crop"
+
 async def main():
     url = "https://safarmarket.com/tours/lastminute"
     
@@ -71,7 +74,6 @@ async def main():
                             
                             for line in lines:
                                 word_count = len(line.split())
-                                # فیلتر کردن "تور لحظه آخری" به عنوان اسم هتل
                                 if (len(line) > 5 and 
                                     word_count < 8 and 
                                     "تومان" not in line and 
@@ -82,7 +84,9 @@ async def main():
                                     "دی" not in line and 
                                     "پرفروش" not in line and 
                                     "تورها" not in line and
-                                    "تور لحظه آخری" not in line):
+                                    "تور لحظه آخری" not in line and
+                                    "نام شهر" not in line and
+                                    "وارد نمایید" not in line):
                                     hotel = line
                                     break
                                     
@@ -106,7 +110,7 @@ async def main():
                         final_tours.append(cheapest)
                         print(f"  ✅ ارزان‌ترین در {tab_name}: {cheapest['hotel']} - {cheapest['price_str']}")
                     else:
-                        print(f"  ❌ توری در {tab_name} پیدا نشد (شاید برای این شهر توری موجود نیست).")
+                        print(f"  ❌ توری در {tab_name} پیدا نشد.")
                         
                 except Exception as e:
                     print(f"  خطا در کلیک روی {tab_name}: {e}")
@@ -135,6 +139,8 @@ async def main():
             print("="*40)
             print(msg)
             print("="*40)
+            
+            print(f"\n🌟 لینک عکسی که همراه با این پیام در تلگرام ارسال خواهد شد:\n{TOUR_IMAGE_URL}")
         else:
             print("❌ هیچ توری پیدا نشد.")
             
