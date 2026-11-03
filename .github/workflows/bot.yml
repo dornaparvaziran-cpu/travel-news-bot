@@ -2,7 +2,7 @@ name: Travel News Bot
 
 concurrency:
   group: travel-bot-group
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 on:
   workflow_dispatch:
