@@ -11,7 +11,7 @@ import time
 import translators as ts
 from datetime import datetime, timedelta
 from playwright.async_api import async_playwright
-from content import FOODS, TRAVEL_TIPS, YOUTUBE_QUERIES, ALL_ROUTES, FEEDS, HOTEL_CITIES, VISA_TIPS, TOURISM_EVENTS
+from content import FOODS, TRAVEL_TIPS, YOUTUBE_QUERIES, ALL_ROUTES, FEEDS, HOTEL_CITIES, VISA_TIPS
 
 TG_TOKEN = os.environ.get("BOT_TOKEN")
 TG_CHANNEL = os.environ.get("CHANNEL_ID")
