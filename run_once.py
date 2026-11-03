@@ -320,10 +320,10 @@ async def get_prices_for_route(browser, route_name, route_url):
         await page.wait_for_timeout(8000)
 
         cards = await page.locator(
-            "div[class*='card'], div[class*='item'], div[class*='flight']"
+            "div[class*='card'], div[class*='item'], div[class*='']"
         ).all()
 
-        flights = []
+        s = []
         for card in cards:
             try:
                 text = await card.inner_text()
@@ -382,7 +382,7 @@ async def get_prices_for_route(browser, route_name, route_url):
                             break
 
                 if airline != "نامشخص" and price != "?" and price != "0" and departure_time != "?":
-                    flights.append(
+                    s.append(
                         {"airline": airline, "departure": departure_time, "price": price}
                     )
             except:
@@ -390,19 +390,19 @@ async def get_prices_for_route(browser, route_name, route_url):
 
         await page.close()
 
-        if not flights:
+        if not s:
             return None
 
-        final_flights = []
+        final_s = []
         seen_airline_time = set()
-        for f in flights:
+        for f in s:
             key = f"{f['airline']}_{f['departure']}"
             if key not in seen_airline_time:
                 seen_airline_time.add(key)
-                final_flights.append(f)
+                final_s.append(f)
 
         result_text = f"✈️ <b>قیمت‌های لحظه‌ای پرواز {route_name}</b>\n\n"
-        for f in final_flights[:4]:
+        for f in final_s[:4]:
             result_text += f"🔹 <b>{f['airline']}</b> | ساعت {f['departure']}\n"
             result_text += f"    💰 {f['price']} تومان\n\n"
         result_text += f"🌐 <a href='{route_url}'>مشاهده و خرید در سایت</a>"
@@ -415,16 +415,26 @@ async def get_prices_for_route(browser, route_name, route_url):
 
 
 async def fetch_random_flight_prices():
+    # حذف پیام‌های قبلی
     delete_previous_messages("last_price_msgs.txt")
+    
     selected_routes = random.sample(ALL_ROUTES, min(NUMBER_OF_ROUTES, len(ALL_ROUTES)))
     new_msg_ids = []
+    
+    # 🌟 لینک عکس ثابت پروازها
+    FLIGHT_IMAGE_URL = "https://dornatravel.ir/basefile/dornatravel/images/flightprice.png"
 
     async with async_playwright() as p:
         browser = await p.chromium.launch(headless=True)
         for route in selected_routes:
             price_text = await get_prices_for_route(browser, route["name"], route["url"])
             if price_text:
-                tg_id, _ = send_to_all(price_text)
+                # ارسال متن همراه با عکس به تلگرام
+                tg_id = send_to_telegram(price_text, FLIGHT_IMAGE_URL)
+                
+                # ارسال متن به ایتا (ایتا از عکس در این حالت پشتیبانی نمی‌کند، پس فقط متن)
+                send_to_eita(price_text)
+                
                 if tg_id:
                     new_msg_ids.append(tg_id)
         await browser.close()
