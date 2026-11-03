@@ -4,122 +4,90 @@ import random
 import re
 
 async def main():
-    url = "https://safarmarket.com/tours/lastminute"
+    # لیست آدرس صفحات تورهای مقاصد محبوب
+    destinations = [
+        {"name": "آنتالیا", "url": "https://safarmarket.com/tours/antalya"},
+        {"name": "استانبول", "url": "https://safarmarket.com/tours/istanbul"},
+        {"name": "کیش", "url": "https://safarmarket.com/tours/kish"},
+        {"name": "مشهد", "url": "https://safarmarket.com/tours/mashhad"},
+        {"name": "شیراز", "url": "https://safarmarket.com/tours/shiraz"},
+        {"name": "ایروان", "url": "https://safarmarket.com/tours/yerevan"},
+        {"name": "کوالالامپور", "url": "https://safarmarket.com/tours/kuala-lumpur"},
+        {"name": "پاتایا", "url": "https://safarmarket.com/tours/pattaya"},
+    ]
     
     async with async_playwright() as p:
         browser = await p.chromium.launch(headless=True)
         page = await browser.new_page()
-        print("در حال باز کردن صفحه سفرمارکت...")
+        print("شروع تست...")
         
-        try:
-            await page.goto(url, timeout=60000, wait_until="domcontentloaded")
-            await page.wait_for_timeout(5000)
+        # انتخاب ۵ مقصد تصادفی
+        selected_dests = random.sample(destinations, 5)
+        final_tours = []
+        
+        for dest in selected_dests:
+            dest_name = dest["name"]
+            dest_url = dest["url"]
+            print(f"\nدر حال بررسی تورهای {dest_name}...")
             
-            # پیدا کردن لینک‌های تب‌های مقصد (با استفاده از کلاس frequentCitiesItem)
-            # این همان تگ‌هایی هستند که در عکس شما دیده می‌شدند
-            links = await page.locator("a.frequentCitiesItem, div.frequentCitiesItem a, .frequentCitiesItem").all()
-            
-            destinations = []
-            seen_names = set()
-            
-            for link in links:
-                try:
-                    # دریافت آدرس لینک
-                    href = await link.get_attribute("href")
-                    title = await link.get_attribute("data-title") or await link.inner_text()
-                    title = title.strip() if title else ""
-                    
-                    # اگر آدرس یا نام وجود داشت، به لیست اضافه کن
-                    if href and title and title not in seen_names and "تور" not in title:
-                        seen_names.add(title)
-                        destinations.append({"name": title, "href": href})
-                except:
-                    pass
-            
-            print(f"تعداد مقاصد پیدا شده: {len(destinations)}")
-            for d in destinations:
-                print(f" - {d['name']} (آدرس: {d['href']})")
-            
-            if not destinations:
-                print("مقصدی پیدا نشد. لطفا بررسی کنید.")
-                await browser.close()
-                return
+            try:
+                await page.goto(dest_url, timeout=60000, wait_until="domcontentloaded")
+                await page.wait_for_timeout(8000)
                 
-            # انتخاب ۵ مقصد تصادفی
-            random_destinations = random.sample(destinations, min(5, len(destinations)))
-            
-            final_tours = []
-            
-            for dest in random_destinations:
-                dest_name = dest["name"]
-                dest_href = dest["href"]
-                print(f"\nدر حال بررسی تورهای {dest_name}...")
+                cards = await page.locator("div:has-text('جزئیات تور')").all()
                 
-                try:
-                    # رفتن مستقیم به آدرس آن مقصد
-                    full_url = f"https://safarmarket.com{dest_href}" if dest_href.startswith("/") else dest_href
-                    await page.goto(full_url, timeout=60000, wait_until="domcontentloaded")
-                    await page.wait_for_timeout(8000) # صبر برای لود تورها
-                    
-                    cards = await page.locator("div:has-text('جزئیات تور')").all()
-                    
-                    city_tours = []
-                    for card in cards:
-                        try:
-                            text = await card.inner_text()
-                            if "تومان" not in text:
-                                continue
-                                
-                            text = text.replace("location_on", "").replace("flight_takeoff", "").replace("flight_land", "").replace("directions_bus", "").replace("جزئیات تور", "")
-                            lines = [line.strip() for line in text.split('\n') if line.strip()]
+                city_tours = []
+                for card in cards:
+                    try:
+                        text = await card.inner_text()
+                        if "تومان" not in text:
+                            continue
                             
-                            price_match = re.search(r'([\d,۰-۹]+)\s*تومان', text)
-                            if not price_match:
-                                continue
-                            
-                            price_str = price_match.group(0)
-                            price_num_str = price_match.group(1).replace(",", "").replace("۰", "0").replace("۱", "1").replace("۲", "2").replace("۳", "3").replace("۴", "4").replace("۵", "5").replace("۶", "6").replace("۷", "7").replace("۸", "8").replace("۹", "9")
-                            price_num = int(price_num_str)
-                            
-                            hotel = "نامشخص"
-                            destination = "نامشخص"
-                            
-                            for line in lines:
-                                word_count = len(line.split())
-                                if (len(line) > 5 and word_count < 8 and "تومان" not in line and "شب" not in line and "," not in line and "آبان" not in line and "آذر" not in line and "دی" not in line and "پرفروش" not in line and "تورها" not in line):
-                                    hotel = line
-                                    break
-                                    
-                            for line in lines:
-                                if "شب" in line:
-                                    destination = line
-                                    break
-                            
-                            if hotel != "نامشخص" and destination != "نامشخص":
-                                city_tours.append({
-                                    "hotel": hotel,
-                                    "destination": destination,
-                                    "price_str": price_str,
-                                    "price_num": price_num
-                                })
-                        except:
-                            pass
-                            
-                    if city_tours:
-                        cheapest = min(city_tours, key=lambda x: x["price_num"])
-                        final_tours.append(cheapest)
-                        print(f"  ✅ ارزان‌ترین در {dest_name}: {cheapest['hotel']} - {cheapest['price_str']}")
-                    else:
-                        print(f"  ❌ توری در {dest_name} پیدا نشد.")
+                        text = text.replace("location_on", "").replace("flight_takeoff", "").replace("flight_land", "").replace("directions_bus", "").replace("جزئیات تور", "")
+                        lines = [line.strip() for line in text.split('\n') if line.strip()]
                         
-                except Exception as e:
-                    print(f"  خطا در بررسی {dest_name}: {e}")
+                        price_match = re.search(r'([\d,۰-۹]+)\s*تومان', text)
+                        if not price_match:
+                            continue
+                        
+                        price_str = price_match.group(0)
+                        price_num_str = price_match.group(1).replace(",", "").replace("۰", "0").replace("۱", "1").replace("۲", "2").replace("۳", "3").replace("۴", "4").replace("۵", "5").replace("۶", "6").replace("۷", "7").replace("۸", "8").replace("۹", "9")
+                        price_num = int(price_num_str)
+                        
+                        hotel = "نامشخص"
+                        destination = "نامشخص"
+                        
+                        for line in lines:
+                            word_count = len(line.split())
+                            if (len(line) > 5 and word_count < 8 and "تومان" not in line and "شب" not in line and "," not in line and "آبان" not in line and "آذر" not in line and "دی" not in line and "پرفروش" not in line and "تورها" not in line):
+                                hotel = line
+                                break
+                                
+                        for line in lines:
+                            if "شب" in line:
+                                destination = line
+                                break
+                        
+                        if hotel != "نامشخص" and destination != "نامشخص":
+                            city_tours.append({
+                                "hotel": hotel,
+                                "destination": destination,
+                                "price_str": price_str,
+                                "price_num": price_num
+                            })
+                    except:
+                        pass
+                        
+                if city_tours:
+                    cheapest = min(city_tours, key=lambda x: x["price_num"])
+                    final_tours.append(cheapest)
+                    print(f"  ✅ ارزان‌ترین در {dest_name}: {cheapest['hotel']} - {cheapest['price_str']}")
+                else:
+                    print(f"  ❌ توری در {dest_name} پیدا نشد.")
                     
-        except Exception as e:
-            print(f"خطای کلی: {e}")
-            await browser.close()
-            return
-            
+            except Exception as e:
+                print(f"  خطا در بررسی {dest_name}: {e}")
+                
         print(f"\n✅ در مجموع {len(final_tours)} تور از مقاصد مختلف استخراج شد.")
         
         if final_tours:
@@ -139,8 +107,6 @@ async def main():
             print("="*40)
             print(msg)
             print("="*40)
-        else:
-            print("❌ هیچ توری پیدا نشد.")
             
         await browser.close()
 
