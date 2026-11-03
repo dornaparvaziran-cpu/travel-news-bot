@@ -15,46 +15,52 @@ async def main():
             await page.goto(url, timeout=60000, wait_until="domcontentloaded")
             await page.wait_for_timeout(5000)
             
-            # پیدا کردن تب‌های مقصد (شهرها)
-            tabs = await page.locator("div, span, a").filter(has_text=re.compile(r"^(آنتالیا|استانبول|کیش|مشهد|شیراز|ایروان|وان|کوالالامپور|پاتایا|کوش آداسی|قشم|تبریز|اصفهان)$")).all()
+            # پیدا کردن لینک‌های تب‌های مقصد (لینک‌هایی که به تورهای یک شهر خاص می‌روند)
+            # این لینک‌ها معمولاً شامل کلمه tours و نام شهر هستند
+            links = await page.locator("a[href*='/tours/']").all()
             
-            unique_tabs = []
-            seen_texts = set()
-            for tab in tabs:
+            unique_destinations = []
+            seen_names = set()
+            
+            for link in links:
                 try:
-                    text = await tab.inner_text()
+                    text = await link.inner_text()
                     text = text.strip()
-                    if text and text not in seen_texts and len(text) < 20:
-                        seen_texts.add(text)
-                        unique_tabs.append({"element": tab, "name": text})
+                    # فیلتر کردن لینک‌هایی که متن کوتاه و شبیه نام شهر هستند
+                    if text and 2 < len(text) < 20 and text not in seen_names and "تور" not in text:
+                        href = await link.get_attribute("href")
+                        if href:
+                            seen_names.add(text)
+                            unique_destinations.append({"element": link, "name": text, "href": href})
                 except:
                     pass
             
-            print(f"تعداد تب‌های پیدا شده: {len(unique_tabs)}")
+            print(f"تعداد مقاصد پیدا شده: {len(unique_destinations)}")
             
-            if not unique_tabs:
-                print("تبی پیدا نشد. ادامه با نتایج پیش‌فرض...")
-                search_btn = page.locator("button:has-text('جستجوی تور'), a:has-text('جستجوی تور')").first
-                if await search_btn.count() > 0:
-                    await search_btn.click()
-                    await page.wait_for_timeout(10000)
+            if not unique_destinations:
+                print("مقصدی پیدا نشد.")
+                await browser.close()
+                return
             
-            # انتخاب ۵ تب تصادفی
-            random_tabs = random.sample(unique_tabs, min(5, len(unique_tabs)))
+            # انتخاب ۵ مقصد تصادفی
+            random_destinations = random.sample(unique_destinations, min(5, len(unique_destinations)))
             
             final_tours = []
             
-            for tab_info in random_tabs:
-                tab_name = tab_info["name"]
-                print(f"در حال بررسی تب: {tab_name}")
+            for dest_info in random_destinations:
+                dest_name = dest_info["name"]
+                dest_href = dest_info["href"]
+                print(f"در حال بررسی مقصد: {dest_name}")
                 
                 try:
-                    await tab_info["element"].click()
-                    await page.wait_for_timeout(8000) # صبر برای لود تورهای تب جدید
+                    # به جای کلیک، مستقیماً به لینک آن مقصد می‌رویم
+                    full_url = f"https://safarmarket.com{dest_href}" if dest_href.startswith("/") else dest_href
+                    await page.goto(full_url, timeout=60000, wait_until="domcontentloaded")
+                    await page.wait_for_timeout(8000) # صبر برای لود تورها
                     
                     cards = await page.locator("div:has-text('جزئیات تور')").all()
                     
-                    tab_tours = []
+                    dest_tours = []
                     for card in cards:
                         try:
                             text = await card.inner_text()
@@ -64,13 +70,11 @@ async def main():
                             text = text.replace("location_on", "").replace("flight_takeoff", "").replace("flight_land", "").replace("directions_bus", "").replace("جزئیات تور", "")
                             lines = [line.strip() for line in text.split('\n') if line.strip()]
                             
-                            # استخراج قیمت به صورت عدد برای مقایسه
                             price_match = re.search(r'([\d,۰-۹]+)\s*تومان', text)
                             if not price_match:
                                 continue
                             
                             price_str = price_match.group(0)
-                            # تبدیل اعداد فارسی به انگلیسی برای مقایسه
                             price_num_str = price_match.group(1).replace(",", "").replace("۰", "0").replace("۱", "1").replace("۲", "2").replace("۳", "3").replace("۴", "4").replace("۵", "5").replace("۶", "6").replace("۷", "7").replace("۸", "8").replace("۹", "9")
                             price_num = int(price_num_str)
                             
@@ -89,7 +93,7 @@ async def main():
                                     break
                             
                             if hotel != "نامشخص" and destination != "نامشخص":
-                                tab_tours.append({
+                                dest_tours.append({
                                     "hotel": hotel,
                                     "destination": destination,
                                     "price_str": price_str,
@@ -98,16 +102,15 @@ async def main():
                         except:
                             pass
                             
-                    # پیدا کردن ارزان‌ترین تور این تب
-                    if tab_tours:
-                        cheapest = min(tab_tours, key=lambda x: x["price_num"])
+                    if dest_tours:
+                        cheapest = min(dest_tours, key=lambda x: x["price_num"])
                         final_tours.append(cheapest)
-                        print(f"  ✅ ارزان‌ترین در {tab_name}: {cheapest['hotel']} - {cheapest['price_str']}")
+                        print(f"  ✅ ارزان‌ترین در {dest_name}: {cheapest['hotel']} - {cheapest['price_str']}")
                     else:
-                        print(f"  ❌ توری در {tab_name} پیدا نشد.")
+                        print(f"  ❌ توری در {dest_name} پیدا نشد.")
                         
                 except Exception as e:
-                    print(f"  خطا در کلیک روی تب {tab_name}: {e}")
+                    print(f"  خطا در بررسی {dest_name}: {e}")
                     
         except Exception as e:
             print(f"خطای کلی: {e}")
