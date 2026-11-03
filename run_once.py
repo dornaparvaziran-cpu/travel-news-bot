@@ -771,84 +771,111 @@ def send_visa_tips():
         print("Visa tip sent successfully.")
 
 # ---------- Tours ----------
+TOUR_IMAGE_URL = "https://dornatravel.ir/basefile/dornatravel/images/a03ee0f0-168e-4bfe-817a-047543ad2d8a.png?q=80&w=1000&auto=format&fit=crop" # لینک عکس ثابت تورها را اینجا بگذارید
+
 async def get_tours_data(browser):
     url = "https://safarmarket.com/tours/lastminute"
     page = await browser.new_page()
     
     try:
         await page.goto(url, timeout=60000, wait_until="domcontentloaded")
-        await page.wait_for_timeout(5000)
+        await page.wait_for_timeout(8000)
         
-        search_btn = page.locator("button:has-text('جستجوی تور'), a:has-text('جستجوی تور')").first
-        if await search_btn.count() > 0:
-            await search_btn.click()
-            await page.wait_for_timeout(15000)
+        tabs = await page.locator("span.CardsTitle").all()
         
-        cards = await page.locator("div:has-text('جزئیات تور')").all()
-        
-        tours = []
-        for card in cards:
+        valid_tabs = []
+        for tab in tabs:
             try:
-                text = await card.inner_text()
-                if "تومان" not in text:
-                    continue
-                    
-                text = text.replace("location_on", "").replace("flight_takeoff", "").replace("flight_land", "").replace("directions_bus", "").replace("جزئیات تور", "")
-                lines = [line.strip() for line in text.split('\n') if line.strip()]
+                raw_text = await tab.inner_text()
+                clean_name = raw_text.replace("\xa0", " ").strip()
                 
-                price_match = re.search(r'([\d,۰-۹]+)\s*تومان', text)
-                price = price_match.group(0) if price_match else "نامشخص"
-                
-                hotel = "نامشخص"
-                destination = "نامشخص"
-                
-                for line in lines:
-                    word_count = len(line.split())
-                    if (len(line) > 5 and 
-                        word_count < 8 and 
-                        "تومان" not in line and 
-                        "شب" not in line and 
-                        "," not in line and 
-                        "آبان" not in line and 
-                        "آذر" not in line and 
-                        "دی" not in line and 
-                        "پرفروش" not in line and 
-                        "تورها" not in line):
-                        hotel = line
-                        break
-                        
-                for line in lines:
-                    if "شب" in line:
-                        destination = line
-                        break
-                
-                if hotel != "نامشخص" and destination != "نامشخص":
-                    tours.append({
-                        "hotel": hotel,
-                        "destination": destination,
-                        "price": price
-                    })
+                if clean_name and len(clean_name) < 20 and clean_name not in ["تور", "هتل"]:
+                    valid_tabs.append({"element": tab, "name": clean_name})
             except:
                 pass
-                
-        unique_tours = []
-        seen = set()
-        for t in tours:
-            key = f"{t['hotel']}_{t['price']}"
-            if key not in seen:
-                seen.add(key)
-                unique_tours.append(t)
-                
-        if not unique_tours:
+        
+        if not valid_tabs:
             return None
             
-        random_tours = random.sample(unique_tours, min(3, len(unique_tours)))
+        random_tabs = random.sample(valid_tabs, min(5, len(valid_tabs)))
+        final_tours = []
         
-        msg = "🎟️ <b>تورهای لحظه آخری پیشنهادی</b>\n\n"
-        for t in random_tours:
-            msg += f"🔹 <b>{t['hotel']}</b>\n"
-            msg += f"📍 {t['destination']}\n"
-            msg += f"💰 {t['price']}\n\n"
+        for tab_info in random_tabs:
+            tab_name = tab_info["name"]
+            try:
+                await tab_info["element"].click()
+                await page.wait_for_timeout(8000)
+                
+                cards = await page.locator("div:has-text('جزئیات تور')").all()
+                
+                city_tours = []
+                for card in cards:
+                    try:
+                        text = await card.inner_text()
+                        if "تومان" not in text:
+                            continue
+                            
+                        text = text.replace("location_on", "").replace("flight_takeoff", "").replace("flight_land", "").replace("directions_bus", "").replace("جزئیات تور", "")
+                        lines = [line.strip() for line in text.split('\n') if line.strip()]
+                        
+                        price_match = re.search(r'([\d,۰-۹]+)\s*تومان', text)
+                        if not price_match:
+                            continue
+                        
+                        price_str = price_match.group(0)
+                        price_num_str = price_match.group(1).replace(",", "").replace("۰", "0").replace("۱", "1").replace("۲", "2").replace("۳", "3").replace("۴", "4").replace("۵", "5").replace("۶", "6").replace("۷", "7").replace("۸", "8").replace("۹", "9")
+                        price_num = int(price_num_str)
+                        
+                        hotel = "نامشخص"
+                        destination = "نامشخص"
+                        
+                        for line in lines:
+                            word_count = len(line.split())
+                            is_valid_hotel_name = False
+                            if re.search(r'[A-Za-z]{3,}', line):
+                                is_valid_hotel_name = True
+                            elif "هتل" in line or "سوئیت" in line or "اقامتگاه" in line or "بوتیک" in line:
+                                is_valid_hotel_name = True
+                            
+                            if (is_valid_hotel_name and 
+                                len(line) > 5 and 
+                                word_count < 10 and 
+                                "تومان" not in line and 
+                                "شب" not in line):
+                                hotel = line
+                                break
+                                
+                        for line in lines:
+                            if "شب" in line:
+                                destination = line
+                                break
+                        
+                        if hotel != "نامشخص" and destination != "نامشخص":
+                            city_tours.append({
+                                "hotel": hotel,
+                                "destination": destination,
+                                "price_str": price_str,
+                                "price_num": price_num
+                            })
+                    except:
+                        pass
+                    
+                if city_tours:
+                    cheapest = min(city_tours, key=lambda x: x["price_num"])
+                    final_tours.append(cheapest)
+                    print(f"  ✅ ارزان‌ترین در {tab_name}: {cheapest['hotel']} - {cheapest['price_str']}")
+                    
+            except Exception as e:
+                print(f"  خطا در کلیک روی {tab_name}: {e}")
+                
+        if not final_tours:
+            return None
+            
+        msg = "🎟️ <b>ارزان‌ترین تورهای لحظه آخری (مقاصد مختلف)</b>\n\n"
+        for t in final_tours:
+            msg += f"🔹 <b>{t['destination']}</b>\n"
+            msg += f"🏨 {t['hotel']}\n"
+            msg += f"💰 {t['price_str']}\n\n"
             
         msg += "📞 <b>برای رزرو با ما در تماس باشید:</b>\n"
         msg += "☎️ 05132292292\n"
@@ -858,7 +885,7 @@ async def get_tours_data(browser):
         return msg
 
     except Exception as e:
-        print(f"Tour Playwright error: {e}")
+        print(f"Tours Playwright error: {e}")
         return None
     finally:
         await page.close()
@@ -868,12 +895,17 @@ async def send_tours():
     print("Fetching last minute tours...")
     async with async_playwright() as p:
         browser = await p.chromium.launch(headless=True)
-        tour_text = await get_tours_data(browser)
-        if tour_text:
-            send_to_all(tour_text)
-            print("Tours sent successfully.")
+        tours_text = await get_tours_data(browser)
+        
+        if tours_text:
+            # 🌟 ارسال متن همراه با عکس به تلگرام
+            tg_id = send_to_telegram(tours_text, TOUR_IMAGE_URL)
+            # ارسال متن به ایتا
+            send_to_eita(tours_text)
+            print("Tours sent successfully with image.")
         else:
             print("No tours found or error occurred.")
+            
         await browser.close()
 
 # ---------- Main ----------
