@@ -15,7 +15,6 @@ async def main():
             await page.goto(url, timeout=60000, wait_until="domcontentloaded")
             await page.wait_for_timeout(5000)
             
-            # کلیک روی دکمه جستجو
             search_btn = page.locator("button:has-text('جستجوی تور'), a:has-text('جستجوی تور')").first
             if await search_btn.count() > 0:
                 await search_btn.click()
@@ -27,8 +26,6 @@ async def main():
             await browser.close()
             return
             
-        # پیدا کردن تمام کارت‌های تور در صفحه
-        # کارت‌های تور معمولاً شامل کلمه "تومان" و دکمه "جزئیات تور" هستند
         cards = await page.locator("div:has-text('جزئیات تور')").all()
         print(f"تعداد کارت‌های پیدا شده: {len(cards)}")
         
@@ -39,26 +36,22 @@ async def main():
                 if "تومان" not in text:
                     continue
                     
-                # تمیز کردن متن از آیکون‌های انگلیسی
                 text = text.replace("location_on", "").replace("flight_takeoff", "").replace("flight_land", "").replace("directions_bus", "").replace("جزئیات تور", "")
-                
                 lines = [line.strip() for line in text.split('\n') if line.strip()]
                 
-                # استخراج قیمت
                 price_match = re.search(r'([\d,۰-۹]+)\s*تومان', text)
                 price = price_match.group(0) if price_match else "نامشخص"
                 
-                # در سفرمارکت، معمولاً اولین خطِ بلند نام هتل است و خط بعدی مقصد
                 hotel = "نامشخص"
                 destination = "نامشخص"
                 
                 for line in lines:
-                        if len(line) > 5 and "تومان" not in line and "شب" not in line and "," not in line and "آبان" not in line and "آذر" not in line and "دی" not in line and "پرفروش" not in line:
+                    if len(line) > 5 and "تومان" not in line and "شب" not in line and "," not in line and "آبان" not in line and "آذر" not in line and "دی" not in line and "پرفروش" not in line:
                         hotel = line
                         break
                         
                 for line in lines:
-                    if "شب" in line or "ایروان" in line or "استانبول" in line or "کیش" in line or "مشهد" in line:
+                    if "شب" in line or "ایروان" in line or "استانبول" in line or "کیش" in line or "مشهد" in line or "آنتالیا" in line:
                         destination = line
                         break
                 
@@ -71,7 +64,6 @@ async def main():
             except:
                 pass
                 
-        # حذف تکراری‌ها
         unique_tours = []
         seen = set()
         for t in tours:
