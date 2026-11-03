@@ -121,17 +121,17 @@ HOTEL_CITIES = [
     {
         "name": "مشهد", 
         "url": "https://www.iranhotelonline.com/mashhad-hotels/",
-        "image": "https://images.unsplash.com/photo-1590075864386-3e62b94ad6f8?q=80&w=1000&auto=format&fit=crop" # حرم امام رضا
+        "image": "https://www.saadatrent.com/mag/wp-content/uploads/2024/11/Mashhad-Il-Santuario-di-Emam-Reza-8-min.webp?q=80&w=1000&auto=format&fit=crop" # حرم امام رضا
     },
     {
         "name": "شیراز", 
         "url": "https://www.iranhotelonline.com/shiraz-hotels/",
-        "image": "https://images.unsplash.com/photo-1582555172866-f73bb12a2ab3?q=80&w=1000&auto=format&fit=crop" # حافظیه
+        "image": "https://www.visitouriran.com/blog/wp-content/uploads/upload/the-tomb-of-hafez.webp?q=80&w=1000&auto=format&fit=crop" # حافظیه
     },
     {
         "name": "تهران", 
         "url": "https://www.iranhotelonline.com/tehran-hotels/",
-        "image": "https://images.unsplash.com/photo-1577717903315-1691ae25ab3f?q=80&w=1000&auto=format&fit=crop" # برج میلاد
+        "image": "https://www.aviontourism.com/images/1260-2600-fix/3279e1a9-15a0-4936-a385-3fb1d3170c37?q=80&w=1000&auto=format&fit=crop" # میدان آزادی
     },
     {
         "name": "کیش", 
@@ -141,17 +141,17 @@ HOTEL_CITIES = [
     {
         "name": "اصفهان", 
         "url": "https://www.iranhotelonline.com/isfahan-hotels/",
-        "image": "https://images.unsplash.com/photo-1584551246679-0daf3d275d0f?q=80&w=1000&auto=format&fit=crop" # سی و سه پل
+        "image": "https://english.iut.ac.ir/sites/default/files/about-isfahan/naqsh-e-Jahan-square-1.jpg?q=80&w=1000&auto=format&fit=crop" # میدان امام
     },
     {
         "name": "تبریز", 
         "url": "https://www.iranhotelonline.com/tabriz-hotels/",
-        "image": "https://images.unsplash.com/photo-1601132807429-0244b7eccab4?q=80&w=1000&auto=format&fit=crop" # بازار تبریز
+        "image": "https://nilutours.com/wp-content/uploads/2026/02/Tabriz-Grand-Bazaar.webp?q=80&w=1000&auto=format&fit=crop" # بازار تبریز
     },
     {
         "name": "شمال (مازندران)", 
         "url": "https://www.iranhotelonline.com/mazandaran-hotels/",
-        "image": "https://images.unsplash.com/photo-1605649487212-47bdab064df7?q=80&w=1000&auto=format&fit=crop" # جنگل شمال
+        "image": "https://hotelgard.com/wp-content/uploads/2025/09/sh11.jpg?q=80&w=1000&auto=format&fit=crop" # جنگل شمال
     },
 ]
 VISA_TIPS = [
