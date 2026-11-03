@@ -53,7 +53,7 @@ async def main():
                 destination = "نامشخص"
                 
                 for line in lines:
-                    if len(line) > 5 and "تومان" not in line and "شب" not in line and "," not in line and "آبان" not in line and "آذر" not in line and "دی" not in line:
+                        if len(line) > 5 and "تومان" not in line and "شب" not in line and "," not in line and "آبان" not in line and "آذر" not in line and "دی" not in line and "پرفروش" not in line:
                         hotel = line
                         break
                         
