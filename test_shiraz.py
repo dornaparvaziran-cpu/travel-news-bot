@@ -46,7 +46,19 @@ async def main():
                 destination = "نامشخص"
                 
                 for line in lines:
-                    if len(line) > 5 and "تومان" not in line and "شب" not in line and "," not in line and "آبان" not in line and "آذر" not in line and "دی" not in line and "پرفروش" not in line:
+                    # قانون جدید: اسم هتل نباید بیشتر از ۸ کلمه باشد (لیست شهرها کلمه زیادی دارد)
+                    word_count = len(line.split())
+                    
+                    if (len(line) > 5 and 
+                        word_count < 8 and 
+                        "تومان" not in line and 
+                        "شب" not in line and 
+                        "," not in line and 
+                        "آبان" not in line and 
+                        "آذر" not in line and 
+                        "دی" not in line and 
+                        "پرفروش" not in line and 
+                        "تورها" not in line):
                         hotel = line
                         break
                         
