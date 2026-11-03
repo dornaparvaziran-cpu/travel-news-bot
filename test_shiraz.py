@@ -15,32 +15,26 @@ async def main():
             await page.goto(url, timeout=60000, wait_until="domcontentloaded")
             await page.wait_for_timeout(8000)
             
-            # پیدا کردن تب‌ها با استفاده از کلاس CardsTitle (دقیقا مطابق عکسی که فرستادید)
             tabs = await page.locator("span.CardsTitle").all()
             
             valid_tabs = []
             for tab in tabs:
                 try:
-                    # گرفتن متن تب و حذف کاراکترهای نامرئی (مثل &nbsp;)
                     raw_text = await tab.inner_text()
                     clean_name = raw_text.replace("\xa0", " ").strip()
                     
-                    # فیلتر کردن تب‌هایی که نام شهر هستند
                     if clean_name and len(clean_name) < 20 and clean_name not in ["تور", "هتل"]:
                         valid_tabs.append({"element": tab, "name": clean_name})
                 except:
                     pass
             
             print(f"تعداد تب‌های پیدا شده: {len(valid_tabs)}")
-            for t in valid_tabs[:10]:
-                print(f" - تب: {t['name']}")
             
             if not valid_tabs:
                 print("تبی پیدا نشد.")
                 await browser.close()
                 return
                 
-            # انتخاب ۵ تب تصادفی
             random_tabs = random.sample(valid_tabs, min(5, len(valid_tabs)))
             final_tours = []
             
@@ -49,9 +43,8 @@ async def main():
                 print(f"\nدر حال کلیک روی تب {tab_name}...")
                 
                 try:
-                    # کلیک روی تب
                     await tab_info["element"].click()
-                    await page.wait_for_timeout(8000) # صبر برای لود تورهای تب جدید
+                    await page.wait_for_timeout(8000)
                     
                     cards = await page.locator("div:has-text('جزئیات تور')").all()
                     
@@ -78,7 +71,18 @@ async def main():
                             
                             for line in lines:
                                 word_count = len(line.split())
-                                if (len(line) > 5 and word_count < 8 and "تومان" not in line and "شب" not in line and "," not in line and "آبان" not in line and "آذر" not in line and "دی" not in line and "پرفروش" not in line and "تورها" not in line):
+                                # فیلتر کردن "تور لحظه آخری" به عنوان اسم هتل
+                                if (len(line) > 5 and 
+                                    word_count < 8 and 
+                                    "تومان" not in line and 
+                                    "شب" not in line and 
+                                    "," not in line and 
+                                    "آبان" not in line and 
+                                    "آذر" not in line and 
+                                    "دی" not in line and 
+                                    "پرفروش" not in line and 
+                                    "تورها" not in line and
+                                    "تور لحظه آخری" not in line):
                                     hotel = line
                                     break
                                     
@@ -87,7 +91,7 @@ async def main():
                                     destination = line
                                     break
                             
-                            if hotel != "نامشخص" and destination != "نامشخص":
+                            if hotel != "نامشخص" and destination != "نامشخص" and hotel != "تور لحظه آخری":
                                 city_tours.append({
                                     "hotel": hotel,
                                     "destination": destination,
