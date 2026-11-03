@@ -11,6 +11,7 @@ import time
 import translators as ts
 from datetime import datetime, timedelta
 from playwright.async_api import async_playwright
+
 from content import FOODS, TRAVEL_TIPS, YOUTUBE_QUERIES, ALL_ROUTES, FEEDS, HOTEL_CITIES, VISA_TIPS
 
 TG_TOKEN = os.environ.get("BOT_TOKEN")
@@ -637,13 +638,11 @@ def send_youtube_video():
     except Exception as e:
         print(f"YouTube error: {e}")
 
-# ---------- Hotels ----------
+
 # ---------- Hotels ----------
 async def get_hotels_data(browser):
-    # خواندن شهرهایی که قبلاً ارسال شده‌اند
     sent_cities = load_sent_from_gist("sent_hotel_cities.txt")
     
-    # پیدا کردن شهرهایی که هنوز ارسال نشده‌اند
     available_cities = [c for c in HOTEL_CITIES if c["name"] not in sent_cities]
     
     if not available_cities:
@@ -651,11 +650,10 @@ async def get_hotels_data(browser):
         available_cities = HOTEL_CITIES
         sent_cities = set()
         
-    # انتخاب یک شهر تصادفی
     city = random.choice(available_cities)
     city_name = city["name"]
     url = city["url"]
-    city_image = city.get("image") # لینک عکس شهر
+    city_image = city.get("image")
     
     print(f"Fetching hotels for: {city_name}")
     page = await browser.new_page()
@@ -698,7 +696,6 @@ async def get_hotels_data(browser):
             print(f"No hotels found for {city_name}.")
             return None
             
-        # انتخاب ۵ هتل به صورت تصادفی
         random_hotels = random.sample(final_hotels, min(5, len(final_hotels)))
         
         result_text = f"🏨 <b>پیشنهاد ویژه اقامت در {city_name}</b>\n\n"
@@ -710,7 +707,6 @@ async def get_hotels_data(browser):
         result_text += "📱 09153092528\n\n"
         result_text += "✈️ <b>درنا تراول</b>"
         
-        # ذخیره نام شهر در Gist
         sent_cities.add(city_name)
         save_sent_to_gist("sent_hotel_cities.txt", sent_cities)
         
@@ -730,9 +726,7 @@ async def send_hotel_prices():
         result = await get_hotels_data(browser)
         
         if result:
-            # ارسال متن همراه با عکس به تلگرام
             tg_id = send_to_telegram(result["text"], result["image"])
-            # ارسال متن به ایتا (ایتا از عکس در این حالت پشتیبانی نمی‌کند)
             send_to_eita(result["text"])
             
             if tg_id:
@@ -770,8 +764,9 @@ def send_visa_tips():
         save_sent_to_gist("sent_visa.txt", sent_visa)
         print("Visa tip sent successfully.")
 
+
 # ---------- Tours ----------
-TOUR_IMAGE_URL = "https://dornatravel.ir/basefile/dornatravel/images/a03ee0f0-168e-4bfe-817a-047543ad2d8a.png?q=80&w=1000&auto=format&fit=crop" # لینک عکس ثابت تورها را اینجا بگذارید
+TOUR_IMAGE_URL = "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?q=80&w=1000&auto=format&fit=crop"
 
 async def get_tours_data(browser):
     url = "https://safarmarket.com/tours/lastminute"
@@ -893,20 +888,34 @@ async def get_tours_data(browser):
 
 async def send_tours():
     print("Fetching last minute tours...")
+    
+    # حذف پیام قبلی از کانال
+    delete_previous_messages("last_tour_msgs.txt")
+    
     async with async_playwright() as p:
         browser = await p.chromium.launch(headless=True)
         tours_text = await get_tours_data(browser)
         
         if tours_text:
-            # 🌟 ارسال متن همراه با عکس به تلگرام
+            new_msg_ids = []
+            
+            # ارسال به تلگرام با عکس
             tg_id = send_to_telegram(tours_text, TOUR_IMAGE_URL)
-            # ارسال متن به ایتا
+            if tg_id:
+                new_msg_ids.append(tg_id)
+                
+            # ارسال به ایتا (متن)
             send_to_eita(tours_text)
-            print("Tours sent successfully with image.")
+            
+            # ذخیره آیدی پیام
+            if new_msg_ids:
+                save_message_ids("last_tour_msgs.txt", new_msg_ids)
+                print("Tours sent successfully and message ID saved.")
         else:
             print("No tours found or error occurred.")
             
         await browser.close()
+
 
 # ---------- Main ----------
 if __name__ == "__main__":
