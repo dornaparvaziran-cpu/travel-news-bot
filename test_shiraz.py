@@ -3,7 +3,6 @@ from playwright.async_api import async_playwright
 import random
 import re
 
-# 🌟 لینک عکس ثابت تورها را اینجا قرار دهید
 TOUR_IMAGE_URL = "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?q=80&w=1000&auto=format&fit=crop"
 
 async def main():
@@ -30,8 +29,6 @@ async def main():
                         valid_tabs.append({"element": tab, "name": clean_name})
                 except:
                     pass
-            
-            print(f"تعداد تب‌های پیدا شده: {len(valid_tabs)}")
             
             if not valid_tabs:
                 print("تبی پیدا نشد.")
@@ -74,19 +71,18 @@ async def main():
                             
                             for line in lines:
                                 word_count = len(line.split())
-                                if (len(line) > 5 and 
-                                    word_count < 8 and 
+                                # 🎯 فیلتر جدید و هوشمند برای اسم هتل
+                                is_valid_hotel_name = False
+                                if re.search(r'[A-Za-z]{3,}', line): # اگر حروف انگلیسی دارد (مثل Hotel)
+                                    is_valid_hotel_name = True
+                                elif "هتل" in line or "سوئیت" in line or "اقامتگاه" in line or "بوتیک" in line: # یا کلمات فارسی هتل
+                                    is_valid_hotel_name = True
+                                
+                                if (is_valid_hotel_name and 
+                                    len(line) > 5 and 
+                                    word_count < 10 and 
                                     "تومان" not in line and 
-                                    "شب" not in line and 
-                                    "," not in line and 
-                                    "آبان" not in line and 
-                                    "آذر" not in line and 
-                                    "دی" not in line and 
-                                    "پرفروش" not in line and 
-                                    "تورها" not in line and
-                                    "تور لحظه آخری" not in line and
-                                    "نام شهر" not in line and
-                                    "وارد نمایید" not in line):
+                                    "شب" not in line):
                                     hotel = line
                                     break
                                     
@@ -95,7 +91,7 @@ async def main():
                                     destination = line
                                     break
                             
-                            if hotel != "نامشخص" and destination != "نامشخص" and hotel != "تور لحظه آخری":
+                            if hotel != "نامشخص" and destination != "نامشخص":
                                 city_tours.append({
                                     "hotel": hotel,
                                     "destination": destination,
@@ -139,8 +135,7 @@ async def main():
             print("="*40)
             print(msg)
             print("="*40)
-            
-            print(f"\n🌟 لینک عکسی که همراه با این پیام در تلگرام ارسال خواهد شد:\n{TOUR_IMAGE_URL}")
+            print(f"\n🌟 لینک عکس: {TOUR_IMAGE_URL}")
         else:
             print("❌ هیچ توری پیدا نشد.")
             
