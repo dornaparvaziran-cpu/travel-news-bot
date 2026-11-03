@@ -118,15 +118,42 @@ FEEDS = [
 ]
 
 HOTEL_CITIES = [
-    {"name": "مشهد", "url": "https://www.iranhotelonline.com/mashhad-hotels/"},
-    {"name": "شیراز", "url": "https://www.iranhotelonline.com/shiraz-hotels/"},
-    {"name": "تهران", "url": "https://www.iranhotelonline.com/tehran-hotels/"},
-    {"name": "کیش", "url": "https://www.iranhotelonline.com/kish-hotels/"},
-    {"name": "اصفهان", "url": "https://www.iranhotelonline.com/isfahan-hotels/"},
-    {"name": "تبریز", "url": "https://www.iranhotelonline.com/tabriz-hotels/"},
-    {"name": "شمال (مازندران)", "url": "https://www.iranhotelonline.com/mazandaran-hotels/"},
+    {
+        "name": "مشهد", 
+        "url": "https://www.iranhotelonline.com/mashhad-hotels/",
+        "image": "https://images.unsplash.com/photo-1590075864386-3e62b94ad6f8?q=80&w=1000&auto=format&fit=crop" # حرم امام رضا
+    },
+    {
+        "name": "شیراز", 
+        "url": "https://www.iranhotelonline.com/shiraz-hotels/",
+        "image": "https://images.unsplash.com/photo-1582555172866-f73bb12a2ab3?q=80&w=1000&auto=format&fit=crop" # حافظیه
+    },
+    {
+        "name": "تهران", 
+        "url": "https://www.iranhotelonline.com/tehran-hotels/",
+        "image": "https://images.unsplash.com/photo-1577717903315-1691ae25ab3f?q=80&w=1000&auto=format&fit=crop" # برج میلاد
+    },
+    {
+        "name": "کیش", 
+        "url": "https://www.iranhotelonline.com/kish-hotels/",
+        "image": "https://images.unsplash.com/photo-1590523277543-a94d2e4eb00b?q=80&w=1000&auto=format&fit=crop" # ساحل کیش
+    },
+    {
+        "name": "اصفهان", 
+        "url": "https://www.iranhotelonline.com/isfahan-hotels/",
+        "image": "https://images.unsplash.com/photo-1584551246679-0daf3d275d0f?q=80&w=1000&auto=format&fit=crop" # سی و سه پل
+    },
+    {
+        "name": "تبریز", 
+        "url": "https://www.iranhotelonline.com/tabriz-hotels/",
+        "image": "https://images.unsplash.com/photo-1601132807429-0244b7eccab4?q=80&w=1000&auto=format&fit=crop" # بازار تبریز
+    },
+    {
+        "name": "شمال (مازندران)", 
+        "url": "https://www.iranhotelonline.com/mazandaran-hotels/",
+        "image": "https://images.unsplash.com/photo-1605649487212-47bdab064df7?q=80&w=1000&auto=format&fit=crop" # جنگل شمال
+    },
 ]
-
 VISA_TIPS = [
     "🇹🇷 ترکیه: برای سفر به ترکیه، ایرانیان می‌توانند به صورت آنلاین ویزای الکترونیکی بگیرند. اعتبار پاسپورت باید حداقل ۶ ماه باشد.",
     "🇹🇷 ترکیه: در سفر به ترکیه، حجاب برای خانم‌ها اجباری نیست، اما در مکان‌های مذهبی بهتر است پوشش مناسب داشته باشید.",
