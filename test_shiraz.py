@@ -15,24 +15,25 @@ async def main():
             await page.goto(url, timeout=60000, wait_until="domcontentloaded")
             await page.wait_for_timeout(8000)
             
-            # پیدا کردن تب‌های بالای صفحه با استفاده از کلاسی که در عکس دیدیم
-            tabs = await page.locator("div.frequentCitiesItem, .frequentCitiesItem").all()
+            # پیدا کردن تب‌ها با استفاده از کلاس CardsTitle (دقیقا مطابق عکسی که فرستادید)
+            tabs = await page.locator("span.CardsTitle").all()
             
-            # فیلتر کردن تب‌های واقعی (بعضی‌ها ممکن است مبدا باشند)
             valid_tabs = []
             for tab in tabs:
                 try:
-                    title = await tab.get_attribute("data-title")
-                    # اگر اسم شهر معروفی بود، آن را نگه دار
-                    if title and title in ["آنتالیا", "استانبول", "کیش", "مشهد", "شیراز", "ایروان", "کوالالامپور", "پاتایا"]:
-                        # مختصات مرکز آن تب را پیدا کن
-                        box = await tab.bounding_box()
-                        if box:
-                            valid_tabs.append({"name": title, "box": box})
+                    # گرفتن متن تب و حذف کاراکترهای نامرئی (مثل &nbsp;)
+                    raw_text = await tab.inner_text()
+                    clean_name = raw_text.replace("\xa0", " ").strip()
+                    
+                    # فیلتر کردن تب‌هایی که نام شهر هستند
+                    if clean_name and len(clean_name) < 20 and clean_name not in ["تور", "هتل"]:
+                        valid_tabs.append({"element": tab, "name": clean_name})
                 except:
                     pass
             
-            print(f"تعداد تب‌های معتبر پیدا شده: {len(valid_tabs)}")
+            print(f"تعداد تب‌های پیدا شده: {len(valid_tabs)}")
+            for t in valid_tabs[:10]:
+                print(f" - تب: {t['name']}")
             
             if not valid_tabs:
                 print("تبی پیدا نشد.")
@@ -45,13 +46,11 @@ async def main():
             
             for tab_info in random_tabs:
                 tab_name = tab_info["name"]
-                box = tab_info["box"]
-                
                 print(f"\nدر حال کلیک روی تب {tab_name}...")
                 
                 try:
-                    # کلیک با موس روی مختصات دقیق تب
-                    await page.mouse.click(box["x"] + box["width"] / 2, box["y"] + box["height"] / 2)
+                    # کلیک روی تب
+                    await tab_info["element"].click()
                     await page.wait_for_timeout(8000) # صبر برای لود تورهای تب جدید
                     
                     cards = await page.locator("div:has-text('جزئیات تور')").all()
@@ -103,7 +102,7 @@ async def main():
                         final_tours.append(cheapest)
                         print(f"  ✅ ارزان‌ترین در {tab_name}: {cheapest['hotel']} - {cheapest['price_str']}")
                     else:
-                        print(f"  ❌ توری در {tab_name} پیدا نشد.")
+                        print(f"  ❌ توری در {tab_name} پیدا نشد (شاید برای این شهر توری موجود نیست).")
                         
                 except Exception as e:
                     print(f"  خطا در کلیک روی {tab_name}: {e}")
