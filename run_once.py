@@ -11,8 +11,7 @@ import time
 import translators as ts
 from datetime import datetime, timedelta
 from playwright.async_api import async_playwright
-
-from content import FOODS, TRAVEL_TIPS, YOUTUBE_QUERIES, ALL_ROUTES, FEEDS, HOTEL_CITIES, VISA_TIPS
+from content import FOODS, TRAVEL_TIPS, YOUTUBE_QUERIES, ALL_ROUTES, FEEDS, HOTEL_CITIES, VISA_TIPS, TOURISM_EVENTS
 
 TG_TOKEN = os.environ.get("BOT_TOKEN")
 TG_CHANNEL = os.environ.get("CHANNEL_ID")
@@ -639,6 +638,7 @@ def send_youtube_video():
         print(f"YouTube error: {e}")
 
 # ---------- Hotels ----------
+# ---------- Hotels ----------
 async def get_hotels_data(browser):
     # خواندن شهرهایی که قبلاً ارسال شده‌اند
     sent_cities = load_sent_from_gist("sent_hotel_cities.txt")
@@ -646,16 +646,16 @@ async def get_hotels_data(browser):
     # پیدا کردن شهرهایی که هنوز ارسال نشده‌اند
     available_cities = [c for c in HOTEL_CITIES if c["name"] not in sent_cities]
     
-    # اگر همه شهرها فرستاده شده بودند، لیست را ریست کن
     if not available_cities:
         print("All cities sent! Resetting list...")
         available_cities = HOTEL_CITIES
         sent_cities = set()
         
-    # انتخاب یک شهر تصادفی از بین شهرهای باقی‌مانده
+    # انتخاب یک شهر تصادفی
     city = random.choice(available_cities)
     city_name = city["name"]
     url = city["url"]
+    city_image = city.get("image") # لینک عکس شهر
     
     print(f"Fetching hotels for: {city_name}")
     page = await browser.new_page()
@@ -701,7 +701,6 @@ async def get_hotels_data(browser):
         # انتخاب ۵ هتل به صورت تصادفی
         random_hotels = random.sample(final_hotels, min(5, len(final_hotels)))
         
-        # ساخت متن
         result_text = f"🏨 <b>پیشنهاد ویژه اقامت در {city_name}</b>\n\n"
         for h in random_hotels:
             result_text += f"🔹 {h['name']}: {h['price']:,} تومان\n"
@@ -715,14 +714,14 @@ async def get_hotels_data(browser):
         sent_cities.add(city_name)
         save_sent_to_gist("sent_hotel_cities.txt", sent_cities)
         
-        # 🌟 برگرداندن متن و لینک عکس
-        return {"text": result_text, "image": city.get("image")}
-        
+        return {"text": result_text, "image": city_image}
+
     except Exception as e:
         print(f"Hotel Playwright error for {city_name}: {e}")
         return None
     finally:
         await page.close()
+
 
 async def send_hotel_prices():
     print("Fetching hotel prices...")
@@ -731,9 +730,13 @@ async def send_hotel_prices():
         result = await get_hotels_data(browser)
         
         if result:
-            # ارسال متن همراه با عکس
-            send_to_all(result["text"], result["image"])
-            print("Hotel prices sent successfully with image.")
+            # ارسال متن همراه با عکس به تلگرام
+            tg_id = send_to_telegram(result["text"], result["image"])
+            # ارسال متن به ایتا (ایتا از عکس در این حالت پشتیبانی نمی‌کند)
+            send_to_eita(result["text"])
+            
+            if tg_id:
+                print("Hotel prices sent successfully with image.")
         else:
             print("No hotels found or error occurred.")
         await browser.close()
