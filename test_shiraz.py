@@ -1,5 +1,6 @@
 import asyncio
 from playwright.async_api import async_playwright
+import re
 import random
 
 async def main():
@@ -26,50 +27,68 @@ async def main():
             await browser.close()
             return
             
-        text = await page.inner_text('body')
-        lines = [line.strip() for line in text.split('\n') if line.strip()]
+        # پیدا کردن تمام کارت‌های تور در صفحه
+        # کارت‌های تور معمولاً شامل کلمه "تومان" و دکمه "جزئیات تور" هستند
+        cards = await page.locator("div:has-text('جزئیات تور')").all()
+        print(f"تعداد کارت‌های پیدا شده: {len(cards)}")
         
         tours = []
-        
-        # پیدا کردن الگوی تورها در لیست خطوط
-        for i, line in enumerate(lines):
-            # قیمت‌ها به این شکل هستند: "۶۵,۸۱۰,۰۰۰ تومان" یا "56,500,000 تومان"
-            if "تومان" in line and i > 5:
-                # قیمت در خط i است. اطلاعات بالا را بررسی می‌کنیم
-                price = line
-                hotel_name = lines[i - 5] if i >= 5 else "نامشخص"
-                destination_nights = lines[i - 4] if i >= 4 else "نامشخص"
-                agency = lines[i - 3] if i >= 3 else "نامشخص"
+        for card in cards:
+            try:
+                text = await card.inner_text()
+                if "تومان" not in text:
+                    continue
+                    
+                # تمیز کردن متن از آیکون‌های انگلیسی
+                text = text.replace("location_on", "").replace("flight_takeoff", "").replace("flight_land", "").replace("directions_bus", "").replace("جزئیات تور", "")
                 
-                # فیلتر کردن خطوطی که واقعاً شبیه اسم هتل هستند
-                if len(hotel_name) > 3 and not hotel_name.startswith("flight"):
+                lines = [line.strip() for line in text.split('\n') if line.strip()]
+                
+                # استخراج قیمت
+                price_match = re.search(r'([\d,۰-۹]+)\s*تومان', text)
+                price = price_match.group(0) if price_match else "نامشخص"
+                
+                # در سفرمارکت، معمولاً اولین خطِ بلند نام هتل است و خط بعدی مقصد
+                hotel = "نامشخص"
+                destination = "نامشخص"
+                
+                for line in lines:
+                    if len(line) > 5 and "تومان" not in line and "شب" not in line and "," not in line and "آبان" not in line and "آذر" not in line and "دی" not in line:
+                        hotel = line
+                        break
+                        
+                for line in lines:
+                    if "شب" in line or "ایروان" in line or "استانبول" in line or "کیش" in line or "مشهد" in line:
+                        destination = line
+                        break
+                
+                if hotel != "نامشخص":
                     tours.append({
-                        "hotel": hotel_name,
-                        "destination": destination_nights,
-                        "agency": agency,
+                        "hotel": hotel,
+                        "destination": destination,
                         "price": price
                     })
-                    
-        # حذف تکراری‌ها (بر اساس نام هتل و قیمت)
+            except:
+                pass
+                
+        # حذف تکراری‌ها
         unique_tours = []
         seen = set()
         for t in tours:
             key = f"{t['hotel']}_{t['price']}"
-            if key not in seen and t["hotel"] != "نامشخص":
+            if key not in seen:
                 seen.add(key)
                 unique_tours.append(t)
                 
         print(f"✅ تعداد {len(unique_tours)} تور استخراج شد.")
         
         if unique_tours:
-            # انتخاب ۳ تور تصادفی برای نمایش
             random_tours = random.sample(unique_tours, min(3, len(unique_tours)))
             
             msg = "🎟️ <b>تورهای لحظه آخری پیشنهادی</b>\n\n"
             for t in random_tours:
                 msg += f"🔹 <b>{t['hotel']}</b>\n"
                 msg += f"📍 {t['destination']}\n"
-                msg += f"✈️ {t['agency']}\n"
                 msg += f"💰 {t['price']}\n\n"
                 
             msg += "📞 <b>برای رزرو با ما در تماس باشید:</b>\n"
@@ -83,7 +102,7 @@ async def main():
             print(msg)
             print("="*40)
         else:
-            print("❌ هیچ توری با الگوی مورد نظر پیدا نشد.")
+            print("❌ هیچ توری پیدا نشد.")
             
         await browser.close()
 
