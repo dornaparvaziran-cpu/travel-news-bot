@@ -776,7 +776,7 @@ def send_visa_tips():
 
 
 # ---------- Tours ----------
-TOUR_IMAGE_URL = "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?q=80&w=1000&auto=format&fit=crop"
+TOUR_IMAGE_URL = "https://dornatravel.ir/basefile/dornatravel/images/a03ee0f0-168e-4bfe-817a-047543ad2d8a.png"
 
 async def get_tours_data(browser):
     url = "https://safarmarket.com/tours/lastminute"
