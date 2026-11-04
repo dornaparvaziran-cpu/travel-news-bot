@@ -774,6 +774,9 @@ async def send_hotel_prices():
 
 
 # ---------- Visa Tips ----------
+# 🌟 لینک عکس ثابت ویزا
+VISA_IMAGE_URL = "https://dornatravel.ir/basefile/dornatravel/images/visa.png"
+
 def send_visa_tips():
     print("Sending visa tip...")
     
@@ -795,7 +798,12 @@ def send_visa_tips():
     text += "📱 09153092528\n\n"
     text += "✈️ <b>درنا تراول</b>"
     
-    tg_id, _ = send_to_all(text)
+    # ارسال به تلگرام همراه با عکس
+    tg_id = send_to_telegram(text, VISA_IMAGE_URL)
+    
+    # ارسال به ایتا (فقط متن)
+    send_to_eita(text)
+    
     if tg_id:
         sent_visa.add(tip)
         save_sent_to_gist("sent_visa.txt", sent_visa)
