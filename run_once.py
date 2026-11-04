@@ -443,6 +443,8 @@ async def fetch_random_flight_prices():
 
 
 # ---------- Extras ----------
+# 🌟 لینک عکس ثابت برای بخش آب‌وهوا و ارز (در صورت نیاز تغییر دهید)
+EXTRAS_IMAGE_URL = "https://dornatravel.ir/basefile/dornatravel/images/extras.png"
 def get_weather_and_currency():
     msg = "🌤 <b>گزارش روزانه سفر</b>\n\n"
     cities = {"تهران": "Tehran", "مشهد": "Mashhad", "کیش": "Kish", "استانبول": "Istanbul", "دبی": "Dubai"}
@@ -492,10 +494,18 @@ def get_weather_and_currency():
 
 def send_extras():
     text = get_weather_and_currency()
-    send_to_all(text)
+    
+    # ارسال به تلگرام همراه با عکس
+    send_to_telegram(text, EXTRAS_IMAGE_URL)
+    
+    # ارسال به ایتا (فقط متن)
+    send_to_eita(text)
 
 
 # ---------- Destination ----------
+# 🌟 لینک عکس ثابت مقصد گردشگری (در صورت نیاز تغییر دهید)
+DESTINATION_IMAGE_URL = "https://dornatravel.ir/basefile/dornatravel/images/Destination.png"
+
 def send_destination_of_day():
     print("Sending destination of the day...")
     sent_destinations = load_sent_from_gist("sent_destinations.txt")
@@ -522,7 +532,12 @@ def send_destination_of_day():
         text += "📱 09153092528\n\n"
         text += "✈️ <b>درنا تراول</b>"
 
-        tg_id, _ = send_to_all(text)
+        # 🌟 ارسال به تلگرام همراه با عکس
+        tg_id = send_to_telegram(text, DESTINATION_IMAGE_URL)
+        
+        # ارسال به ایتا (فقط متن)
+        send_to_eita(text)
+        
         if tg_id:
             sent_destinations.add(dest["name"])
             save_sent_to_gist("sent_destinations.txt", sent_destinations)
@@ -531,7 +546,6 @@ def send_destination_of_day():
         print("destinations.json not found! Skipping destination job.")
     except Exception as e:
         print(f"Destination error: {e}")
-
 
 # ---------- Food ----------
 def send_food_of_day():
