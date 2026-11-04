@@ -130,24 +130,51 @@ def get_image_url(entry):
 def send_to_telegram(text, image_url=None):
     if not TG_TOKEN or not TG_CHANNEL:
         return None
+
     if image_url:
+        # 🌟 روش اول: تلاش برای ارسال با لینک
         url = f"https://api.telegram.org/bot{TG_TOKEN}/sendPhoto"
         payload = {"chat_id": TG_CHANNEL, "photo": image_url, "caption": text, "parse_mode": "HTML"}
+        try:
+            r = requests.post(url, data=payload, timeout=20)
+            if r.ok:
+                data = r.json()
+                if data.get("ok"):
+                    return data["result"]["message_id"]
+        except:
+            pass
+
+        # 🌟 روش دوم: اگر روش اول جواب نداد، عکس را دانلود و آپلود کن
+        try:
+            print(f"Downloading image from {image_url} to upload directly...")
+            img_data = requests.get(image_url, timeout=15).content
+            files = {'photo': ('image.png', img_data, 'image/png')}
+            payload = {"chat_id": TG_CHANNEL, "caption": text, "parse_mode": "HTML"}
+            r = requests.post(f"https://api.telegram.org/bot{TG_TOKEN}/sendPhoto", data=payload, files=files, timeout=30)
+            if r.ok:
+                data = r.json()
+                if data.get("ok"):
+                    return data["result"]["message_id"]
+        except Exception as e:
+            print(f"Direct upload failed: {e}")
+
+        # اگر هر دو روش شکست خوردند، فقط متن را بفرست
+        print("Sending text only due to image failure.")
+        return send_to_telegram(text, None)
+
     else:
+        # ارسال فقط متن
         url = f"https://api.telegram.org/bot{TG_TOKEN}/sendMessage"
         payload = {"chat_id": TG_CHANNEL, "text": text, "parse_mode": "HTML", "disable_web_page_preview": False}
-    try:
-        r = requests.post(url, data=payload, timeout=20)
-        if not r.ok:
-            if image_url:
-                return send_to_telegram(text, None)
+        try:
+            r = requests.post(url, data=payload, timeout=20)
+            if r.ok:
+                data = r.json()
+                if data.get("ok"):
+                    return data["result"]["message_id"]
             return None
-        data = r.json()
-        if data.get("ok"):
-            return data["result"]["message_id"]
-        return None
-    except:
-        return None
+        except:
+            return None
 
 
 def send_to_eita(text, image_url=None):
@@ -320,10 +347,10 @@ async def get_prices_for_route(browser, route_name, route_url):
         await page.wait_for_timeout(8000)
 
         cards = await page.locator(
-            "div[class*='card'], div[class*='item'], div[class*='']"
+            "div[class*='card'], div[class*='item'], div[class*='flight']"
         ).all()
 
-        s = []
+        flights = []
         for card in cards:
             try:
                 text = await card.inner_text()
@@ -382,7 +409,7 @@ async def get_prices_for_route(browser, route_name, route_url):
                             break
 
                 if airline != "نامشخص" and price != "?" and price != "0" and departure_time != "?":
-                    s.append(
+                    flights.append(
                         {"airline": airline, "departure": departure_time, "price": price}
                     )
             except:
@@ -390,19 +417,19 @@ async def get_prices_for_route(browser, route_name, route_url):
 
         await page.close()
 
-        if not s:
+        if not flights:
             return None
 
-        final_s = []
+        final_flights = []
         seen_airline_time = set()
-        for f in s:
+        for f in flights:
             key = f"{f['airline']}_{f['departure']}"
             if key not in seen_airline_time:
                 seen_airline_time.add(key)
-                final_s.append(f)
+                final_flights.append(f)
 
         result_text = f"✈️ <b>قیمت‌های لحظه‌ای پرواز {route_name}</b>\n\n"
-        for f in final_s[:4]:
+        for f in final_flights[:4]:
             result_text += f"🔹 <b>{f['airline']}</b> | ساعت {f['departure']}\n"
             result_text += f"    💰 {f['price']} تومان\n\n"
         result_text += f"🌐 <a href='{route_url}'>مشاهده و خرید در سایت</a>"
@@ -415,13 +442,10 @@ async def get_prices_for_route(browser, route_name, route_url):
 
 
 async def fetch_random_flight_prices():
-    # حذف پیام‌های قبلی
     delete_previous_messages("last_price_msgs.txt")
-    
     selected_routes = random.sample(ALL_ROUTES, min(NUMBER_OF_ROUTES, len(ALL_ROUTES)))
     new_msg_ids = []
     
-    # 🌟 لینک عکس ثابت پروازها
     FLIGHT_IMAGE_URL = "https://dornatravel.ir/basefile/dornatravel/images/flightprice.png"
 
     async with async_playwright() as p:
@@ -429,12 +453,8 @@ async def fetch_random_flight_prices():
         for route in selected_routes:
             price_text = await get_prices_for_route(browser, route["name"], route["url"])
             if price_text:
-                # ارسال متن همراه با عکس به تلگرام
                 tg_id = send_to_telegram(price_text, FLIGHT_IMAGE_URL)
-                
-                # ارسال متن به ایتا (ایتا از عکس در این حالت پشتیبانی نمی‌کند، پس فقط متن)
                 send_to_eita(price_text)
-                
                 if tg_id:
                     new_msg_ids.append(tg_id)
         await browser.close()
@@ -443,8 +463,8 @@ async def fetch_random_flight_prices():
 
 
 # ---------- Extras ----------
-# 🌟 لینک عکس ثابت برای بخش آب‌وهوا و ارز (در صورت نیاز تغییر دهید)
 EXTRAS_IMAGE_URL = "https://dornatravel.ir/basefile/dornatravel/images/extras.png"
+
 def get_weather_and_currency():
     msg = "🌤 <b>گزارش روزانه سفر</b>\n\n"
     cities = {"تهران": "Tehran", "مشهد": "Mashhad", "کیش": "Kish", "استانبول": "Istanbul", "دبی": "Dubai"}
@@ -494,16 +514,11 @@ def get_weather_and_currency():
 
 def send_extras():
     text = get_weather_and_currency()
-    
-    # ارسال به تلگرام همراه با عکس
     send_to_telegram(text, EXTRAS_IMAGE_URL)
-    
-    # ارسال به ایتا (فقط متن)
     send_to_eita(text)
 
 
 # ---------- Destination ----------
-# 🌟 لینک عکس ثابت مقصد گردشگری (در صورت نیاز تغییر دهید)
 DESTINATION_IMAGE_URL = "https://dornatravel.ir/basefile/dornatravel/images/Destination.png"
 
 def send_destination_of_day():
@@ -532,10 +547,7 @@ def send_destination_of_day():
         text += "📱 09153092528\n\n"
         text += "✈️ <b>درنا تراول</b>"
 
-        # 🌟 ارسال به تلگرام همراه با عکس
         tg_id = send_to_telegram(text, DESTINATION_IMAGE_URL)
-        
-        # ارسال به ایتا (فقط متن)
         send_to_eita(text)
         
         if tg_id:
@@ -546,6 +558,7 @@ def send_destination_of_day():
         print("destinations.json not found! Skipping destination job.")
     except Exception as e:
         print(f"Destination error: {e}")
+
 
 # ---------- Food ----------
 def send_food_of_day():
@@ -913,7 +926,6 @@ async def get_tours_data(browser):
 async def send_tours():
     print("Fetching last minute tours...")
     
-    # حذف پیام قبلی از کانال
     delete_previous_messages("last_tour_msgs.txt")
     
     async with async_playwright() as p:
@@ -923,15 +935,12 @@ async def send_tours():
         if tours_text:
             new_msg_ids = []
             
-            # ارسال به تلگرام با عکس
             tg_id = send_to_telegram(tours_text, TOUR_IMAGE_URL)
             if tg_id:
                 new_msg_ids.append(tg_id)
                 
-            # ارسال به ایتا (متن)
             send_to_eita(tours_text)
             
-            # ذخیره آیدی پیام
             if new_msg_ids:
                 save_message_ids("last_tour_msgs.txt", new_msg_ids)
                 print("Tours sent successfully and message ID saved.")
