@@ -121,17 +121,17 @@ HOTEL_CITIES = [
     {
         "name": "مشهد", 
         "url": "https://www.iranhotelonline.com/mashhad-hotels/",
-        "image": "https://www.saadatrent.com/mag/wp-content/uploads/2024/11/Mashhad-Il-Santuario-di-Emam-Reza-8-min.webp?q=80&w=1000&auto=format&fit=crop" # حرم امام رضا
+        "image": "https://dornatravel.ir/basefile/dornatravel/images/mashhad.png" # حرم امام رضا
     },
     {
         "name": "شیراز", 
         "url": "https://www.iranhotelonline.com/shiraz-hotels/",
-        "image": "https://www.visitouriran.com/blog/wp-content/uploads/upload/the-tomb-of-hafez.webp?q=80&w=1000&auto=format&fit=crop" # حافظیه
+        "image": "https://dornatravel.ir/basefile/dornatravel/images/shiraz.png" # حافظیه
     },
     {
         "name": "تهران", 
         "url": "https://www.iranhotelonline.com/tehran-hotels/",
-        "image": "https://www.aviontourism.com/images/1260-2600-fix/3279e1a9-15a0-4936-a385-3fb1d3170c37?q=80&w=1000&auto=format&fit=crop" # میدان آزادی
+        "image": "https://dornatravel.ir/basefile/dornatravel/images/tehran.png" # میدان آزادی
     },
     {
         "name": "کیش", 
@@ -141,7 +141,7 @@ HOTEL_CITIES = [
     {
         "name": "اصفهان", 
         "url": "https://www.iranhotelonline.com/isfahan-hotels/",
-        "image": "https://english.iut.ac.ir/sites/default/files/about-isfahan/naqsh-e-Jahan-square-1.jpg?q=80&w=1000&auto=format&fit=crop" # میدان امام
+        "image": "https://dornatravel.ir/basefile/dornatravel/images/isfahan.png" # میدان امام
     },
     {
         "name": "تبریز", 
