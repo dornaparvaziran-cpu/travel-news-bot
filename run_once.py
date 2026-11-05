@@ -561,6 +561,9 @@ def send_destination_of_day():
 
 
 # ---------- Food ----------
+# 🌟 لینک عکس ثابت غذا
+FOOD_IMAGE_URL = "https://dornatravel.ir/basefile/dornatravel/images/food.png"
+
 def send_food_of_day():
     print("Sending food of the day...")
     sent_foods = load_sent_from_gist("sent_foods.txt")
@@ -575,15 +578,26 @@ def send_food_of_day():
 
     text = f"🍽️ <b>غذای پیشنهادی امروز: {food['name']}</b>\n\n"
     text += f"{food['description']}\n\n"
-    text += "✈️ <b>درنا تراول</b> — همراه سفرهای شما"
+    text += "📞 <b>برای رزرو تور و مشاوره سفر با ما در تماس باشید:</b>\n"
+    text += "☎️ 05132292292\n"
+    text += "📱 09153092528\n\n"
+    text += "✈️ <b>درنا تراول</b>"
 
-    tg_id, _ = send_to_all(text)
+    # ارسال به تلگرام همراه با عکس
+    tg_id = send_to_telegram(text, FOOD_IMAGE_URL)
+    
+    # ارسال به ایتا (فقط متن)
+    send_to_eita(text)
+    
     if tg_id:
         sent_foods.add(food["name"])
         save_sent_to_gist("sent_foods.txt", sent_foods)
 
 
 # ---------- YouTube ----------
+# 🌟 لینک عکس ثابت یوتیوب
+YOUTUBE_IMAGE_URL = "https://dornatravel.ir/basefile/dornatravel/images/youtube.png"
+
 def send_youtube_video():
     print("Fetching YouTube video...")
     if not YOUTUBE_API_KEY:
@@ -667,7 +681,12 @@ def send_youtube_video():
         text += f"🔗 تماشا در یوتیوب:\n{video_url}\n\n"
         text += "✈️ <b>درنا تراول</b>"
 
-        tg_id, _ = send_to_all(text)
+        # ارسال به تلگرام همراه با عکس
+        tg_id = send_to_telegram(text, YOUTUBE_IMAGE_URL)
+        
+        # ارسال به ایتا (فقط متن)
+        send_to_eita(text)
+        
         if tg_id:
             sent_videos.add(vid)
             save_sent_to_gist("sent_youtube.txt", sent_videos)
