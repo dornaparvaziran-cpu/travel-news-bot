@@ -562,7 +562,7 @@ def send_destination_of_day():
 
 # ---------- Food ----------
 # 🌟 لینک عکس ثابت غذا
-FOOD_IMAGE_URL = "https://dornatravel.ir/basefile/dornatravel/images/food.png"
+FOOD_IMAGE_URL = "https://dornatravel.ir/basefile/dornatravel/images/foods.png"
 
 def send_food_of_day():
     print("Sending food of the day...")
