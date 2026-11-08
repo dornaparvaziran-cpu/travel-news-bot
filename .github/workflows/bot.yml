@@ -8,7 +8,7 @@ on:
   workflow_dispatch:
     inputs:
       job_type:
-        description: 'نوع جاب (news, prices, extras, destination, food, youtube, hotels, visa, tours)'
+        description: 'نوع جاب (news, prices, extras, destination, food, youtube, hotels, visa, tours,broadcast)'
         required: true
         default: 'news'
 
@@ -203,3 +203,19 @@ jobs:
           EITA_TOKEN: ${{ secrets.EITA_TOKEN }}
           EITA_CHANNEL_ID: ${{ secrets.EITA_CHANNEL_ID }}
         run: python run_once.py tours
+  run-broadcast:
+    if: github.event.inputs.job_type == 'broadcast'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install deps
+        run: pip install requests
+      - name: Run Broadcast
+        env:
+          BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
+          GIST_ID: ${{ secrets.GIST_ID }}
+          GIST_TOKEN: ${{ secrets.GIST_TOKEN }}
+        run: python broadcast.py
