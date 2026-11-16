@@ -716,28 +716,50 @@ async def get_hotels_data(browser):
     
     try:
         await page.goto(url, timeout=60000, wait_until="domcontentloaded")
-        await page.wait_for_timeout(15000) 
+        await page.wait_for_timeout(10000) # صبر برای لود کامل قیمت‌ها
         
-        text = await page.inner_text('body')
-        lines = [line.strip() for line in text.split('\n') if line.strip()]
+        # 🌟 روش جدید: پیدا کردن مستقیم کارت‌های هتل و قیمت‌های نهایی
+        # هر کارت هتل شامل یک عکس با کلاس distance__image و یک قیمت با کلاس price است
+        cards = await page.locator("div:has(img.distance__image)").all()
         
         hotels = []
-        current_hotel = None
         
-        for line in lines:
-            bad_hotel_names = ["هتل های", "هتل ها", "براساس", "لیست", "بهترین", "ارزان‌ترین", "نزدیک"]
-            
-            if (line.startswith("هتل ") and 
-                not any(bad in line for bad in bad_hotel_names) and 
-                len(line) < 50):
-                current_hotel = line
-                
-            elif re.match(r'^\d{1,3}(,\d{3})+$', line) and current_hotel:
-                price_val = int(line.replace(",", ""))
-                if 1000000 < price_val < 15000000:
-                    hotels.append({"name": current_hotel, "price": price_val})
-                    current_hotel = None
+        for card in cards:
+            try:
+                # ۱. پیدا کردن اسم هتل از روی ویژگی alt عکس
+                img = card.locator("img.distance__image").first
+                if await img.count() == 0:
+                    continue
                     
+                alt_text = await img.get_attribute("alt")
+                if not alt_text:
+                    continue
+                    
+                # پاکسازی اسم هتل (حذف کلماتی مثل "هتل" از اول و اضافات)
+                hotel_name = alt_text.strip()
+                
+                # ۲. پیدا کردن قیمت از تگ span.price
+                price_element = card.locator("span.price").first
+                if await price_element.count() == 0:
+                    continue
+                    
+                price_text = await price_element.inner_text()
+                
+                # استخراج عدد از متن قیمت (مثلاً "7,455,000 تومان" -> 7455000)
+                price_match = re.search(r'([\d,]+)', price_text)
+                if not price_match:
+                    continue
+                    
+                price_val = int(price_match.group(1).replace(",", ""))
+                
+                # فیلتر قیمت‌های معقول
+                if 1000000 < price_val < 50000000:
+                    hotels.append({"name": hotel_name, "price": price_val})
+                    
+            except Exception as e:
+                continue
+        
+        # حذف تکراری‌ها (اگر یک هتل چند بار پیدا شد، ارزان‌ترین قیمتش رو نگه دار)
         unique_hotels = {}
         for h in hotels:
             if h["name"] not in unique_hotels:
@@ -752,6 +774,7 @@ async def get_hotels_data(browser):
             print(f"No hotels found for {city_name}.")
             return None
             
+        # انتخاب ۵ هتل رندوم
         random_hotels = random.sample(final_hotels, min(5, len(final_hotels)))
         
         result_text = f"🏨 <b>پیشنهاد ویژه اقامت در {city_name}</b>\n\n"
@@ -773,24 +796,6 @@ async def get_hotels_data(browser):
         return None
     finally:
         await page.close()
-
-
-async def send_hotel_prices():
-    print("Fetching hotel prices...")
-    async with async_playwright() as p:
-        browser = await p.chromium.launch(headless=True)
-        result = await get_hotels_data(browser)
-        
-        if result:
-            tg_id = send_to_telegram(result["text"], result["image"])
-            send_to_eita(result["text"])
-            
-            if tg_id:
-                print("Hotel prices sent successfully with image.")
-        else:
-            print("No hotels found or error occurred.")
-        await browser.close()
-
 
 # ---------- Visa Tips ----------
 # 🌟 لینک عکس ثابت ویزا
