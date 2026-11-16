@@ -796,6 +796,21 @@ async def get_hotels_data(browser):
         return None
     finally:
         await page.close()
+        async def send_hotel_prices():
+    print("Fetching hotel prices...")
+    async with async_playwright() as p:
+        browser = await p.chromium.launch(headless=True)
+        result = await get_hotels_data(browser)
+        
+        if result:
+            tg_id = send_to_telegram(result["text"], result["image"])
+            send_to_eita(result["text"])
+            
+            if tg_id:
+                print("Hotel prices sent successfully with image.")
+        else:
+            print("No hotels found or error occurred.")
+        await browser.close()
 
 # ---------- Visa Tips ----------
 # 🌟 لینک عکس ثابت ویزا
