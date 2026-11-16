@@ -132,7 +132,6 @@ def send_to_telegram(text, image_url=None):
         return None
 
     if image_url:
-        # 🌟 روش اول: تلاش برای ارسال با لینک
         url = f"https://api.telegram.org/bot{TG_TOKEN}/sendPhoto"
         payload = {"chat_id": TG_CHANNEL, "photo": image_url, "caption": text, "parse_mode": "HTML"}
         try:
@@ -144,7 +143,6 @@ def send_to_telegram(text, image_url=None):
         except:
             pass
 
-        # 🌟 روش دوم: اگر روش اول جواب نداد، عکس را دانلود و آپلود کن
         try:
             print(f"Downloading image from {image_url} to upload directly...")
             img_data = requests.get(image_url, timeout=15).content
@@ -158,12 +156,10 @@ def send_to_telegram(text, image_url=None):
         except Exception as e:
             print(f"Direct upload failed: {e}")
 
-        # اگر هر دو روش شکست خوردند، فقط متن را بفرست
         print("Sending text only due to image failure.")
         return send_to_telegram(text, None)
 
     else:
-        # ارسال فقط متن
         url = f"https://api.telegram.org/bot{TG_TOKEN}/sendMessage"
         payload = {"chat_id": TG_CHANNEL, "text": text, "parse_mode": "HTML", "disable_web_page_preview": False}
         try:
@@ -198,7 +194,6 @@ def send_to_eita(text, image_url=None):
     elif "🌍" in text_md or "🍽️" in text_md or "🏨" in text_md or "🖼" in text_md or "🎟️" in text_md:
         text_md = f"{text_md}\n\n➖➖➖➖➖➖➖➖"
     elif "🎬" in text_md:
-        # پیام یوتیوب: بدون خط جداکننده
         pass
     elif "🌤" in text_md or "💱" in text_md or "💡" in text_md:
         text_md = f"{text_md}\n\n➖➖➖➖➖➖➖➖"
@@ -561,7 +556,6 @@ def send_destination_of_day():
 
 
 # ---------- Food ----------
-# 🌟 لینک عکس ثابت غذا
 FOOD_IMAGE_URL = "https://dornatravel.ir/basefile/dornatravel/images/foods.png"
 
 def send_food_of_day():
@@ -583,10 +577,7 @@ def send_food_of_day():
     text += "📱 09153092528\n\n"
     text += "✈️ <b>درنا تراول</b>"
 
-    # ارسال به تلگرام همراه با عکس
     tg_id = send_to_telegram(text, FOOD_IMAGE_URL)
-    
-    # ارسال به ایتا (فقط متن)
     send_to_eita(text)
     
     if tg_id:
@@ -595,7 +586,6 @@ def send_food_of_day():
 
 
 # ---------- YouTube ----------
-# 🌟 لینک عکس ثابت یوتیوب
 YOUTUBE_IMAGE_URL = "https://dornatravel.ir/basefile/dornatravel/images/youtube.png"
 
 def send_youtube_video():
@@ -681,10 +671,7 @@ def send_youtube_video():
         text += f"🔗 تماشا در یوتیوب:\n{video_url}\n\n"
         text += "✈️ <b>درنا تراول</b>"
 
-        # ارسال به تلگرام همراه با عکس
         tg_id = send_to_telegram(text, YOUTUBE_IMAGE_URL)
-        
-        # ارسال به ایتا (فقط متن)
         send_to_eita(text)
         
         if tg_id:
@@ -716,17 +703,14 @@ async def get_hotels_data(browser):
     
     try:
         await page.goto(url, timeout=60000, wait_until="domcontentloaded")
-        await page.wait_for_timeout(10000) # صبر برای لود کامل قیمت‌ها
+        await page.wait_for_timeout(10000)
         
-        # 🌟 روش جدید: پیدا کردن مستقیم کارت‌های هتل و قیمت‌های نهایی
-        # هر کارت هتل شامل یک عکس با کلاس distance__image و یک قیمت با کلاس price است
         cards = await page.locator("div:has(img.distance__image)").all()
         
         hotels = []
         
         for card in cards:
             try:
-                # ۱. پیدا کردن اسم هتل از روی ویژگی alt عکس
                 img = card.locator("img.distance__image").first
                 if await img.count() == 0:
                     continue
@@ -735,31 +719,26 @@ async def get_hotels_data(browser):
                 if not alt_text:
                     continue
                     
-                # پاکسازی اسم هتل (حذف کلماتی مثل "هتل" از اول و اضافات)
                 hotel_name = alt_text.strip()
                 
-                # ۲. پیدا کردن قیمت از تگ span.price
                 price_element = card.locator("span.price").first
                 if await price_element.count() == 0:
                     continue
                     
                 price_text = await price_element.inner_text()
                 
-                # استخراج عدد از متن قیمت (مثلاً "7,455,000 تومان" -> 7455000)
                 price_match = re.search(r'([\d,]+)', price_text)
                 if not price_match:
                     continue
                     
                 price_val = int(price_match.group(1).replace(",", ""))
                 
-                # فیلتر قیمت‌های معقول
                 if 1000000 < price_val < 50000000:
                     hotels.append({"name": hotel_name, "price": price_val})
                     
             except Exception as e:
                 continue
         
-        # حذف تکراری‌ها (اگر یک هتل چند بار پیدا شد، ارزان‌ترین قیمتش رو نگه دار)
         unique_hotels = {}
         for h in hotels:
             if h["name"] not in unique_hotels:
@@ -774,7 +753,6 @@ async def get_hotels_data(browser):
             print(f"No hotels found for {city_name}.")
             return None
             
-        # انتخاب ۵ هتل رندوم
         random_hotels = random.sample(final_hotels, min(5, len(final_hotels)))
         
         result_text = f"🏨 <b>پیشنهاد ویژه اقامت در {city_name}</b>\n\n"
@@ -796,7 +774,9 @@ async def get_hotels_data(browser):
         return None
     finally:
         await page.close()
-        async def send_hotel_prices():
+
+
+async def send_hotel_prices():
     print("Fetching hotel prices...")
     async with async_playwright() as p:
         browser = await p.chromium.launch(headless=True)
@@ -812,8 +792,8 @@ async def get_hotels_data(browser):
             print("No hotels found or error occurred.")
         await browser.close()
 
+
 # ---------- Visa Tips ----------
-# 🌟 لینک عکس ثابت ویزا
 VISA_IMAGE_URL = "https://dornatravel.ir/basefile/dornatravel/images/visa.png"
 
 def send_visa_tips():
@@ -837,10 +817,7 @@ def send_visa_tips():
     text += "📱 09153092528\n\n"
     text += "✈️ <b>درنا تراول</b>"
     
-    # ارسال به تلگرام همراه با عکس
     tg_id = send_to_telegram(text, VISA_IMAGE_URL)
-    
-    # ارسال به ایتا (فقط متن)
     send_to_eita(text)
     
     if tg_id:
