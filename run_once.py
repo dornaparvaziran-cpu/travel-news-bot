@@ -683,6 +683,7 @@ def send_youtube_video():
 
 
 # ---------- Hotels ----------
+# ---------- Hotels ----------
 async def get_hotels_data(browser):
     sent_cities = load_sent_from_gist("sent_hotel_cities.txt")
     
@@ -705,12 +706,14 @@ async def get_hotels_data(browser):
         await page.goto(url, timeout=60000, wait_until="domcontentloaded")
         await page.wait_for_timeout(10000)
         
+        # پیدا کردن کارت‌های هتل
         cards = await page.locator("div:has(img.distance__image)").all()
         
         hotels = []
         
         for card in cards:
             try:
+                # ۱. پیدا کردن اسم هتل از روی ویژگی alt عکس
                 img = card.locator("img.distance__image").first
                 if await img.count() == 0:
                     continue
@@ -721,24 +724,41 @@ async def get_hotels_data(browser):
                     
                 hotel_name = alt_text.strip()
                 
+                # 🌟 ۲. پیدا کردن ستاره هتل از div.card__star
+                stars_str = ""
+                star_div = card.locator("div.card__star").first
+                if await star_div.count() > 0:
+                    star_text = await star_div.inner_text()
+                    # جستجوی عدد ستاره در متن (مثلاً از "5 ستاره" عدد 5 رو برمی‌داره)
+                    star_match = re.search(r'([1-5])', star_text)
+                    if star_match:
+                        star_count = int(star_match.group(1))
+                        # ایجاد رشته‌ای از ایموجی ستاره به تعداد ستاره‌های هتل
+                        stars_str = f" {'⭐' * star_count}"
+                
+                # ۳. پیدا کردن قیمت از تگ span.price
                 price_element = card.locator("span.price").first
                 if await price_element.count() == 0:
                     continue
                     
                 price_text = await price_element.inner_text()
                 
+                # استخراج عدد از متن قیمت
                 price_match = re.search(r'([\d,]+)', price_text)
                 if not price_match:
                     continue
                     
                 price_val = int(price_match.group(1).replace(",", ""))
                 
+                # فیلتر قیمت‌های معقول
                 if 1000000 < price_val < 50000000:
-                    hotels.append({"name": hotel_name, "price": price_val})
+                    display_name = f"{hotel_name}{stars_str}"
+                    hotels.append({"name": hotel_name, "display_name": display_name, "price": price_val})
                     
             except Exception as e:
                 continue
         
+        # حذف تکراری‌ها
         unique_hotels = {}
         for h in hotels:
             if h["name"] not in unique_hotels:
@@ -753,11 +773,12 @@ async def get_hotels_data(browser):
             print(f"No hotels found for {city_name}.")
             return None
             
+        # انتخاب ۵ هتل رندوم
         random_hotels = random.sample(final_hotels, min(5, len(final_hotels)))
         
         result_text = f"🏨 <b>پیشنهاد ویژه اقامت در {city_name}</b>\n\n"
         for h in random_hotels:
-            result_text += f"🔹 {h['name']}: {h['price']:,} تومان\n"
+            result_text += f"🔹 {h['display_name']}: {h['price']:,} تومان\n"
             
         result_text += "\n📞 <b>برای رزرو تلفنی با ما در تماس باشید:</b>\n"
         result_text += "☎️ 05132292292\n"
