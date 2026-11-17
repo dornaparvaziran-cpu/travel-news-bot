@@ -146,7 +146,7 @@ HOTEL_CITIES = [
     {
         "name": "تبریز", 
         "url": "https://www.iranhotelonline.com/tabriz-hotels/",
-        "image": "https://nilutours.com/wp-content/uploads/2026/02/Tabriz-Grand-Bazaar.webp?q=80&w=1000&auto=format&fit=crop" # بازار تبریز
+        "image": "https://dornatravel.ir/basefile/dornatravel/images/Tabriz-Grand-Bazaar.png" # بازار تبریز
     },
     {
         "name": "شمال (مازندران)", 
