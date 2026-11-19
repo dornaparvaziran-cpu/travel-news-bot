@@ -1,0 +1,28 @@
+name: Private Chat Bot
+
+on:
+  workflow_dispatch:
+    inputs:
+      chat_id:
+        description: 'Chat ID of the user'
+        required: true
+      message_text:
+        description: 'The message text'
+        required: true
+
+jobs:
+  reply-chat:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install deps
+        run: pip install requests
+      - name: Reply to user
+        env:
+          BOT_TOKEN: ${{ secrets.PRIVATE_BOT_TOKEN }}
+          CHAT_ID: ${{ github.event.inputs.chat_id }}
+          MESSAGE_TEXT: ${{ github.event.inputs.message_text }}
+        run: python chat_handler.py
