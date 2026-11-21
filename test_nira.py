@@ -7,11 +7,7 @@ NIRA_PASS = os.environ.get("NIRA_PASS")
 
 # لیست آدرس‌های احتمالی برای تست (دامنه آتا)
 BASE_URLS = [
-    "https://ra.ataair.ir/AvailabilityJS.jsp",
-    "https://ra.ataair.ir/AvailabilityFareJS.jsp",
-    "http://ra.ataair.ir:8080/AvailabilityJS.jsp",
-    "http://ra.ataair.ir/AvailabilityJS.jsp",
-    "https://ataair.ir/AvailabilityJS.jsp"
+    "https://api.ataair.ir/ws1"
 ]
 
 def test_nira_api():
