@@ -26,7 +26,7 @@ passenger_id = get_env("PASSENGER_ID_FIELD")
 contact = get_env("PASSENGER_CONTACT")
 
 # تأیید صریح برای جلوگیری از رزرو ناخواسته
-if os.getenv("RESERVE_CONFIRM") != "YES":
+if os.getenv("RESERVE_CONFIRM", "").strip().upper() not in ("YES", "TRUE"):
     print("RESERVATION NOT SENT.")
     print("Set RESERVE_CONFIRM=YES to authorize the request.")
     sys.exit(0)
