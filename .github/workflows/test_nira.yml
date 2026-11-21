@@ -22,6 +22,6 @@ jobs:
 
       - name: Run NIRA test
         env:
-          NIRA_USERNAME: ${{ secrets.NIRA_USERNAME }}
-          NIRA_PASSWORD: ${{ secrets.NIRA_PASSWORD }}
+          NIRA_USERNAME: ${{ secrets.NIRA_USER }}
+          NIRA_PASSWORD: ${{ secrets.NIRA_PASS }}
         run: python test_nira.py
