@@ -6,10 +6,10 @@ import json
 BASE_URL = "https://api.ataair.ir/ws1"
 
 AIRLINE = "I3"
-ORIGIN = "UGT"
-DESTINATION = "TTQ"
+ORIGIN = "MHD"
+DESTINATION = "TBZ"
 
-DEPARTURE_DATE = "2026-12-01"
+DEPARTURE_DATE = "2026-11-22"
 
 ADULTS = 1
 CHILDREN = 0
@@ -20,8 +20,8 @@ def main():
     print("=== NIRA / ATA Availability Test ===")
 
     # دریافت اطلاعات از GitHub Secrets
-    username = os.environ.get("NIRA_USERNAME")
-    password = os.environ.get("NIRA_PASSWORD")
+    username = os.environ.get("NIRA_USER")
+    password = os.environ.get("NIRA_PASS")
 
     if not username or not password:
         print("ERROR: NIRA_USERNAME or NIRA_PASSWORD is missing.")
