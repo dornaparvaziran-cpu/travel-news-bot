@@ -1,17 +1,14 @@
 
+import os
 import requests
 import json
-from getpass import getpass
 
-# آدرس پایه API آتا
 BASE_URL = "https://api.ataair.ir/ws1"
 
-# اطلاعات جست‌وجوی پرواز
 AIRLINE = "I3"
 ORIGIN = "UGT"
 DESTINATION = "TTQ"
 
-# تاریخ میلادی پرواز؛ این مقدار را تغییر بده
 DEPARTURE_DATE = "2026-12-01"
 
 ADULTS = 1
@@ -22,9 +19,13 @@ INFANTS = 0
 def main():
     print("=== NIRA / ATA Availability Test ===")
 
-    # اطلاعات ورود را هنگام اجرا وارد کن
-    username = input("NIRA Username: ").strip()
-    password = getpass("NIRA Password: ")
+    # دریافت اطلاعات از GitHub Secrets
+    username = os.environ.get("NIRA_USERNAME")
+    password = os.environ.get("NIRA_PASSWORD")
+
+    if not username or not password:
+        print("ERROR: NIRA_USERNAME or NIRA_PASSWORD is missing.")
+        return
 
     url = f"{BASE_URL}/AvailabilityJS.jsp"
 
@@ -43,7 +44,7 @@ def main():
     }
 
     try:
-        print("\nConnecting to ATA NIRA API...")
+        print("Connecting to ATA NIRA API...")
 
         response = requests.get(
             url,
@@ -58,21 +59,20 @@ def main():
         try:
             data = response.json()
         except ValueError:
-            print("\nResponse is not valid JSON:")
-            print(response.text[:3000])
+            print("ERROR: Response is not JSON.")
+            print(response.text[:2000])
             return
+
+        flights = data.get("AvailableFlights", [])
 
         print("\nAPI Response:")
         print(json.dumps(data, ensure_ascii=False, indent=2))
 
-        flights = data.get("AvailableFlights", [])
-
         if flights:
-            print(f"\nFound {len(flights)} flight(s):")
+            print(f"\nSUCCESS: Found {len(flights)} flight(s).")
 
-            for index, flight in enumerate(flights, start=1):
-                print(f"\n--- Flight {index} ---")
-                print("Airline:", flight.get("Airline"))
+            for i, flight in enumerate(flights, 1):
+                print(f"\n--- Flight {i} ---")
                 print("Flight No:", flight.get("FlightNo"))
                 print("Origin:", flight.get("Origin"))
                 print("Destination:", flight.get("Destination"))
@@ -82,18 +82,18 @@ def main():
                 print("Prices:", flight.get("AdultTotalPrices"))
 
         else:
-            print("\nNo flights found, or API returned an error.")
-            print("Check the response above.")
+            print("No flights found.")
+            print("Full API response is shown above.")
 
     except requests.exceptions.Timeout:
         print("ERROR: API request timed out.")
 
-    except requests.exceptions.HTTPError as error:
-        print("HTTP ERROR:", error)
+    except requests.exceptions.HTTPError as e:
+        print("HTTP ERROR:", e)
         print(response.text[:2000])
 
-    except requests.exceptions.RequestException as error:
-        print("CONNECTION ERROR:", error)
+    except requests.exceptions.RequestException as e:
+        print("CONNECTION ERROR:", str(e))
 
 
 if __name__ == "__main__":
