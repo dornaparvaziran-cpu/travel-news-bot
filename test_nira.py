@@ -24,7 +24,7 @@ def main():
     password = os.environ.get("NIRA_PASS")
 
     if not username or not password:
-        print("ERROR: NIRA_USERNAME or NIRA_PASSWORD is missing.")
+        print("ERROR: NIRA_USER or NIRA_PASS is missing.")
         return
 
     url = f"{BASE_URL}/AvailabilityJS.jsp"
