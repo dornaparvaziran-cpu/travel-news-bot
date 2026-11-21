@@ -1,48 +1,100 @@
-import os
+
 import requests
-from datetime import datetime, timedelta
+import json
+from getpass import getpass
 
-NIRA_USER = os.environ.get("NIRA_USER")
-NIRA_PASS = os.environ.get("NIRA_PASS")
+# آدرس پایه API آتا
+BASE_URL = "https://api.ataair.ir/ws1"
 
-# لیست آدرس‌های احتمالی برای تست (دامنه آتا)
-BASE_URLS = [
-    "https://api.ataair.ir/ws1"
-]
+# اطلاعات جست‌وجوی پرواز
+AIRLINE = "I3"
+ORIGIN = "UGT"
+DESTINATION = "TTQ"
 
-def test_nira_api():
-    departure_date = (datetime.now() + timedelta(days=10)).strftime("%Y-%m-%d")
-    
-    for base_url in BASE_URLS:
-        print(f"\n--- Testing: {base_url} ---")
-        params = {
-            "AirLine": "I3", # کد IATA ایرلاین آتا
-            "cbSource": "THR", # تهران
-            "cbTarget": "MHD", # مشهد
-            "cbDay1": "01",
-            "cbMonth1": "09",
-            "cbAdultQty": 1,
-            "cbChildQty": 0,
-            "cbInfantQty": 0,
-            "OfficeUser": NIRA_USER,
-            "OfficePass": NIRA_PASS,
-            "DepartureDate": departure_date
-        }
+# تاریخ میلادی پرواز؛ این مقدار را تغییر بده
+DEPARTURE_DATE = "2026-12-01"
+
+ADULTS = 1
+CHILDREN = 0
+INFANTS = 0
+
+
+def main():
+    print("=== NIRA / ATA Availability Test ===")
+
+    # اطلاعات ورود را هنگام اجرا وارد کن
+    username = input("NIRA Username: ").strip()
+    password = getpass("NIRA Password: ")
+
+    url = f"{BASE_URL}/AvailabilityJS.jsp"
+
+    params = {
+        "AirLine": AIRLINE,
+        "cbSource": ORIGIN,
+        "cbTarget": DESTINATION,
+        "cbDay1": "",
+        "cbMonth1": "",
+        "DepartureDate": DEPARTURE_DATE,
+        "cbAdultQty": ADULTS,
+        "cbChildQty": CHILDREN,
+        "cbInfantQty": INFANTS,
+        "OfficeUser": username,
+        "OfficePass": password,
+    }
+
+    try:
+        print("\nConnecting to ATA NIRA API...")
+
+        response = requests.get(
+            url,
+            params=params,
+            timeout=45
+        )
+
+        print("HTTP Status:", response.status_code)
+
+        response.raise_for_status()
 
         try:
-            r = requests.get(base_url, params=params, timeout=15)
-            print(f"Status Code: {r.status_code}")
-            
-            # اگر جواب JSON یا خطای اعتبارسنجی داد، یعنی آدرس درست است
-            if r.ok or r.status_code in [400, 401]:
-                print("✅ SUCCESS! Found the API endpoint (or at least a valid response).")
-                print(r.text[:500]) 
-                break 
-            else:
-                print(f"❌ Failed ({r.status_code})")
-                
-        except Exception as e:
-            print(f"❌ Exception (Timeout/Connection Error)")
+            data = response.json()
+        except ValueError:
+            print("\nResponse is not valid JSON:")
+            print(response.text[:3000])
+            return
+
+        print("\nAPI Response:")
+        print(json.dumps(data, ensure_ascii=False, indent=2))
+
+        flights = data.get("AvailableFlights", [])
+
+        if flights:
+            print(f"\nFound {len(flights)} flight(s):")
+
+            for index, flight in enumerate(flights, start=1):
+                print(f"\n--- Flight {index} ---")
+                print("Airline:", flight.get("Airline"))
+                print("Flight No:", flight.get("FlightNo"))
+                print("Origin:", flight.get("Origin"))
+                print("Destination:", flight.get("Destination"))
+                print("Departure:", flight.get("DepartureDateTime"))
+                print("Arrival:", flight.get("ArrivalDateTime"))
+                print("Classes:", flight.get("ClassesStatus"))
+                print("Prices:", flight.get("AdultTotalPrices"))
+
+        else:
+            print("\nNo flights found, or API returned an error.")
+            print("Check the response above.")
+
+    except requests.exceptions.Timeout:
+        print("ERROR: API request timed out.")
+
+    except requests.exceptions.HTTPError as error:
+        print("HTTP ERROR:", error)
+        print(response.text[:2000])
+
+    except requests.exceptions.RequestException as error:
+        print("CONNECTION ERROR:", error)
+
 
 if __name__ == "__main__":
-    test_nira_api()
+    main()
