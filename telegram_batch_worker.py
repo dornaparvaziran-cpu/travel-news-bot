@@ -1,7 +1,7 @@
-"""Telegram batch intake worker, polled by GitHub Actions every five minutes.
+"""Process a photo batch submitted by the Cloudflare Telegram webhook.
 
-Commands: /batch, upload photos, /done. Only ADMIN_CHAT_ID is allowed.
-The batch state and Telegram update offset are stored in a private GitHub Gist.
+The Cloudflare Worker collects Telegram file_ids and dispatches this workflow
+only after the admin sends /done. Image processing remains on GitHub Actions.
 """
 from __future__ import annotations
 
@@ -13,65 +13,43 @@ import zipfile
 from pathlib import Path
 
 import requests
-from PIL import Image
 from image_processor import process_image
 
 BOT_TOKEN = os.environ["PHOTO_BOT_TOKEN"]
-GIST_ID = os.environ["GIST_ID"]
-GIST_TOKEN = os.environ["GIST_TOKEN"]
-ADMIN_CHAT_ID = str(os.environ["ADMIN_CHAT_ID"])
+CHAT_ID = str(os.getenv("BATCH_CHAT_ID", "")).strip()
+RAW_FILE_IDS = os.getenv("BATCH_FILE_IDS", "[]")
 MAX_BATCH = int(os.getenv("MAX_BATCH", "30"))
 MAX_FILE_BYTES = 15 * 1024 * 1024
 QUALITY = int(os.getenv("WEBP_QUALITY", "85"))
-STATE_NAME = "dorna_photo_batch_state.json"
 FRAME = Path("assets/dorna_frame.png")
 TG = f"https://api.telegram.org/bot{BOT_TOKEN}"
-GIST = f"https://api.github.com/gists/{GIST_ID}"
-HEADERS = {"Authorization": f"Bearer {GIST_TOKEN}", "Accept": "application/vnd.github+json"}
+
 
 def telegram(method: str, **data):
-    response = requests.post(f"{TG}/{method}", data=data, timeout=45)
+    response = requests.post(f"{TG}/{method}", data=data, timeout=60)
     response.raise_for_status()
     result = response.json()
     if not result.get("ok"):
         raise RuntimeError(result.get("description", f"Telegram {method} failed"))
     return result["result"]
 
+
 def reply(chat_id: str, text: str):
     telegram("sendMessage", chat_id=chat_id, text=text)
 
-def load_state() -> dict:
-    response = requests.get(GIST, headers=HEADERS, timeout=20)
-    response.raise_for_status()
-    content = response.json().get("files", {}).get(STATE_NAME, {}).get("content", "")
-    try:
-        state = json.loads(content) if content else {}
-    except json.JSONDecodeError:
-        state = {}
-    state.setdefault("offset", 0)
-    state.setdefault("active", False)
-    state.setdefault("photos", [])
-    return state
-
-def save_state(state: dict):
-    response = requests.patch(
-        GIST, headers=HEADERS,
-        json={"files": {STATE_NAME: {"content": json.dumps(state, ensure_ascii=False)}}},
-        timeout=20,
-    )
-    response.raise_for_status()
 
 def get_photo_bytes(file_id: str) -> bytes:
     info = telegram("getFile", file_id=file_id)
     response = requests.get(
         f"https://api.telegram.org/file/bot{BOT_TOKEN}/{info['file_path']}",
-        timeout=45,
+        timeout=60,
     )
     response.raise_for_status()
     data = response.content
     if len(data) > MAX_FILE_BYTES:
         raise ValueError("حجم هر عکس نباید بیشتر از ۱۵ مگابایت باشد.")
     return data
+
 
 def finish_batch(chat_id: str, file_ids: list[str]):
     if not FRAME.is_file():
@@ -93,11 +71,13 @@ def finish_batch(chat_id: str, file_ids: list[str]):
                 report["processed"].append(target.name)
             except Exception as exc:
                 report["failed"].append(f"{index}: {str(exc)[:160]}")
+
         if not report["processed"]:
             details = "\n".join(report["failed"][:15]) or "علت خطا ثبت نشده است."
             print("All photos failed:\n" + details)
             reply(chat_id, "هیچ عکسی پردازش نشد. علت خطا برای هر عکس:\n" + details)
             return
+
         archive = io.BytesIO()
         with zipfile.ZipFile(archive, "w", zipfile.ZIP_DEFLATED) as bundle:
             for path in sorted(output_dir.glob("*.webp")):
@@ -106,64 +86,39 @@ def finish_batch(chat_id: str, file_ids: list[str]):
         archive.seek(0)
         response = requests.post(
             f"{TG}/sendDocument",
-            data={"chat_id": chat_id, "caption": f"پردازش درناپرواز کامل شد: {len(report['processed'])} عکس | WebP کیفیت {QUALITY}"},
+            data={
+                "chat_id": chat_id,
+                "caption": (
+                    f"پردازش درناپرواز کامل شد: {len(report['processed'])} عکس "
+                    f"| WebP کیفیت {QUALITY}"
+                ),
+            },
             files={"document": ("dorna_photos.zip", archive, "application/zip")},
-            timeout=120,
+            timeout=180,
         )
         response.raise_for_status()
         if report["failed"]:
             reply(chat_id, "برخی عکس‌ها پردازش نشدند:\n" + "\n".join(report["failed"][:15]))
 
-def handle(message: dict, state: dict):
-    chat_id = str(message.get("chat", {}).get("id", ""))
-    if chat_id != ADMIN_CHAT_ID:
-        return
-    text = (message.get("text") or "").strip()
-    if text.startswith("/start"):
-        reply(chat_id, "ربات پردازش تصویر درناپرواز آماده است.\nشروع: /batch\nپایان و دریافت ZIP: /done")
-    elif text == "/batch":
-        state["active"] = True
-        state["photos"] = []
-        reply(chat_id, f"دریافت شروع شد. حداکثر {MAX_BATCH} عکس بفرستید؛ سپس /done را ارسال کنید.")
-    elif text == "/done":
-        photos = list(state["photos"])
-        state["photos"] = []
-        state["active"] = False
-        if not photos:
-            reply(chat_id, "عکسی دریافت نشده است. ابتدا /batch را بفرستید.")
-        else:
-            reply(chat_id, f"{len(photos)} عکس دریافت شد. در حال پردازش…")
-            finish_batch(chat_id, photos)
-    elif message.get("photo"):
-        if not state["active"]:
-            reply(chat_id, "برای شروع ابتدا /batch را ارسال کنید.")
-        elif len(state["photos"]) >= MAX_BATCH:
-            reply(chat_id, f"سقف این نوبت {MAX_BATCH} عکس است؛ /done را ارسال کنید.")
-        else:
-            state["photos"].append(message["photo"][-1]["file_id"])
-            reply(chat_id, f"عکس {len(state['photos'])} دریافت شد.")
-    elif text:
-        reply(chat_id, "فرمان‌ها: /batch برای شروع و /done برای پایان.")
 
 def main():
-    state = load_state()
-    updates = telegram(
-        "getUpdates",
-        offset=state["offset"] + 1,
-        timeout=5,
-        allowed_updates=json.dumps(["message"]),
-    )
-    for update in updates:
-        state["offset"] = max(state["offset"], update["update_id"])
-        message = update.get("message")
-        if message:
-            try:
-                handle(message, state)
-            except Exception as exc:
-                chat_id = str(message.get("chat", {}).get("id", ""))
-                if chat_id == ADMIN_CHAT_ID:
-                    reply(chat_id, f"خطا: {str(exc)[:250]}")
-    save_state(state)
+    if not CHAT_ID:
+        raise ValueError("BATCH_CHAT_ID is missing; this workflow must be triggered by the photo webhook.")
+    try:
+        file_ids = json.loads(RAW_FILE_IDS)
+    except json.JSONDecodeError as exc:
+        raise ValueError("BATCH_FILE_IDS is not valid JSON.") from exc
+
+    if not isinstance(file_ids, list) or not file_ids:
+        raise ValueError("No photo file IDs were supplied to this workflow.")
+    if len(file_ids) > MAX_BATCH:
+        raise ValueError(f"Batch contains {len(file_ids)} photos; maximum is {MAX_BATCH}.")
+    if not all(isinstance(item, str) and item for item in file_ids):
+        raise ValueError("One or more Telegram file IDs are invalid.")
+
+    reply(CHAT_ID, f"{len(file_ids)} عکس دریافت شد. پردازش را شروع می‌کنم…")
+    finish_batch(CHAT_ID, file_ids)
+
 
 if __name__ == "__main__":
     main()
