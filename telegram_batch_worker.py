@@ -16,7 +16,7 @@ import requests
 from PIL import Image
 from image_processor import process_image
 
-BOT_TOKEN = os.environ["BOT_TOKEN"]
+BOT_TOKEN = os.environ["PHOTO_BOT_TOKEN"]
 GIST_ID = os.environ["GIST_ID"]
 GIST_TOKEN = os.environ["GIST_TOKEN"]
 ADMIN_CHAT_ID = str(os.environ["ADMIN_CHAT_ID"])
