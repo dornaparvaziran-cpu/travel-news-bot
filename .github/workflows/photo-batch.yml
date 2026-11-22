@@ -1,8 +1,8 @@
 name: Dorna Telegram Photo Batch
 
 on:
-  schedule:
-    - cron: "2-59/5 * * * *"
+  repository_dispatch:
+    types: [dorna_photo_batch]
   workflow_dispatch:
 
 concurrency:
@@ -10,9 +10,9 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  poll-and-process:
+  process-batch:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -20,12 +20,11 @@ jobs:
           python-version: "3.11"
       - name: Install image dependencies
         run: pip install Pillow requests
-      - name: Poll Telegram and process batches
+      - name: Process Telegram photo batch
         env:
           PHOTO_BOT_TOKEN: ${{ secrets.PHOTO_BOT_TOKEN }}
-          GIST_ID: ${{ secrets.GIST_ID }}
-          GIST_TOKEN: ${{ secrets.GIST_TOKEN }}
-          ADMIN_CHAT_ID: ${{ secrets.ADMIN_CHAT_ID }}
+          BATCH_FILE_IDS: ${{ toJSON(github.event.client_payload.file_ids) }}
+          BATCH_CHAT_ID: ${{ github.event.client_payload.chat_id }}
           MAX_BATCH: "30"
           WEBP_QUALITY: "85"
         run: python telegram_batch_worker.py
