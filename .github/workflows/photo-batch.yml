@@ -22,7 +22,7 @@ jobs:
         run: pip install Pillow requests
       - name: Poll Telegram and process batches
         env:
-          BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
+          PHOTO_BOT_TOKEN: ${{ secrets.PHOTO_BOT_TOKEN }}
           GIST_ID: ${{ secrets.GIST_ID }}
           GIST_TOKEN: ${{ secrets.GIST_TOKEN }}
           ADMIN_CHAT_ID: ${{ secrets.ADMIN_CHAT_ID }}
