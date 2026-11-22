@@ -94,7 +94,9 @@ def finish_batch(chat_id: str, file_ids: list[str]):
             except Exception as exc:
                 report["failed"].append(f"{index}: {str(exc)[:160]}")
         if not report["processed"]:
-            reply(chat_id, "هیچ عکسی پردازش نشد. تصاویر را دوباره ارسال کنید.")
+            details = "\n".join(report["failed"][:15]) or "علت خطا ثبت نشده است."
+            print("All photos failed:\n" + details)
+            reply(chat_id, "هیچ عکسی پردازش نشد. علت خطا برای هر عکس:\n" + details)
             return
         archive = io.BytesIO()
         with zipfile.ZipFile(archive, "w", zipfile.ZIP_DEFLATED) as bundle:
