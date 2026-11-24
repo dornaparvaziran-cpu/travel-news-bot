@@ -67,19 +67,31 @@ def download_frame(destination: Path) -> Path:
         )
 
     try:
-        with Image.open(io.BytesIO(data)) as frame:
-            if frame.format != "PNG":
+        with Image.open(io.BytesIO(data)) as source_frame:
+            if source_frame.format != "PNG":
                 raise ValueError("فرمت فایل قاب PNG نیست.")
-            if frame.size != FRAME_SIZE:
-                raise ValueError(
-                    f"ابعاد قاب باید ۷۵۰×۴۵۰ باشد؛ ابعاد دریافت‌شده {frame.width}×{frame.height} است."
-                )
-            frame.verify()
+            source_frame.verify()
+
+        # Keep the complete frame visible: resize proportionally and place it
+        # centered on a transparent 750x450 canvas (no crop or distortion).
+        with Image.open(io.BytesIO(data)) as source_frame:
+            frame = source_frame.convert("RGBA")
+            original_size = frame.size
+            frame.thumbnail(FRAME_SIZE, Image.Resampling.LANCZOS)
+            canvas = Image.new("RGBA", FRAME_SIZE, (0, 0, 0, 0))
+            x = (FRAME_SIZE[0] - frame.width) // 2
+            y = (FRAME_SIZE[1] - frame.height) // 2
+            canvas.alpha_composite(frame, (x, y))
+            canvas.save(destination, format="PNG", optimize=True)
     except Exception as exc:
         raise ValueError(f"فایل قاب PNG خراب یا غیرقابل‌خواندن است: {exc}") from exc
 
-    destination.write_bytes(data)
-    print(f"Frame downloaded and validated: {len(data)} bytes, {FRAME_SIZE[0]}x{FRAME_SIZE[1]}")
+    print(
+        f"Frame downloaded and fitted without cropping: "
+        f"{original_size[0]}x{original_size[1]} -> "
+        f"{FRAME_SIZE[0]}x{FRAME_SIZE[1]}"
+    )
+    return destination
     return destination
 
 
