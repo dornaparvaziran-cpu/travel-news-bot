@@ -4,6 +4,15 @@ on:
   repository_dispatch:
     types: [dorna_photo_batch]
   workflow_dispatch:
+    inputs:
+      chat_id:
+        description: Telegram chat ID for the batch
+        required: true
+        type: string
+      file_ids:
+        description: JSON array of Telegram photo file IDs
+        required: true
+        type: string
 
 concurrency:
   group: dorna-telegram-photo-batch
@@ -23,8 +32,8 @@ jobs:
       - name: Process Telegram photo batch
         env:
           PHOTO_BOT_TOKEN: ${{ secrets.PHOTO_BOT_TOKEN }}
-          BATCH_FILE_IDS: ${{ toJSON(github.event.client_payload.file_ids) }}
-          BATCH_CHAT_ID: ${{ github.event.client_payload.chat_id }}
+          BATCH_FILE_IDS: ${{ github.event_name == 'workflow_dispatch' && inputs.file_ids || toJSON(github.event.client_payload.file_ids) }}
+          BATCH_CHAT_ID: ${{ github.event_name == 'workflow_dispatch' && inputs.chat_id || github.event.client_payload.chat_id }}
           MAX_BATCH: "30"
           WEBP_QUALITY: "85"
         run: python telegram_batch_worker.py
