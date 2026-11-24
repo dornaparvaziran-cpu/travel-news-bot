@@ -92,7 +92,6 @@ def download_frame(destination: Path) -> Path:
         f"{FRAME_SIZE[0]}x{FRAME_SIZE[1]}"
     )
     return destination
-    return destination
 
 
 def get_photo_bytes(file_id: str) -> bytes:
