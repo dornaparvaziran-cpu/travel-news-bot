@@ -32,6 +32,7 @@ jobs:
       - name: Process Telegram photo batch
         env:
           PHOTO_BOT_TOKEN: ${{ secrets.PHOTO_BOT_TOKEN }}
+          FRAME_URL: ${{ vars.FRAME_URL }}
           BATCH_FILE_IDS: ${{ github.event_name == 'workflow_dispatch' && inputs.file_ids || toJSON(github.event.client_payload.file_ids) }}
           BATCH_CHAT_ID: ${{ github.event_name == 'workflow_dispatch' && inputs.chat_id || github.event.client_payload.chat_id }}
           MAX_BATCH: "30"
