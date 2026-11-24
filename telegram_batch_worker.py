@@ -2,6 +2,8 @@
 
 The Cloudflare Worker collects Telegram file_ids and dispatches this workflow
 only after the admin sends /done. Image processing remains on GitHub Actions.
+The transparent frame is downloaded from FRAME_URL for each workflow run, so
+replacing the image at that URL does not require changing this code.
 """
 from __future__ import annotations
 
@@ -13,15 +15,18 @@ import zipfile
 from pathlib import Path
 
 import requests
+from PIL import Image
 from image_processor import process_image
 
 BOT_TOKEN = os.environ["PHOTO_BOT_TOKEN"]
 CHAT_ID = str(os.getenv("BATCH_CHAT_ID", "")).strip()
 RAW_FILE_IDS = os.getenv("BATCH_FILE_IDS", "[]")
+FRAME_URL = str(os.getenv("FRAME_URL", "")).strip()
 MAX_BATCH = int(os.getenv("MAX_BATCH", "30"))
 MAX_FILE_BYTES = 15 * 1024 * 1024
+MAX_FRAME_BYTES = 20 * 1024 * 1024
 QUALITY = int(os.getenv("WEBP_QUALITY", "85"))
-FRAME = Path("assets/dorna_frame.png")
+FRAME_SIZE = (750, 450)
 TG = f"https://api.telegram.org/bot{BOT_TOKEN}"
 
 
@@ -38,6 +43,46 @@ def reply(chat_id: str, text: str):
     telegram("sendMessage", chat_id=chat_id, text=text)
 
 
+def download_frame(destination: Path) -> Path:
+    """Download and validate the current transparent PNG frame."""
+    if not FRAME_URL:
+        raise ValueError("متغیر FRAME_URL در GitHub Actions تعریف نشده است.")
+
+    response = requests.get(
+        FRAME_URL,
+        headers={"Cache-Control": "no-cache", "Pragma": "no-cache"},
+        timeout=45,
+    )
+    response.raise_for_status()
+    data = response.content
+
+    if not data:
+        raise ValueError("فایل قاب از آدرس FRAME_URL خالی دریافت شد.")
+    if len(data) > MAX_FRAME_BYTES:
+        raise ValueError("حجم فایل قاب بیشتر از ۲۰ مگابایت است.")
+    if not data.startswith(b"\x89PNG\r\n\x1a\n"):
+        content_type = response.headers.get("Content-Type", "نامشخص")
+        raise ValueError(
+            f"آدرس FRAME_URL فایل PNG معتبر برنگرداند (Content-Type: {content_type})."
+        )
+
+    try:
+        with Image.open(io.BytesIO(data)) as frame:
+            if frame.format != "PNG":
+                raise ValueError("فرمت فایل قاب PNG نیست.")
+            if frame.size != FRAME_SIZE:
+                raise ValueError(
+                    f"ابعاد قاب باید ۷۵۰×۴۵۰ باشد؛ ابعاد دریافت‌شده {frame.width}×{frame.height} است."
+                )
+            frame.verify()
+    except Exception as exc:
+        raise ValueError(f"فایل قاب PNG خراب یا غیرقابل‌خواندن است: {exc}") from exc
+
+    destination.write_bytes(data)
+    print(f"Frame downloaded and validated: {len(data)} bytes, {FRAME_SIZE[0]}x{FRAME_SIZE[1]}")
+    return destination
+
+
 def get_photo_bytes(file_id: str) -> bytes:
     info = telegram("getFile", file_id=file_id)
     response = requests.get(
@@ -52,14 +97,22 @@ def get_photo_bytes(file_id: str) -> bytes:
 
 
 def finish_batch(chat_id: str, file_ids: list[str]):
-    if not FRAME.is_file():
-        raise FileNotFoundError(f"قاب در مسیر {FRAME} پیدا نشد.")
     with tempfile.TemporaryDirectory(prefix="dorna-batch-") as folder:
         root = Path(folder)
         input_dir = root / "input"
         output_dir = root / "output"
         input_dir.mkdir()
         output_dir.mkdir()
+
+        frame_path = root / "dorna_frame.png"
+        try:
+            download_frame(frame_path)
+        except Exception as exc:
+            message = f"قاب دریافت یا تأیید نشد؛ پردازش عکس‌ها انجام نشد.\nعلت: {str(exc)[:500]}"
+            print("FRAME_DOWNLOAD_ERROR:", str(exc))
+            reply(chat_id, message)
+            return
+
         report = {"processed": [], "failed": []}
         for index, file_id in enumerate(file_ids, 1):
             try:
@@ -67,7 +120,7 @@ def finish_batch(chat_id: str, file_ids: list[str]):
                 source = input_dir / f"photo_{index:03d}.jpg"
                 source.write_bytes(raw)
                 target = output_dir / f"dorna_{index:03d}.webp"
-                process_image(source, FRAME, target, quality=QUALITY)
+                process_image(source, frame_path, target, quality=QUALITY)
                 report["processed"].append(target.name)
             except Exception as exc:
                 report["failed"].append(f"{index}: {str(exc)[:160]}")
