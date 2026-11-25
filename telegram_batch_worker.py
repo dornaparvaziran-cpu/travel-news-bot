@@ -1,26 +1,22 @@
-"""Process a photo batch submitted by the Cloudflare Telegram webhook.
-
-The Cloudflare Worker collects Telegram file_ids and dispatches this workflow
-only after the admin sends /done. Image processing remains on GitHub Actions.
-The transparent frame is downloaded from FRAME_URL for each workflow run, so
-replacing the image at that URL does not require changing this code.
-"""
+"""Process Telegram image batches and preserve uploaded document filenames."""
 from __future__ import annotations
 
 import io
 import json
 import os
+import re
 import tempfile
 import zipfile
 from pathlib import Path
 
 import requests
-from PIL import Image
+from PIL import Image, ImageOps
 from image_processor import process_image
 
 BOT_TOKEN = os.environ["PHOTO_BOT_TOKEN"]
 CHAT_ID = str(os.getenv("BATCH_CHAT_ID", "")).strip()
 RAW_FILE_IDS = os.getenv("BATCH_FILE_IDS", "[]")
+RAW_BATCH_FILES = os.getenv("BATCH_FILES", "[]")
 FRAME_URL = str(os.getenv("FRAME_URL", "")).strip()
 MAX_BATCH = int(os.getenv("MAX_BATCH", "30"))
 MAX_FILE_BYTES = 15 * 1024 * 1024
@@ -28,6 +24,14 @@ MAX_FRAME_BYTES = 20 * 1024 * 1024
 QUALITY = int(os.getenv("WEBP_QUALITY", "85"))
 FRAME_SIZE = (750, 450)
 TG = f"https://api.telegram.org/bot{BOT_TOKEN}"
+
+FORMAT_EXTENSIONS = {
+    "JPEG": ".jpg",
+    "PNG": ".png",
+    "WEBP": ".webp",
+    "BMP": ".bmp",
+    "TIFF": ".tiff",
+}
 
 
 def telegram(method: str, **data):
@@ -72,8 +76,6 @@ def download_frame(destination: Path) -> Path:
                 raise ValueError("فرمت فایل قاب PNG نیست.")
             source_frame.verify()
 
-        # Keep the complete frame visible: resize proportionally and place it
-        # centered on a transparent 750x450 canvas (no crop or distortion).
         with Image.open(io.BytesIO(data)) as source_frame:
             frame = source_frame.convert("RGBA")
             original_size = frame.size
@@ -94,7 +96,7 @@ def download_frame(destination: Path) -> Path:
     return destination
 
 
-def get_photo_bytes(file_id: str) -> bytes:
+def get_file_bytes(file_id: str) -> bytes:
     info = telegram("getFile", file_id=file_id)
     response = requests.get(
         f"https://api.telegram.org/file/bot{BOT_TOKEN}/{info['file_path']}",
@@ -102,12 +104,84 @@ def get_photo_bytes(file_id: str) -> bytes:
     )
     response.raise_for_status()
     data = response.content
+    if not data:
+        raise ValueError("فایل دریافتی از تلگرام خالی است.")
     if len(data) > MAX_FILE_BYTES:
         raise ValueError("حجم هر عکس نباید بیشتر از ۱۵ مگابایت باشد.")
     return data
 
 
-def finish_batch(chat_id: str, file_ids: list[str]):
+def safe_output_stem(filename: str | None, index: int) -> str:
+    """Strip paths and unsafe characters; never trust Telegram's filename as a path."""
+    raw = str(filename or "").replace("\\", "/").split("/")[-1]
+    stem = Path(raw).stem
+    cleaned = "".join(ch for ch in stem if ch.isalnum() or ch in ("-", "_", ".", " "))
+    cleaned = re.sub(r"\s+", "_", cleaned).strip(" ._-")
+    cleaned = cleaned[:100].rstrip(" ._-")
+    return cleaned or f"photo_{index:03d}"
+
+
+def parse_batch_files() -> list[dict[str, str | None]]:
+    """Read new filename-aware payload; fall back to the legacy file_ids array."""
+    try:
+        files = json.loads(RAW_BATCH_FILES or "[]")
+    except json.JSONDecodeError as exc:
+        raise ValueError("BATCH_FILES is not valid JSON.") from exc
+
+    if files:
+        if not isinstance(files, list):
+            raise ValueError("BATCH_FILES must be a JSON array.")
+        normalized = []
+        for item in files:
+            if not isinstance(item, dict):
+                raise ValueError("An item in BATCH_FILES is invalid.")
+            file_id = item.get("file_id")
+            filename = item.get("file_name")
+            if not isinstance(file_id, str) or not file_id:
+                raise ValueError("A Telegram file ID is missing or invalid.")
+            if filename is not None and not isinstance(filename, str):
+                filename = None
+            normalized.append({"file_id": file_id, "file_name": filename})
+        return normalized
+
+    try:
+        file_ids = json.loads(RAW_FILE_IDS)
+    except json.JSONDecodeError as exc:
+        raise ValueError("BATCH_FILE_IDS is not valid JSON.") from exc
+
+    if not isinstance(file_ids, list):
+        raise ValueError("BATCH_FILE_IDS must be a JSON array.")
+    if not all(isinstance(item, str) and item for item in file_ids):
+        raise ValueError("One or more Telegram file IDs are invalid.")
+    return [{"file_id": item, "file_name": None} for item in file_ids]
+
+
+def detect_image_extension(raw: bytes) -> str:
+    """Validate actual image content and derive a trusted extension from its format."""
+    try:
+        with Image.open(io.BytesIO(raw)) as image:
+            image_format = image.format
+            image.verify()
+    except Exception as exc:
+        raise ValueError(f"فایل ارسالی تصویر معتبر نیست: {exc}") from exc
+
+    extension = FORMAT_EXTENSIONS.get(str(image_format).upper())
+    if not extension:
+        raise ValueError(f"فرمت تصویر پشتیبانی نمی‌شود: {image_format}")
+    return extension
+
+
+def unique_output_path(output_dir: Path, stem: str, used: set[str]) -> Path:
+    candidate = stem
+    suffix = 2
+    while f"{candidate.casefold()}.webp" in used:
+        candidate = f"{stem}_{suffix}"
+        suffix += 1
+    used.add(f"{candidate.casefold()}.webp")
+    return output_dir / f"{candidate}.webp"
+
+
+def finish_batch(chat_id: str, files: list[dict[str, str | None]]):
     with tempfile.TemporaryDirectory(prefix="dorna-batch-") as folder:
         root = Path(folder)
         input_dir = root / "input"
@@ -125,12 +199,18 @@ def finish_batch(chat_id: str, file_ids: list[str]):
             return
 
         report = {"processed": [], "failed": []}
-        for index, file_id in enumerate(file_ids, 1):
+        used_names: set[str] = set()
+
+        for index, item in enumerate(files, 1):
             try:
-                raw = get_photo_bytes(file_id)
-                source = input_dir / f"photo_{index:03d}.jpg"
+                raw = get_file_bytes(str(item["file_id"]))
+                extension = detect_image_extension(raw)
+                stem = safe_output_stem(item.get("file_name"), index)
+
+                source = input_dir / f"source_{index:03d}{extension}"
                 source.write_bytes(raw)
-                target = output_dir / f"dorna_{index:03d}.webp"
+
+                target = unique_output_path(output_dir, stem, used_names)
                 process_image(source, frame_path, target, quality=QUALITY)
                 report["processed"].append(target.name)
             except Exception as exc:
@@ -168,20 +248,15 @@ def finish_batch(chat_id: str, file_ids: list[str]):
 def main():
     if not CHAT_ID:
         raise ValueError("BATCH_CHAT_ID is missing; this workflow must be triggered by the photo webhook.")
-    try:
-        file_ids = json.loads(RAW_FILE_IDS)
-    except json.JSONDecodeError as exc:
-        raise ValueError("BATCH_FILE_IDS is not valid JSON.") from exc
 
-    if not isinstance(file_ids, list) or not file_ids:
-        raise ValueError("No photo file IDs were supplied to this workflow.")
-    if len(file_ids) > MAX_BATCH:
-        raise ValueError(f"Batch contains {len(file_ids)} photos; maximum is {MAX_BATCH}.")
-    if not all(isinstance(item, str) and item for item in file_ids):
-        raise ValueError("One or more Telegram file IDs are invalid.")
+    files = parse_batch_files()
+    if not files:
+        raise ValueError("No photo files were supplied to this workflow.")
+    if len(files) > MAX_BATCH:
+        raise ValueError(f"Batch contains {len(files)} photos; maximum is {MAX_BATCH}.")
 
-    reply(CHAT_ID, f"{len(file_ids)} عکس دریافت شد. پردازش را شروع می‌کنم…")
-    finish_batch(CHAT_ID, file_ids)
+    reply(CHAT_ID, f"{len(files)} عکس دریافت شد. پردازش را شروع می‌کنم…")
+    finish_batch(CHAT_ID, files)
 
 
 if __name__ == "__main__":
