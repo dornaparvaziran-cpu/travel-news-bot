@@ -10,7 +10,7 @@ on:
         required: true
         type: string
       file_ids:
-        description: JSON array of Telegram photo file IDs
+        description: JSON array of Telegram photo file IDs (legacy/manual runs)
         required: true
         type: string
 
@@ -34,6 +34,7 @@ jobs:
           PHOTO_BOT_TOKEN: ${{ secrets.PHOTO_BOT_TOKEN }}
           FRAME_URL: ${{ vars.FRAME_URL }}
           BATCH_FILE_IDS: ${{ github.event_name == 'workflow_dispatch' && inputs.file_ids || toJSON(github.event.client_payload.file_ids) }}
+          BATCH_FILES: ${{ github.event_name == 'repository_dispatch' && toJSON(github.event.client_payload.files) || '[]' }}
           BATCH_CHAT_ID: ${{ github.event_name == 'workflow_dispatch' && inputs.chat_id || github.event.client_payload.chat_id }}
           MAX_BATCH: "30"
           WEBP_QUALITY: "85"
